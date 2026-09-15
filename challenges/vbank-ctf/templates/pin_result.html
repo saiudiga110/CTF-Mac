@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Vault Result{% endblock %}
+{% block page_title %}Vault Access Result{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                {% if success %}
+                <i class="fas fa-check-circle text-success mb-3" style="font-size:3rem;"></i>
+                <h4 class="text-success">PIN Verified Successfully</h4>
+                <p class="text-muted mb-4" style="font-size:0.84rem;">Vault access granted. Credential token retrieved.</p>
+                <div class="alert alert-system">
+                    <strong>Vault Credential Token:</strong><br>
+                    <code style="font-size:0.95rem;">{{ flag }}</code>
+                </div>
+                {% else %}
+                <i class="fas fa-times-circle text-danger mb-3" style="font-size:3rem;"></i>
+                <h4 class="text-danger">Incorrect PIN</h4>
+                <p class="text-muted mb-4" style="font-size:0.84rem;">The PIN you entered is incorrect. Extract the PIN from the credit application system.</p>
+                <a href="/banking/secure/vault" class="btn btn-primary btn-sm">Try Again</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

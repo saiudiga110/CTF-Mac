@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}System Maintenance{% endblock %}
+{% block page_title %}System Maintenance Console{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-9">
+        <div class="alert alert-internal mb-3" style="font-size:0.82rem;">
+            <strong><i class="fas fa-exclamation-triangle me-2"></i>INTERNAL TOOL — DevOps Access Only</strong><br>
+            This maintenance console is intended for authorised DevOps personnel only.
+            Remote command execution is enabled for emergency system diagnostics.
+            <strong>This endpoint must be disabled before production deployment (DevOps ticket #4421).</strong>
+        </div>
+
+        <div class="card">
+            <div class="card-header" style="background:#0f1923; color:#a8d8a8; border-radius: 10px 10px 0 0 !important;">
+                <i class="fas fa-terminal me-2"></i>
+                vBank Remote Execution Shell &nbsp;
+                <span style="font-size:0.65rem; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px; color:#fbbf24;">STAGING ONLY</span>
+            </div>
+            <div class="card-body" style="background:#0f1923; border-radius:0 0 10px 10px;">
+                <div class="terminal mb-3">
+                    <span style="color:#63b3ff;">root@vbank-portal-01</span>:<span style="color:#a8d8a8;">~#</span> {% if cmd %}<span style="color:#fff;">{{ cmd }}</span>{% endif %}
+{% if output %}
+{{ output }}{% else %}<span style="color:#475569;">// Enter a command below and click Execute</span>{% endif %}
+                </div>
+                <form method="POST">
+                    <div class="input-group">
+                        <span class="input-group-text" style="background:#1a2d3e; border-color:#1e3a5f; color:#63b3ff; font-family:monospace;">$</span>
+                        <input type="text" name="cmd" class="form-control" value="{{ cmd }}"
+                            placeholder="e.g.  id  |  whoami  |  cat /root/flag.txt"
+                            style="background:#1a2d3e; border-color:#1e3a5f; color:#e2e8f0; font-family:monospace;"
+                            autocomplete="off">
+                        <button type="submit" class="btn btn-primary">Execute</button>
+                    </div>
+                    <div class="mt-2" style="font-size:0.72rem; color:#475569;">
+                        Session user: <strong style="color:#63b3ff;">{{ session.get('login_user') }}</strong> &nbsp;|&nbsp;
+                        Host: <strong style="color:#63b3ff;">vbank-portal-01.internal</strong> &nbsp;|&nbsp;
+                        Timeout: 10s
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>Quick Commands</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0" style="font-size:0.78rem;">
+                    <tr><td class="ps-3 py-2"><code>id</code></td><td class="text-muted">Current user</td></tr>
+                    <tr><td class="ps-3 py-2"><code>whoami</code></td><td class="text-muted">Username</td></tr>
+                    <tr><td class="ps-3 py-2"><code>ls /root</code></td><td class="text-muted">Root directory</td></tr>
+                    <tr><td class="ps-3 py-2"><code>env</code></td><td class="text-muted">Environment</td></tr>
+                    <tr><td class="ps-3 py-2"><code>ps aux</code></td><td class="text-muted">Processes</td></tr>
+                    <tr><td class="ps-3 py-2"><code>netstat -tlnp</code></td><td class="text-muted">Ports</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-history"></i></div>Dev Notes</div>
+            <div class="card-body" style="font-size:0.75rem; color:#64748b; line-height:1.7;">
+                <p><strong>Added by:</strong> Jake Thompson (DevOps Contractor)</p>
+                <p><strong>Purpose:</strong> Emergency remote diagnostics during UAT phase</p>
+                <p class="mb-0 text-danger"><strong>Status:</strong> MUST disable before go-live — ticket #4421 open</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+{% block title %}Mission Dashboard — {{ Configs.ctf_name }}{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --md-green:   #39FF14;
+  --md-green2:  #006341;
+  --md-bg:      #050505;
+  --md-card:    rgba(13,18,15,0.88);
+  --md-border:  rgba(0,99,65,0.28);
+  --md-dim:     #8a9e94;
+  --md-muted:   #3a4e42;
+  --mono:       'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+
+.md-page { padding: 0; }
+
+.md-header {
+  background: linear-gradient(135deg, rgba(0,99,65,0.12), rgba(57,255,20,0.04));
+  border-bottom: 1px solid var(--md-border);
+  padding: 24px 32px 18px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.md-header h1 {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  color: var(--md-green);
+  margin: 0;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(57,255,20,0.35);
+}
+.md-header h1::after { display: none !important; }
+.md-header p { color: var(--md-dim); font-size: .82rem; margin: 4px 0 0; }
+
+.md-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 0 32px 24px;
+}
+.md-grid-full { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .md-grid { grid-template-columns: 1fr; padding: 0 16px 24px; }
+  .md-header { padding: 18px 16px 14px; }
+}
+
+/* Cards */
+.md-card {
+  background: var(--md-card);
+  border: 1px solid var(--md-border);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+.md-card-header {
+  background: rgba(0,99,65,0.1);
+  border-bottom: 1px solid var(--md-border);
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.md-card-header .title {
+  font-family: var(--mono);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #b0c8bc;
+}
+.md-card-header .title i { color: var(--md-green2); margin-right: 7px; }
+.md-card-body { padding: 16px; }
+
+/* Container status */
+.ctr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,99,65,0.1);
+}
+.ctr-row:last-child { border-bottom: none; padding-bottom: 0; }
+.status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-running  { background: var(--md-green);  box-shadow: 0 0 7px rgba(57,255,20,0.6); }
+.status-exited   { background: #ff4444; }
+.status-not_found{ background: var(--md-muted); }
+.status-other    { background: #ffaa00; }
+
+.ctr-info { flex: 1; min-width: 0; }
+.ctr-name { font-family: var(--mono); font-size: .78rem; color: #c9d1d9; font-weight: 600; }
+.ctr-url  { font-family: var(--mono); font-size: .71rem; color: var(--md-dim); margin-top: 2px; word-break: break-all; }
+.ctr-url a { color: #64b4ff !important; text-decoration: none; }
+.ctr-url a:hover { color: var(--md-green) !important; }
+.ctr-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.ctr-tag {
+  font-family: var(--mono); font-size: .63rem;
+  padding: 2px 7px; border-radius: 3px;
+  background: rgba(0,99,65,0.15); color: var(--md-dim);
+  border: 1px solid rgba(0,99,65,0.2);
+}
+.ctr-actions { display: flex; gap: 6px; }
+.btn-sm-launch, .btn-sm-repair {
+  font-family: var(--mono); font-size: .68rem; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 4px; cursor: pointer;
+  border: 1px solid; transition: all .22s;
+}
+.btn-sm-launch {
+  background: rgba(0,99,65,0.15); color: var(--md-green);
+  border-color: rgba(57,255,20,0.35);
+}
+.btn-sm-launch:hover { background: rgba(0,99,65,0.3); box-shadow: 0 0 10px rgba(57,255,20,0.2); }
+.btn-sm-repair {
+  background: rgba(255,170,0,0.1); color: #ffaa00;
+  border-color: rgba(255,170,0,0.35);
+}
+.btn-sm-repair:hover { background: rgba(255,170,0,0.22); }
+
+/* Timer */
+.ctr-timer { font-family: var(--mono); font-size: .72rem; color: var(--md-dim); }
+.ctr-timer.warn { color: #ffaa00; }
+.ctr-timer.crit { color: #ff6b6b; animation: lc-flicker 1.2s infinite; }
+@keyframes lc-flicker { 0%,100%{opacity:1}50%{opacity:.55} }
+
+/* Progress */
+.prog-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.prog-nums { font-family: var(--mono); font-size: .72rem; color: var(--md-dim); }
+.prog-bar-wrap {
+  flex: 1; height: 7px;
+  background: rgba(0,99,65,0.12);
+  border-radius: 3px; overflow: hidden;
+  margin: 0 10px;
+}
+.prog-bar {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--md-green2), var(--md-green));
+  transition: width .4s ease;
+}
+.prog-bar.team { background: linear-gradient(90deg, #005fa3, #64b4ff); }
+
+/* Category breakdown */
+.cat-row {
+  display: flex; align-items: center;
+  gap: 8px; padding: 7px 0;
+  border-bottom: 1px solid rgba(0,99,65,0.08);
+  font-size: .78rem;
+}
+.cat-row:last-child { border-bottom: none; }
+.cat-name { min-width: 120px; color: #c9d1d9; font-weight: 500; }
+.cat-bar-wrap { flex: 1; height: 5px; background: rgba(0,99,65,0.1); border-radius: 2px; overflow: hidden; }
+.cat-bar { height: 100%; border-radius: 2px; background: var(--md-green2); transition: width .4s; }
+.cat-bar.me { background: var(--md-green); }
+.cat-counts { font-family: var(--mono); font-size: .65rem; color: var(--md-dim); min-width: 56px; text-align: right; }
+
+/* Challenge list */
+.chal-list { max-height: 320px; overflow-y: auto; }
+.chal-item {
+  display: flex; align-items: center;
+  gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid rgba(0,99,65,0.07);
+  font-size: .78rem;
+}
+.chal-item:last-child { border-bottom: none; }
+.chal-flag { font-size: .7rem; min-width: 16px; text-align: center; }
+.chal-flag.solved-me   { color: var(--md-green); }
+.chal-flag.solved-team { color: #64b4ff; }
+.chal-flag.unsolved    { color: var(--md-muted); }
+.chal-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9d1d9; }
+.chal-cat  { font-family: var(--mono); font-size: .62rem; color: var(--md-dim); }
+.chal-pts  { font-family: var(--mono); font-size: .68rem; color: var(--md-dim); min-width: 40px; text-align: right; }
+
+/* Feed / timeline */
+.feed-list { max-height: 340px; overflow-y: auto; }
+.feed-item {
+  display: flex; gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(0,99,65,0.07);
+  font-size: .78rem;
+}
+.feed-item:last-child { border-bottom: none; }
+.feed-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; flex-shrink: 0;
+  margin-top: 2px;
+}
+.feed-icon.solve  { background: rgba(57,255,20,0.12);  color: var(--md-green); }
+.feed-icon.hint   { background: rgba(255,170,0,0.12);   color: #ffaa00; }
+.feed-icon.attempt-ok  { background: rgba(57,255,20,0.12); color: var(--md-green); }
+.feed-icon.attempt-bad { background: rgba(255,68,68,0.12);  color: #ff6b6b; }
+.feed-body { flex: 1; }
+.feed-main { color: #c9d1d9; }
+.feed-main strong { color: var(--md-green); }
+.feed-sub { color: var(--md-dim); font-size: .7rem; margin-top: 2px; }
+.feed-ts  { color: var(--md-muted); font-family: var(--mono); font-size: .63rem; min-width: 52px; text-align: right; }
+
+/* Hint rows */
+.hint-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid rgba(0,99,65,0.07);
+  font-size: .78rem;
+}
+.hint-row:last-child { border-bottom: none; }
+.hint-row .challenge { flex: 1; color: #c9d1d9; }
+.hint-row .cost { font-family: var(--mono); font-size: .68rem; color: #ffaa00; min-width: 44px; text-align: right; }
+.hint-row .ts { font-family: var(--mono); font-size: .63rem; color: var(--md-muted); min-width: 52px; text-align: right; }
+
+.empty-msg { text-align: center; padding: 28px 0; color: var(--md-muted); font-size: .82rem; }
+.loading-msg { text-align: center; padding: 28px 0; color: var(--md-dim); font-size: .82rem; font-family: var(--mono); }
+
+.badge-me   { background: rgba(57,255,20,0.15); color: var(--md-green); border: 1px solid rgba(57,255,20,0.3); font-family: var(--mono); font-size: .6rem; padding: 1px 6px; border-radius: 3px; }
+.badge-team { background: rgba(100,180,255,0.15); color: #64b4ff; border: 1px solid rgba(100,180,255,0.3); font-family: var(--mono); font-size: .6rem; padding: 1px 6px; border-radius: 3px; }
+
+/* Summary numbers */
+.summary-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.summary-card {
+  background: rgba(0,99,65,0.08);
+  border: 1px solid var(--md-border);
+  border-radius: 6px; padding: 12px 18px;
+  min-width: 100px; flex: 1; text-align: center;
+}
+.summary-card .val { font-family: var(--mono); font-size: 1.55rem; color: var(--md-green); font-weight: 700; }
+.summary-card .lbl { font-size: .65rem; color: var(--md-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+
+/* Filter pills */
+.filter-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.filter-pill {
+  font-family: var(--mono); font-size: .65rem; padding: 3px 10px;
+  border-radius: 12px; cursor: pointer; border: 1px solid var(--md-border);
+  background: transparent; color: var(--md-dim); transition: all .2s;
+}
+.filter-pill.active, .filter-pill:hover {
+  background: rgba(0,99,65,0.18); color: var(--md-green);
+  border-color: rgba(57,255,20,0.35);
+}
+
+/* Repair toast */
+#repair-toast {
+  position: fixed; bottom: 22px; right: 22px;
+  background: rgba(13,18,15,0.95); border: 1px solid var(--md-border);
+  border-radius: 6px; padding: 10px 18px;
+  font-family: var(--mono); font-size: .78rem; color: var(--md-green);
+  z-index: 9999; display: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+</style>
+
+<div class="md-page">
+  <div class="md-header">
+    <div>
+      <h1><i class="fas fa-satellite-dish" style="margin-right:10px;color:#39FF14"></i>Mission Dashboard</h1>
+      <p>Your personal ops centre — containers, progress, hints, and team activity.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span id="last-refresh" style="font-family:var(--mono);font-size:.68rem;color:var(--md-muted)"></span>
+      <button onclick="load()" class="btn-sm-launch" style="padding:6px 14px;">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="md-grid">
+
+    <!-- ── Containers ────────────────────────────────────────────────── -->
+    <div class="md-card">
+      <div class="md-card-header">
+        <span class="title"><i class="fas fa-server"></i>Instances</span>
+        <span id="ctr-countdown" class="ctr-timer"></span>
+      </div>
+      <div class="md-card-body" id="ctr-body">
+        <div class="loading-msg"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Overall progress ──────────────────────────────────────────── -->
+    <div class="md-card">
+      <div class="md-card-header">
+        <span class="title"><i class="fas fa-chart-pie"></i>Progress</span>
+        <span id="prog-label" style="font-family:var(--mono);font-size:.68rem;color:var(--md-dim)"></span>
+      </div>
+      <div class="md-card-body" id="prog-body">
+        <div class="loading-msg"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Challenge list ────────────────────────────────────────────── -->
+    <div class="md-card md-grid-full">
+      <div class="md-card-header">
+        <span class="title"><i class="fas fa-flag"></i>Challenges</span>
+        <div class="filter-pills" id="cat-filters"></div>
+      </div>
+      <div class="md-card-body" style="padding:12px 16px;">
+        <div class="chal-list" id="chal-list">
+          <div class="loading-msg"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Hints used ────────────────────────────────────────────────── -->
+    <div class="md-card">
+      <div class="md-card-header">
+        <span class="title"><i class="fas fa-lightbulb"></i>Hints Used</span>
+      </div>
+      <div class="md-card-body" id="hint-body">
+        <div class="loading-msg"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Team activity ─────────────────────────────────────────────── -->
+    <div class="md-card">
+      <div class="md-card-header">
+        <span class="title"><i class="fas fa-users"></i>Team Activity</span>
+        <a href="/api/mission/team-feed" style="font-family:var(--mono);font-size:.65rem;color:var(--md-dim);text-decoration:none;">
+          Full feed →
+        </a>
+      </div>
+      <div class="md-card-body" id="activity-body">
+        <div class="loading-msg"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="repair-toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var state = null;
+  var activeFilter = 'all';
+  var timerInterval = null;
+
+  // ── fetch data ─────────────────────────────────────────────────────────────
+  function load() {
+    document.getElementById('last-refresh').textContent = 'Refreshing…';
+    fetch('/api/mission/dashboard/data', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        state = d;
+        renderContainers(d);
+        renderProgress(d);
+        renderChallenges(d);
+        renderHints(d);
+        renderActivity(d);
+        document.getElementById('last-refresh').textContent =
+          'Updated ' + new Date().toLocaleTimeString();
+      })
+      .catch(function (e) {
+        document.getElementById('last-refresh').textContent = 'Error: ' + e.message;
+      });
+  }
+
+  // ── containers ────────────────────────────────────────────────────────────
+  function renderContainers(d) {
+    var target = d.target;
+    var kali   = d.kali;
+    var html   = '';
+
+    html += renderCtrRow(target, 'vBank Target', 'fa-crosshairs', 'target');
+    html += renderCtrRow(kali,   'Kali / Parrot', 'fa-terminal',  'kali');
+
+    document.getElementById('ctr-body').innerHTML = html;
+
+    // wire repair buttons
+    document.querySelectorAll('[data-repair]').forEach(function (btn) {
+      btn.addEventListener('click', function () { repairContainer(this.dataset.repair); });
+    });
+
+    // start countdown for whichever is running
+    startCountdown(target, kali);
+  }
+
+  function renderCtrRow(ctr, label, icon, role) {
+    var isRunning  = ctr.status === 'running';
+    var isNotFound = ctr.status === 'not_found';
+    var dotClass   = isRunning ? 'status-running' : (isNotFound ? 'status-not_found' : 'status-exited');
+    var statusText = isRunning ? 'running' : (isNotFound ? 'not started' : ctr.status);
+    var urlHtml    = ctr.url ? '<a href="' + ctr.url + '" target="_blank">' + ctr.url + '</a>' : '—';
+
+    var timerHtml = '';
+    if (isRunning && ctr.remaining_sec > 0) {
+      timerHtml = '<span class="ctr-tag" id="timer-' + role + '" data-expires="' + ctr.expires_at + '">—</span>';
+    }
+
+    var repairBtn = '';
+    if (!isRunning && !isNotFound) {
+      repairBtn = '<button class="btn-sm-repair" data-repair="' + role + '" title="Remove crashed container so you can relaunch">&#9889; Repair</button>';
+    }
+
+    return '<div class="ctr-row">' +
+      '<div class="status-dot ' + dotClass + '"></div>' +
+      '<div class="ctr-info">' +
+        '<div class="ctr-name"><i class="fas ' + icon + '" style="margin-right:6px;color:#006341"></i>' + label + '</div>' +
+        '<div class="ctr-url">' + urlHtml + '</div>' +
+        '<div class="ctr-meta">' +
+          '<span class="ctr-tag">' + statusText + '</span>' +
+          (ctr.restart_count > 0 ? '<span class="ctr-tag" style="color:#ffaa00">restarts: ' + ctr.restart_count + '</span>' : '') +
+          timerHtml +
+        '</div>' +
+      '</div>' +
+      '<div class="ctr-actions">' + repairBtn + '</div>' +
+    '</div>';
+  }
+
+  function startCountdown(target, kali) {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(function () {
+      updateTimer('target', target.expires_at);
+      updateTimer('kali',   kali.expires_at);
+    }, 1000);
+  }
+
+  function updateTimer(role, expiresAt) {
+    var el = document.getElementById('timer-' + role);
+    if (!el || !expiresAt) return;
+    var rem = Math.max(0, Math.floor(expiresAt - Date.now() / 1000));
+    var h   = Math.floor(rem / 3600);
+    var m   = Math.floor((rem % 3600) / 60);
+    var s   = rem % 60;
+    el.textContent = (h ? h + 'h ' : '') + m + 'm ' + pad(s) + 's';
+    el.className   = 'ctr-tag' + (rem < 300 ? ' crit' : rem < 900 ? ' warn' : '');
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  // ── repair ────────────────────────────────────────────────────────────────
+  function repairContainer(role) {
+    showToast('Repairing ' + role + ' container…');
+    fetch('/api/mission/container/repair', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json',
+                 'CSRF-Token': (window.init && window.init.csrfNonce) || '' },
+      body: JSON.stringify({ role: role }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        showToast(d.message || (d.success ? 'Cleared.' : 'Error: ' + d.error));
+        if (d.success) setTimeout(load, 800);
+      })
+      .catch(function (e) { showToast('Request failed: ' + e.message); });
+  }
+
+  // ── progress ──────────────────────────────────────────────────────────────
+  function renderProgress(d) {
+    var p    = d.progress;
+    var pctMe   = p.total ? Math.round(p.solved / p.total * 100) : 0;
+    var pctTeam = p.total ? Math.round(p.team_solved / p.total * 100) : 0;
+
+    document.getElementById('prog-label').textContent =
+      p.solved + ' / ' + p.total + ' solved';
+
+    var html = '<div class="summary-row">' +
+      '<div class="summary-card"><div class="val">' + p.total + '</div><div class="lbl">Challenges</div></div>' +
+      '<div class="summary-card"><div class="val" style="color:#39FF14">' + p.solved + '</div><div class="lbl">My Solves</div></div>' +
+      '<div class="summary-card"><div class="val" style="color:#64b4ff">' + p.team_solved + '</div><div class="lbl">Team Solves</div></div>' +
+    '</div>';
+
+    html += '<div style="margin-bottom:6px">' +
+      '<div class="prog-row"><span style="font-size:.72rem;color:var(--md-dim)">Me</span>' +
+        '<div class="prog-bar-wrap"><div class="prog-bar" style="width:' + pctMe + '%"></div></div>' +
+        '<span class="prog-nums">' + pctMe + '%</span>' +
+      '</div>' +
+      '<div class="prog-row"><span style="font-size:.72rem;color:#64b4ff">Team</span>' +
+        '<div class="prog-bar-wrap"><div class="prog-bar team" style="width:' + pctTeam + '%"></div></div>' +
+        '<span class="prog-nums">' + pctTeam + '%</span>' +
+      '</div>' +
+    '</div>';
+
+    html += '<div>';
+    (p.categories || []).forEach(function (cat) {
+      var pMe   = cat.total ? Math.round(cat.solved_by_me   / cat.total * 100) : 0;
+      var pTeam = cat.total ? Math.round(cat.solved_by_team / cat.total * 100) : 0;
+      html += '<div class="cat-row">' +
+        '<span class="cat-name">' + esc(cat.name) + '</span>' +
+        '<div class="cat-bar-wrap"><div class="cat-bar' + (cat.solved_by_me > 0 ? ' me' : '') +
+          '" style="width:' + pMe + '%"></div></div>' +
+        '<span class="cat-counts">' + cat.solved_by_me + '/' + cat.total + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+
+    document.getElementById('prog-body').innerHTML = html;
+  }
+
+  // ── challenges ────────────────────────────────────────────────────────────
+  function renderChallenges(d) {
+    var chals = d.challenges || [];
+    var cats  = Array.from(new Set(chals.map(function (c) { return c.category; }))).sort();
+
+    // filter pills
+    var pillHtml = '<button class="filter-pill active" data-cat="all" onclick="setFilter(\'all\',this)">All</button>';
+    cats.forEach(function (cat) {
+      pillHtml += '<button class="filter-pill" data-cat="' + esc(cat) +
+        '" onclick="setFilter(\'' + esc(cat) + '\',this)">' + esc(cat) + '</button>';
+    });
+    document.getElementById('cat-filters').innerHTML = pillHtml;
+
+    renderChalList(chals);
+  }
+
+  function renderChalList(chals) {
+    var filtered = activeFilter === 'all'
+      ? chals
+      : chals.filter(function (c) { return c.category === activeFilter; });
+
+    if (!filtered.length) {
+      document.getElementById('chal-list').innerHTML = '<div class="empty-msg">No challenges.</div>';
+      return;
+    }
+
+    var html = '';
+    filtered.forEach(function (c) {
+      var flagClass = c.solved_by_me ? 'solved-me' : c.solved_by_team ? 'solved-team' : 'unsolved';
+      var flagIcon  = c.solved_by_me ? '&#9873;' : c.solved_by_team ? '&#9873;' : '○';
+      var badge     = c.solved_by_me ? '<span class="badge-me">me</span>' :
+                      c.solved_by_team ? '<span class="badge-team">team</span>' : '';
+      html += '<div class="chal-item">' +
+        '<span class="chal-flag ' + flagClass + '">' + flagIcon + '</span>' +
+        '<span class="chal-name">' + esc(c.name) + ' ' + badge + '</span>' +
+        '<span class="chal-cat">' + esc(c.category) + '</span>' +
+        '<span class="chal-pts">' + c.value + 'pts</span>' +
+      '</div>';
+    });
+    document.getElementById('chal-list').innerHTML = html;
+  }
+
+  window.setFilter = function (cat, btn) {
+    activeFilter = cat;
+    document.querySelectorAll('.filter-pill').forEach(function (p) { p.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    if (state) renderChalList(state.challenges || []);
+  };
+
+  // ── hints ─────────────────────────────────────────────────────────────────
+  function renderHints(d) {
+    var hints = d.hints || [];
+    if (!hints.length) {
+      document.getElementById('hint-body').innerHTML = '<div class="empty-msg">No hints used yet.</div>';
+      return;
+    }
+    var html = '';
+    hints.forEach(function (h) {
+      html += '<div class="hint-row">' +
+        '<span class="challenge">' + esc(h.challenge) + '</span>' +
+        '<span class="cost">-' + h.cost + 'pts</span>' +
+        '<span class="ts">' + relTime(h.ts) + '</span>' +
+      '</div>';
+    });
+    document.getElementById('hint-body').innerHTML = html;
+  }
+
+  // ── team activity ─────────────────────────────────────────────────────────
+  function renderActivity(d) {
+    var acts = d.team_activity || [];
+    if (!acts.length) {
+      document.getElementById('activity-body').innerHTML =
+        '<div class="empty-msg">No team activity yet.</div>';
+      return;
+    }
+    var html = '<div class="feed-list">';
+    acts.slice(0, 20).forEach(function (a) {
+      html += '<div class="feed-item">' +
+        '<div class="feed-icon solve"><i class="fas fa-flag"></i></div>' +
+        '<div class="feed-body">' +
+          '<div class="feed-main">' +
+            '<strong>' + esc(a.username) + '</strong> solved ' + esc(a.challenge) +
+            (a.by_me ? ' <span class="badge-me">you</span>' : '') +
+          '</div>' +
+          '<div class="feed-sub">' + esc(a.category) + ' · ' + a.value + 'pts</div>' +
+        '</div>' +
+        '<div class="feed-ts">' + relTime(a.ts) + '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+    document.getElementById('activity-body').innerHTML = html;
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function relTime(ts) {
+    if (!ts) return '—';
+    var diff = Math.floor(Date.now() / 1000 - ts);
+    if (diff < 60)    return diff + 's ago';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('repair-toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function () { t.style.display = 'none'; }, 3500);
+  }
+
+  // ── init ──────────────────────────────────────────────────────────────────
+  load();
+  // auto-refresh every 30s
+  setInterval(load, 30000);
+
+}());
+</script>
+{% endblock %}

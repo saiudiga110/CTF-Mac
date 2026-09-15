@@ -1,0 +1,726 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<div class="admin-wrap admin-wrap-wide">
+  <header class="admin-pagehead">
+    <div>
+      <h1 class="admin-title">Operations</h1>
+      <p class="admin-lead" id="ops-countdown">—</p>
+    </div>
+    <p class="admin-ready" id="ops-ready">Checking…</p>
+  </header>
+  <div id="ops-alert" class="alert admin-alert" role="alert"></div>
+
+  <div class="admin-stat-row">
+    <div class="admin-stat" id="stat-paused"><strong id="ops-paused">—</strong><span>CTF</span></div>
+    <div class="admin-stat" id="stat-reg"><strong id="ops-reg">—</strong><span>Registration</span></div>
+    <div class="admin-stat"><strong id="ops-inst">—</strong><span>Instances</span></div>
+    <div class="admin-stat"><strong id="ops-users">—</strong><span>Players</span></div>
+  </div>
+
+  <div class="admin-join">
+    <div>
+      <span class="admin-join-label">Join URL</span>
+      <code id="ops-join-url">—</code>
+    </div>
+    <div class="admin-join-actions">
+      <button type="button" class="btn btn-primary" id="btn-copy-join">Copy</button>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/briefing" target="_blank" rel="noopener">Print</a>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/briefing.txt">Text</a>
+      <a class="btn btn-outline-secondary" id="ops-board-link" href="/plugins/ctfd-target/board" target="_blank" rel="noopener">Projector</a>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/pack" target="_blank" rel="noopener">Player pack</a>
+    </div>
+  </div>
+
+  <div class="admin-ops-grid">
+    <div class="admin-card">
+      <h2>Today</h2>
+      <div class="admin-hero-actions">
+        <button type="button" class="btn btn-primary" id="btn-golive">Go live</button>
+        <button type="button" class="btn btn-outline-danger" id="btn-end-event">End event</button>
+      </div>
+      <p class="admin-hint" id="ops-prod">—</p>
+      <div class="admin-group">
+        <span>Launches</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-lock-launch">Lock</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-unlock-launch">Unlock</button>
+        </div>
+      </div>
+      <div class="admin-group">
+        <span>CTF</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-pause">Pause</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-resume">Resume</button>
+        </div>
+      </div>
+      <div class="admin-group">
+        <span>Sign-up</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-reg-on">Open</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-reg-off">Close</button>
+        </div>
+      </div>
+      <div class="admin-group">
+        <span>Scoreboard</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-freeze">Freeze</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-unfreeze">Unfreeze</button>
+        </div>
+      </div>
+      <p class="admin-hint mb-0">Scoreboard: <strong id="ops-frozen">—</strong></p>
+      <details class="admin-advanced">
+        <summary>Schedule</summary>
+        <div class="admin-field mt-3">
+          <label for="ops-start">Start</label>
+          <input id="ops-start" type="datetime-local">
+        </div>
+        <div class="admin-field">
+          <label for="ops-end">End</label>
+          <input id="ops-end" type="datetime-local">
+        </div>
+        <label class="admin-toggle">
+          <input type="checkbox" id="ops-auto-schedule"> Auto start/end
+        </label>
+        <div class="admin-actions">
+          <button type="button" class="btn btn-outline-secondary" id="btn-schedule">Save schedule</button>
+        </div>
+        <div class="admin-field mt-3">
+          <label for="ops-join-pass">Registration password (optional)</label>
+          <input id="ops-join-pass" type="text" maxlength="64" placeholder="Leave blank for open sign-up">
+        </div>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-join-pass">Save password</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-join-pass-clear">Clear</button>
+        </div>
+        <p class="admin-hint" id="ops-join-pass-state">Registration password: —</p>
+        <div class="admin-group">
+          <span>Projector</span>
+          <div class="admin-actions-inline">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-board-public">Public</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-board-private">Private link</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="admin-card">
+      <h2>Setup</h2>
+      <ul class="admin-check" id="ops-check"></ul>
+      <div class="admin-group" style="margin-top:16px;">
+        <span>Challenges</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-show-chals">Show all</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-hide-chals">Hide all</button>
+        </div>
+      </div>
+      <div class="admin-group">
+        <span>Images</span>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-warm">Preload</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-preflight">Run checks</button>
+        </div>
+      </div>
+      <details class="admin-advanced">
+        <summary>DNS</summary>
+        <p class="admin-hint" id="ops-dns-result">Checks DNS and the reverse proxy.</p>
+        <div class="admin-actions-inline">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-dns-test">Test</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-restart-dns">Restart</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>During the event</h2>
+    <p class="admin-hint" id="ops-pulse-summary">Challenge activity loads here.</p>
+    <ul class="admin-pulse" id="ops-pulse"></ul>
+    <div class="admin-group">
+      <span>Targets</span>
+      <div class="admin-actions-inline">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-probe">Ping targets</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-extend-all">Extend all</button>
+      </div>
+    </div>
+    <p class="admin-hint" id="ops-probe-result">Checks whether running vBank instances respond.</p>
+    <div class="admin-field">
+      <label for="ops-player-q">Helpdesk lookup</label>
+      <input id="ops-player-q" type="text" maxlength="64" placeholder="Username">
+    </div>
+    <div class="admin-actions-inline">
+      <button type="button" class="btn btn-sm btn-primary" id="btn-player-lookup">Find</button>
+      <button type="button" class="btn btn-sm btn-outline-danger" id="btn-stop-user">Stop their instances</button>
+    </div>
+    <p class="admin-hint" id="ops-player-result">Look up a stuck player and stop only their stack.</p>
+  </div>
+
+  <div class="admin-card">
+    <h2>Tell players</h2>
+    <div class="admin-field">
+      <label for="ops-maint">Banner on player pages</label>
+      <input id="ops-maint" type="text" maxlength="280" placeholder="Event starts at 10:00. Do not share flags.">
+    </div>
+    <div class="admin-actions-inline" style="margin-bottom:16px;">
+      <button type="button" class="btn btn-sm btn-primary" id="btn-maint">Save banner</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-maint-clear">Clear</button>
+    </div>
+    <div class="admin-presets" id="ops-presets">
+      <button type="button" class="admin-preset" data-msg="Event starts in 5 minutes.">Starts in 5 min</button>
+      <button type="button" class="admin-preset" data-msg="Event is live. Good luck.">Event live</button>
+      <button type="button" class="admin-preset" data-msg="15 minutes remaining.">15 min left</button>
+      <button type="button" class="admin-preset" data-msg="Time is up. Stop attacking targets.">Event over</button>
+    </div>
+    <div class="admin-field">
+      <label for="ops-broadcast">Live broadcast</label>
+      <input id="ops-broadcast" type="text" maxlength="240" placeholder="Event starts in 5 minutes">
+    </div>
+    <div class="admin-actions">
+      <button type="button" class="btn btn-primary" id="btn-broadcast">Send</button>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Data</h2>
+    <div class="admin-actions-inline">
+      <button type="button" class="btn btn-outline-secondary" id="btn-backup">Backup now</button>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/scoreboard.csv">Scoreboard CSV</a>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/players.csv">Players CSV</a>
+      <a class="btn btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/logs.txt">Logs</a>
+      <button type="button" class="btn btn-outline-danger" id="btn-stop-all">Stop all instances</button>
+    </div>
+    <label class="admin-toggle" style="margin-top:14px;">
+      <input type="checkbox" id="ops-auto-backup"> Hourly auto-backup
+    </label>
+    <ul class="admin-backup-list" id="ops-backup-list"></ul>
+  </div>
+
+  <details class="admin-card admin-details-card">
+    <summary>Notes and history</summary>
+    <div class="admin-field mt-3">
+      <label for="ops-notes">Private notes</label>
+      <textarea id="ops-notes" rows="3" maxlength="2000" placeholder="Room, Wi-Fi, who is on helpdesk…"></textarea>
+    </div>
+    <div class="admin-actions">
+      <button type="button" class="btn btn-outline-secondary" id="btn-notes">Save notes</button>
+    </div>
+    <div class="admin-actions">
+      <a class="btn btn-sm btn-outline-secondary" href="/plugins/ctfd-target/admin/ops/audit.jsonl">Download audit log</a>
+    </div>
+    <h2 style="margin-top:20px;">Recent actions</h2>
+    <ul class="admin-audit" id="ops-audit"></ul>
+  </details>
+</div>
+<script>
+(function () {
+  function csrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+    return '';
+  }
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function alertBox(msg, ok) {
+    var el = document.getElementById('ops-alert');
+    el.className = 'alert admin-alert ' + (ok ? 'alert-success' : 'alert-danger');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function () { el.style.display = 'none'; }, 5000);
+  }
+  function post(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrf() },
+      body: JSON.stringify(body || {})
+    }).then(function (r) { return r.json(); });
+  }
+  function toLocalInput(ts) {
+    if (!ts) return '';
+    var d = new Date(ts * 1000);
+    var local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  }
+  function fromLocalInput(val) {
+    if (!val) return 0;
+    var ts = Math.floor(new Date(val).getTime() / 1000);
+    return ts > 0 ? ts : 0;
+  }
+  function fmtRemain(seconds) {
+    if (seconds < 0) seconds = 0;
+    var h = Math.floor(seconds / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = seconds % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function paint(d) {
+    if (!d) return;
+    document.getElementById('ops-paused').textContent = d.paused ? 'Paused' : 'Live';
+    document.getElementById('ops-reg').textContent = d.prevent_registration ? 'Closed' : 'Open';
+    document.getElementById('ops-inst').textContent = d.instances != null ? d.instances : '—';
+    document.getElementById('ops-users').textContent = d.users != null ? d.users : '—';
+    var sp = document.getElementById('stat-paused');
+    var sr = document.getElementById('stat-reg');
+    if (sp) {
+      sp.classList.toggle('is-good', !d.paused);
+      sp.classList.toggle('is-bad', !!d.paused);
+    }
+    if (sr) {
+      sr.classList.toggle('is-good', !d.prevent_registration);
+      sr.classList.toggle('is-bad', !!d.prevent_registration);
+    }
+    var frozen = document.getElementById('ops-frozen');
+    if (frozen) frozen.textContent = d.frozen ? 'Frozen' : 'Live';
+    var maint = document.getElementById('ops-maint');
+    if (maint && document.activeElement !== maint) maint.value = d.maintenance_message || '';
+    var auto = document.getElementById('ops-auto-backup');
+    if (auto && document.activeElement !== auto) auto.checked = !!d.auto_backup;
+    var notes = document.getElementById('ops-notes');
+    if (notes && document.activeElement !== notes) notes.value = d.notes || '';
+    var startEl = document.getElementById('ops-start');
+    var endEl = document.getElementById('ops-end');
+    if (startEl && document.activeElement !== startEl) startEl.value = toLocalInput(d.start);
+    if (endEl && document.activeElement !== endEl) endEl.value = toLocalInput(d.end);
+    var autoSched = document.getElementById('ops-auto-schedule');
+    if (autoSched && document.activeElement !== autoSched) autoSched.checked = !!d.auto_schedule;
+    var join = document.getElementById('ops-join-url');
+    if (join) join.textContent = d.join_url || 'Set host IP first';
+    var board = document.getElementById('ops-board-link');
+    if (board && d.board_url) board.setAttribute('href', d.board_url);
+    var passState = document.getElementById('ops-join-pass-state');
+    if (passState) passState.textContent = d.join_password ? 'Registration password is set.' : 'Registration is open (no password).';
+    var prod = document.getElementById('ops-prod');
+    if (prod) {
+      var bits = [];
+      bits.push(d.production ? 'Production' : 'Dev');
+      bits.push((d.workers || '1') + ' workers');
+      if (d.disk_gb != null) bits.push(d.disk_gb + ' GB free');
+      if (d.instance_cap) bits.push((d.instances || 0) + '/' + d.instance_cap + ' instances');
+      bits.push(d.launches_locked ? 'Launches locked' : 'Launches open');
+      if (!d.secrets_ok) bits.push('Default secrets');
+      prod.textContent = bits.join(' · ');
+    }
+    var cd = document.getElementById('ops-countdown');
+    if (cd) {
+      var now = Math.floor(Date.now() / 1000);
+      if (d.start && now < d.start) cd.textContent = 'Starts in ' + fmtRemain(d.start - now);
+      else if (d.end && now < d.end) cd.textContent = 'Ends in ' + fmtRemain(d.end - now);
+      else if (d.end && now >= d.end) cd.textContent = 'Scheduled end reached.';
+      else cd.textContent = d.paused ? 'CTF is paused.' : 'No start/end schedule.';
+    }
+    var list = document.getElementById('ops-check');
+    var ready = document.getElementById('ops-ready');
+    var checks = d.checklist || [];
+    list.innerHTML = checks.map(function (c) {
+      return '<li class="' + (c.ok ? 'is-ok' : 'is-bad') + '">' + esc(c.label) + '</li>';
+    }).join('');
+    var fails = checks.filter(function (c) { return !c.ok; }).length;
+    ready.textContent = fails ? (fails + ' to fix') : 'Ready';
+    ready.className = 'admin-ready' + (fails ? ' is-bad' : ' is-good');
+  }
+  function refresh() {
+    fetch('/plugins/ctfd-target/admin/overview', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(paint)
+      .catch(function () {});
+  }
+  function kb(bytes) {
+    return Math.max(1, Math.round((bytes || 0) / 1024)) + ' KB';
+  }
+  function loadBackups() {
+    fetch('/plugins/ctfd-target/admin/ops/backups', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var el = document.getElementById('ops-backup-list');
+        if (!el) return;
+        var rows = d.backups || [];
+        if (!rows.length) {
+          el.innerHTML = '<li class="admin-hint">No backups yet.</li>';
+          return;
+        }
+        el.innerHTML = rows.map(function (b) {
+          var href = '/plugins/ctfd-target/admin/ops/backups/' + encodeURIComponent(b.file);
+          return '<li>' +
+            '<div><strong>' + esc(b.file) + '</strong><span>' + kb(b.bytes) + ' · ' + esc(b.kind || 'manual') + '</span></div>' +
+            '<div class="admin-backup-actions">' +
+              '<a class="btn btn-sm btn-outline-secondary" href="' + href + '">Download</a>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger" data-restore="' + esc(b.file) + '">Restore</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary" data-delete="' + esc(b.file) + '">Delete</button>' +
+            '</div></li>';
+        }).join('');
+      })
+      .catch(function () {});
+  }
+  function loadAudit() {
+    fetch('/plugins/ctfd-target/admin/ops/audit', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var el = document.getElementById('ops-audit');
+        if (!el) return;
+        var rows = d.events || [];
+        if (!rows.length) {
+          el.innerHTML = '<li class="admin-hint">No actions logged yet.</li>';
+          return;
+        }
+        el.innerHTML = rows.map(function (e) {
+          var when = e.ts ? new Date(e.ts * 1000).toLocaleString() : '';
+          return '<li><strong>' + esc(e.action || '') + '</strong> · ' + esc(e.user || '') +
+            (e.detail ? ' · ' + esc(e.detail) : '') + '<span>' + esc(when) + '</span></li>';
+        }).join('');
+      })
+      .catch(function () {});
+  }
+  function loadPulse() {
+    fetch('/plugins/ctfd-target/admin/ops/pulse', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var el = document.getElementById('ops-pulse');
+        var sum = document.getElementById('ops-pulse-summary');
+        if (!el) return;
+        if (!d.success) {
+          if (sum) sum.textContent = d.msg || 'Could not load challenge activity.';
+          return;
+        }
+        if (sum) {
+          sum.textContent = (d.solves_15m || 0) + ' solves and ' + (d.fails_15m || 0) +
+            ' wrong flags in the last 15 minutes' +
+            (d.unsolved && d.unsolved.length ? ' · ' + d.unsolved.length + ' unsolved' : '');
+        }
+        var rows = d.challenges || [];
+        if (!rows.length) {
+          el.innerHTML = '<li class="admin-hint">No visible challenges.</li>';
+          return;
+        }
+        el.innerHTML = rows.map(function (c) {
+          var cls = c.solves ? 'is-ok' : 'is-bad';
+          return '<li class="' + cls + '"><strong>' + esc(c.name) + '</strong>' +
+            '<span>' + (c.solves || 0) + ' solves · ' + (c.fails || 0) + ' fails' +
+            (c.first_blood ? ' · first: ' + esc(c.first_blood) : '') + '</span></li>';
+        }).join('');
+      })
+      .catch(function () {});
+  }
+  if (window.ctfAdminOverview) paint(window.ctfAdminOverview);
+  document.addEventListener('ctf-overview', function (e) { paint(e.detail); });
+  refresh();
+  loadBackups();
+  loadAudit();
+  loadPulse();
+  setInterval(loadPulse, 30000);
+
+  function after(ok, msg, d) {
+    alertBox(ok ? msg : ((d && d.msg) || 'Failed'), ok);
+    if (ok) { refresh(); loadAudit(); }
+  }
+
+  document.getElementById('btn-pause').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/pause', { paused: true }).then(function (d) {
+      after(!!d.success, 'CTF paused.', d);
+    });
+  };
+  document.getElementById('btn-resume').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/pause', { paused: false }).then(function (d) {
+      after(!!d.success, 'CTF resumed.', d);
+    });
+  };
+  document.getElementById('btn-reg-off').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/registration', { prevent_registration: true }).then(function (d) {
+      after(!!d.success, 'Registration closed.', d);
+    });
+  };
+  document.getElementById('btn-reg-on').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/registration', { prevent_registration: false }).then(function (d) {
+      after(!!d.success, 'Registration opened.', d);
+    });
+  };
+  document.getElementById('btn-freeze').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/freeze', { frozen: true }).then(function (d) {
+      after(!!d.success, 'Scoreboard frozen.', d);
+    });
+  };
+  document.getElementById('btn-unfreeze').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/freeze', { frozen: false }).then(function (d) {
+      after(!!d.success, 'Scoreboard live.', d);
+    });
+  };
+  document.getElementById('btn-golive').onclick = function () {
+    if (!window.confirm('Go live now? This unpauses the CTF and unfreezes the scoreboard.')) return;
+    post('/plugins/ctfd-target/admin/ops/go-live', {}).then(function (d) {
+      after(!!d.success, d.success ? ('Event is live' + (d.backup ? ' · backup ' + d.backup : '') + '.') : 'Could not go live.', d);
+    });
+  };
+  document.getElementById('btn-lock-launch').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/lock-launches', { locked: true }).then(function (d) {
+      after(!!d.success, 'New target launches locked.', d);
+    });
+  };
+  document.getElementById('btn-unlock-launch').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/lock-launches', { locked: false }).then(function (d) {
+      after(!!d.success, 'Target launches unlocked.', d);
+    });
+  };
+  document.getElementById('btn-end-event').onclick = function () {
+    if (!window.confirm('End the event? This pauses the CTF, freezes the scoreboard, closes registration, and takes a backup.')) return;
+    var stop = window.confirm('Also stop all player instances?');
+    post('/plugins/ctfd-target/admin/ops/end-event', { stop_instances: stop }).then(function (d) {
+      after(!!d.success, 'Event ended' + (d.backup ? ' · backup ' + d.backup : '') + '.', d);
+      if (d.success) loadBackups();
+    });
+  };
+  document.getElementById('btn-copy-join').onclick = function () {
+    var url = (document.getElementById('ops-join-url') || {}).textContent || '';
+    if (!url || url.indexOf('http') !== 0) { alertBox('Set a host IP on Network first.', false); return; }
+    var done = function () { alertBox('Join URL copied.', true); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt('Copy this URL', url); });
+    } else {
+      window.prompt('Copy this URL', url);
+    }
+  };
+  document.getElementById('btn-show-chals').onclick = function () {
+    if (!window.confirm('Make every challenge visible to players?')) return;
+    post('/plugins/ctfd-target/admin/ops/challenges', { state: 'visible' }).then(function (d) {
+      after(!!d.success, d.success ? ('Shown ' + (d.updated || 0) + ' challenges.') : 'Could not update challenges.', d);
+    });
+  };
+  document.getElementById('btn-hide-chals').onclick = function () {
+    if (!window.confirm('Hide every challenge from players?')) return;
+    post('/plugins/ctfd-target/admin/ops/challenges', { state: 'hidden' }).then(function (d) {
+      after(!!d.success, d.success ? ('Hidden ' + (d.updated || 0) + ' challenges.') : 'Could not update challenges.', d);
+    });
+  };
+  document.getElementById('btn-warm').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Preloading…';
+    post('/plugins/ctfd-target/admin/ops/warm-images', {}).then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Preload images';
+      after(!!d.success, d.msg || 'Image check finished.', d);
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Preload images';
+      alertBox('Image preload failed.', false);
+    });
+  };
+  document.getElementById('btn-schedule').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/schedule', {
+      start: fromLocalInput(document.getElementById('ops-start').value),
+      end: fromLocalInput(document.getElementById('ops-end').value),
+      auto_schedule: document.getElementById('ops-auto-schedule').checked
+    }).then(function (d) {
+      after(!!d.success, d.success ? 'Schedule saved.' : 'Could not save schedule.', d);
+    });
+  };
+  document.getElementById('btn-notes').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/notes', { notes: document.getElementById('ops-notes').value }).then(function (d) {
+      after(!!d.success, 'Notes saved.', d);
+    });
+  };
+  document.getElementById('btn-maint').onclick = function () {
+    var msg = document.getElementById('ops-maint').value.trim();
+    post('/plugins/ctfd-target/admin/ops/maintenance', { message: msg }).then(function (d) {
+      after(!!d.success, msg ? 'Banner saved.' : 'Banner cleared.', d);
+    });
+  };
+  document.getElementById('btn-maint-clear').onclick = function () {
+    document.getElementById('ops-maint').value = '';
+    post('/plugins/ctfd-target/admin/ops/maintenance', { message: '' }).then(function (d) {
+      after(!!d.success, 'Banner cleared.', d);
+    });
+  };
+  document.querySelectorAll('.admin-preset').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('ops-broadcast').value = btn.getAttribute('data-msg') || '';
+      document.getElementById('ops-broadcast').focus();
+    });
+  });
+  document.getElementById('btn-broadcast').onclick = function () {
+    var msg = document.getElementById('ops-broadcast').value.trim();
+    if (!msg) { alertBox('Enter a message.', false); return; }
+    post('/plugins/ctf-live/admin/broadcast', { message: msg }).then(function (d) {
+      alertBox(d.success ? 'Broadcast sent.' : (d.msg || 'Failed'), !!d.success);
+      if (d.success) {
+        document.getElementById('ops-broadcast').value = '';
+        loadAudit();
+      }
+    }).catch(function () { alertBox('Could not send broadcast.', false); });
+  };
+  document.getElementById('ops-broadcast').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('btn-broadcast').click();
+  });
+  document.getElementById('btn-stop-all').onclick = function () {
+    if (!window.confirm('Stop every player instance now?')) return;
+    post('/plugins/ctfd-target/admin/ops/stop-all', {}).then(function (d) {
+      after(!!d.success, 'Stopped ' + (d.stopped || 0) + ' containers.', d);
+    });
+  };
+  document.getElementById('btn-backup').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Backing up…';
+    post('/plugins/ctfd-target/admin/ops/backup', {}).then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Backup now';
+      after(!!d.success, d.success ? ('Saved ' + d.file) : 'Backup failed', d);
+      if (d.success) loadBackups();
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Backup now';
+      alertBox('Backup failed.', false);
+    });
+  };
+  document.getElementById('ops-auto-backup').onchange = function () {
+    var enabled = this.checked;
+    post('/plugins/ctfd-target/admin/ops/auto-backup', { enabled: enabled }).then(function (d) {
+      after(!!d.success, enabled ? 'Hourly auto-backup on.' : 'Auto-backup off.', d);
+    });
+  };
+  document.getElementById('ops-backup-list').addEventListener('click', function (e) {
+    var del = e.target.closest('[data-delete]');
+    if (del) {
+      var file = del.getAttribute('data-delete');
+      if (!window.confirm('Delete backup ' + file + '?')) return;
+      post('/plugins/ctfd-target/admin/ops/backups/delete', { file: file }).then(function (d) {
+        after(!!d.success, d.success ? ('Deleted ' + file) : 'Could not delete backup.', d);
+        if (d.success) loadBackups();
+      });
+      return;
+    }
+    var btn = e.target.closest('[data-restore]');
+    if (!btn) return;
+    var file = btn.getAttribute('data-restore');
+    if (!window.confirm('Restore ' + file + '? This replaces the live database. A safety dump is taken first.')) return;
+    var typed = window.prompt('Type RESTORE to confirm');
+    if (!typed) return;
+    btn.disabled = true;
+    post('/plugins/ctfd-target/admin/ops/restore', { file: file, confirm: typed }).then(function (d) {
+      btn.disabled = false;
+      after(!!d.success, d.success ? ('Restored ' + file) : 'Restore failed', d);
+      if (d.success) loadBackups();
+    }).catch(function () {
+      btn.disabled = false;
+      alertBox('Restore failed.', false);
+    });
+  });
+  document.getElementById('btn-dns-test').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/dns-test', {}).then(function (d) {
+      var el = document.getElementById('ops-dns-result');
+      if (!d.success) { alertBox(d.msg || 'DNS test failed', false); return; }
+      el.textContent = 'IP ' + (d.host_ip || 'not set') +
+        ' · DNS ' + (d.dns ? 'up' : 'down') +
+        ' · Proxy ' + (d.proxy ? 'up' : 'down') +
+        (d.proxy_tcp ? ' (reachable)' : ' (no TCP)');
+      alertBox(d.dns && d.proxy ? 'Network looks healthy.' : 'Network issue detected.', !!(d.dns && d.proxy));
+    });
+  };
+  document.getElementById('btn-restart-dns').onclick = function () {
+    if (!window.confirm('Restart DNS now? Players using *.lab names will reconnect.')) return;
+    post('/plugins/ctfd-target/admin/ops/restart-dns', {}).then(function (d) {
+      after(!!d.success, d.msg || 'DNS restart started.', d);
+    });
+  };
+  document.getElementById('btn-preflight').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    post('/plugins/ctfd-target/admin/ops/preflight', {}).then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Run checks';
+      var msg = d.ready ? 'Preflight passed.' : ('Fix: ' + ((d.fails || []).join(', ') || (d.msg || 'failed')));
+      after(!!d.ready, msg, d);
+      refresh();
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Run checks';
+      alertBox('Preflight failed.', false);
+    });
+  };
+  document.getElementById('btn-probe').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Pinging…';
+    post('/plugins/ctfd-target/admin/ops/probe', {}).then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Ping targets';
+      var el = document.getElementById('ops-probe-result');
+      if (el) {
+        if (!d.checked) el.textContent = 'No running vBank instances to ping.';
+        else el.textContent = d.up + ' up · ' + d.down + ' down (checked ' + d.checked + ')';
+      }
+      after(!!d.success, d.checked ? (d.up + ' targets responding.') : 'No running targets.', d);
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Ping targets';
+      alertBox('Probe failed.', false);
+    });
+  };
+  document.getElementById('btn-extend-all').onclick = function () {
+    if (!window.confirm('Extend every running instance by one lifetime?')) return;
+    post('/plugins/ctfd-target/admin/ops/extend-all', {}).then(function (d) {
+      after(!!d.success, d.success ? ('Extended ' + (d.updated || 0) + ' containers.') : 'Could not extend instances.', d);
+    });
+  };
+  document.getElementById('btn-join-pass').onclick = function () {
+    var password = document.getElementById('ops-join-pass').value.trim();
+    post('/plugins/ctfd-target/admin/ops/join-password', { password: password }).then(function (d) {
+      after(!!d.success, password ? 'Registration password saved.' : 'Registration password cleared.', d);
+    });
+  };
+  document.getElementById('btn-join-pass-clear').onclick = function () {
+    document.getElementById('ops-join-pass').value = '';
+    post('/plugins/ctfd-target/admin/ops/join-password', { password: '' }).then(function (d) {
+      after(!!d.success, 'Registration password cleared.', d);
+    });
+  };
+  document.getElementById('btn-board-public').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/board-token', { enabled: false }).then(function (d) {
+      after(!!d.success, 'Projector board is public on the LAN.', d);
+      if (d.board_url) document.getElementById('ops-board-link').setAttribute('href', d.board_url);
+    });
+  };
+  document.getElementById('btn-board-private').onclick = function () {
+    post('/plugins/ctfd-target/admin/ops/board-token', { enabled: true }).then(function (d) {
+      after(!!d.success, 'Projector board now needs the private link.', d);
+      if (d.board_url) document.getElementById('ops-board-link').setAttribute('href', d.board_url);
+    });
+  };
+  document.getElementById('btn-player-lookup').onclick = function () {
+    var q = document.getElementById('ops-player-q').value.trim();
+    var el = document.getElementById('ops-player-result');
+    if (!q) { alertBox('Enter a username.', false); return; }
+    fetch('/plugins/ctfd-target/admin/ops/player?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        var d = res.d || {};
+        if (!d.success) {
+          el.textContent = d.msg || 'Player not found.';
+          after(false, d.msg || 'Player not found.', d);
+          return;
+        }
+        var p = d.player || {};
+        var stacks = (p.containers || []).map(function (c) {
+          return (c.role || 'target') + ' ' + (c.status || '') + (c.url ? ' ' + c.url : '');
+        });
+        el.textContent = p.name + ' · ' + (p.solves || 0) + ' solves' +
+          (p.banned ? ' · banned' : '') +
+          (stacks.length ? ' · ' + stacks.join(' · ') : ' · no instances');
+      })
+      .catch(function () { alertBox('Lookup failed.', false); });
+  };
+  document.getElementById('ops-player-q').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('btn-player-lookup').click();
+  });
+  document.getElementById('btn-stop-user').onclick = function () {
+    var username = document.getElementById('ops-player-q').value.trim();
+    if (!username) { alertBox('Enter a username.', false); return; }
+    if (!window.confirm('Stop all instances for ' + username + '?')) return;
+    post('/plugins/ctfd-target/admin/ops/stop-user', { username: username }).then(function (d) {
+      after(!!d.success, d.success ? ('Stopped ' + (d.stopped || 0) + ' containers for ' + username + '.') : (d.msg || 'Could not stop instances.'), d);
+    });
+  };
+})();
+</script>
+{% endblock %}

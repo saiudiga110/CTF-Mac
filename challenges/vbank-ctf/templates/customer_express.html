@@ -1,0 +1,69 @@
+{% extends "customer_base.html" %}
+{% block title %}Express Transfer{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-bolt"></i></div>Express Transfer</div>
+            <div class="card-body">
+                <div class="mb-3 p-3 rounded" style="background:#f8fafc; border:1px solid #e1e8ef;">
+                    <div style="font-size:0.78rem; color:#64748b;">Express Pool Balance</div>
+                    <div id="balance-display" style="font-size:1.6rem; font-weight:700; color:#1565c0;">£{{ "%.2f"|format(balance) }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Amount to Transfer (£)</label>
+                    <input type="number" id="amount-input" class="form-control" placeholder="e.g. 100.00" min="1" max="10000" step="0.01">
+                    <div class="form-text" style="font-size:0.75rem;">Min £1 — Max £10,000 per transaction.</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="doTransfer()"><i class="fas fa-bolt me-2"></i>Execute Transfer</button>
+                    <button class="btn btn-outline-secondary" onclick="resetBalance()"><i class="fas fa-undo me-2"></i>Reset Balance</button>
+                </div>
+                <div id="result-area" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>About Express Transfers</div>
+            <div class="card-body" style="font-size:0.84rem; color:#475569; line-height:1.8;">
+                <p>Express transfers are processed immediately, bypassing the standard queue. Funds arrive within seconds.</p>
+                <p class="mb-0" style="font-size:0.75rem; color:#94a3b8;">Check your account status: <code>GET /api/v1/account/status</code></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function doTransfer() {
+    var amount = document.getElementById('amount-input').value;
+    if (!amount || amount <= 0) { alert('Please enter a valid amount'); return; }
+    var fd = new FormData();
+    fd.append('amount', amount);
+    fetch('/api/v1/transfer/express', {method:'POST', body:fd})
+        .then(r => r.json())
+        .then(data => {
+            var area = document.getElementById('result-area');
+            if (data.success) {
+                document.getElementById('balance-display').textContent = '£' + data.current_balance.toFixed(2);
+                area.innerHTML = '<div class="alert alert-success" style="font-size:0.84rem;"><i class="fas fa-check-circle me-2"></i>Transfer of £' + data.transferred.toFixed(2) + ' complete. New balance: £' + data.current_balance.toFixed(2) + '</div>';
+            } else {
+                area.innerHTML = '<div class="alert alert-danger" style="font-size:0.84rem;"><i class="fas fa-exclamation-triangle me-2"></i>' + data.error + '</div>';
+            }
+        });
+}
+function resetBalance() {
+    fetch('/api/v1/account/reset', {method:'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('balance-display').textContent = '£1000.00';
+                document.getElementById('result-area').innerHTML = '<div class="alert alert-info" style="font-size:0.84rem;">Balance reset to £1,000.00</div>';
+            }
+        });
+}
+</script>
+{% endblock %}

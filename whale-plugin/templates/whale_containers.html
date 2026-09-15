@@ -1,0 +1,252 @@
+{% extends "admin/base.html" %}
+
+{% block stylesheets %}
+<style>
+	@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+	.whale-cyber-page .jumbotron {
+		background: linear-gradient(135deg, #0a0a0f 0%, #0d1117 50%, #1a0a2e 100%) !important;
+		border-bottom: 2px solid #00f0ff;
+		box-shadow: 0 4px 30px rgba(0, 240, 255, 0.15);
+		padding: 2rem 0 !important;
+	}
+
+	.whale-cyber-page .jumbotron h1 {
+		font-family: 'Orbitron', monospace;
+		color: #00f0ff;
+		text-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.2);
+		font-size: 1.8rem;
+		letter-spacing: 2px;
+	}
+
+	.whale-cyber-page .whale-table {
+		background: #0d1117;
+		border: 1px solid rgba(0, 240, 255, 0.15);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.whale-cyber-page .table {
+		color: #c9d1d9;
+		font-family: 'Share Tech Mono', monospace;
+		font-size: 0.85rem;
+		margin-bottom: 0;
+	}
+
+	.whale-cyber-page .table thead td,
+	.whale-cyber-page .table thead th {
+		background: rgba(0, 240, 255, 0.08);
+		border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+		color: #00f0ff;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		font-size: 0.75rem;
+		padding: 0.75rem;
+	}
+
+	.whale-cyber-page .table-striped tbody tr:nth-of-type(odd) {
+		background: rgba(0, 240, 255, 0.02);
+	}
+
+	.whale-cyber-page .table-striped tbody tr:nth-of-type(even) {
+		background: rgba(0, 0, 0, 0.2);
+	}
+
+	.whale-cyber-page .table tbody tr {
+		border-bottom: 1px solid rgba(0, 240, 255, 0.05);
+		transition: all 0.2s ease;
+	}
+
+	.whale-cyber-page .table tbody tr:hover {
+		background: rgba(0, 240, 255, 0.06) !important;
+	}
+
+	.whale-cyber-page .table td {
+		vertical-align: middle;
+		padding: 0.6rem;
+		border-top: none;
+	}
+
+	.whale-cyber-page .table a {
+		color: #58a6ff;
+		transition: all 0.2s ease;
+	}
+
+	.whale-cyber-page .table a:hover {
+		color: #00f0ff;
+		text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+	}
+
+	.whale-cyber-page .delete-container {
+		color: #f85149 !important;
+		cursor: pointer;
+	}
+
+	.whale-cyber-page .delete-container:hover {
+		color: #ff6b6b !important;
+		text-shadow: 0 0 10px rgba(248, 81, 73, 0.4);
+	}
+
+	.whale-cyber-page .renew-container {
+		color: #3fb950 !important;
+		cursor: pointer;
+	}
+
+	.whale-cyber-page .renew-container:hover {
+		color: #56d364 !important;
+		text-shadow: 0 0 10px rgba(63, 185, 80, 0.4);
+	}
+
+	.whale-cyber-page .whale-flag {
+		font-family: 'Share Tech Mono', monospace;
+		color: #ffa657;
+		font-size: 0.75rem;
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.whale-cyber-page .pagination-cyber {
+		font-family: 'Share Tech Mono', monospace;
+		color: #8b949e;
+	}
+
+	.whale-cyber-page .pagination-cyber a {
+		color: #00f0ff;
+		padding: 0.25rem 0.5rem;
+		border: 1px solid rgba(0, 240, 255, 0.2);
+		border-radius: 4px;
+		margin: 0 2px;
+		text-decoration: none;
+		transition: all 0.2s ease;
+	}
+
+	.whale-cyber-page .pagination-cyber a:hover {
+		background: rgba(0, 240, 255, 0.1);
+		box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+	}
+
+	.whale-cyber-page .pagination-cyber b {
+		color: #00f0ff;
+		padding: 0.25rem 0.5rem;
+		border: 1px solid #00f0ff;
+		border-radius: 4px;
+		background: rgba(0, 240, 255, 0.1);
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="whale-cyber-page">
+	<div class="jumbotron">
+		<div class="container">
+			<h1>📦 WHALE INSTANCES</h1>
+		</div>
+	</div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12 whale-table">
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<td class="text-center"><b>#</b></td>
+							<td class="text-center"><b>ID</b></td>
+							<td class="text-center"><b>User</b></td>
+							<td class="text-center"><b>Challenge</b></td>
+							<td class="text-center"><b>Access</b></td>
+							<td class="text-center"><b>Flag</b></td>
+							<td class="text-center"><b>Started</b></td>
+							<td class="text-center"><b>Renewals</b></td>
+							<td class="text-center"><b>⚡</b></td>
+							<td class="text-center"><b>♻</b></td>
+						</tr>
+					</thead>
+					<tbody>
+						{% for container in containers %}
+						<tr>
+							<th scope="row" class="text-center">{{ curr_page_start + loop.index }}</th>
+							<td class="text-center">{{ container.id }}</td>
+							<td class="text-center">
+								<a href="{{ url_for('admin.users_detail', user_id=container.user.id) }}">
+									{{ container.user.name | truncate(32) }}
+								</a>
+							</td>
+							<td class="text-center">
+								<a href="{{ url_for('admin.challenges_detail', challenge_id=container.challenge.id) }}">
+									{{ container.challenge.name }}
+								</a>
+							</td>
+							<td class="text-center">
+								<span>
+									{% if container.port == 0 %}
+									{% if configs.get('frp_http_port', "80") == "80" %}
+									{{ "http://" + container.uuid + configs.get('frp_http_domain_suffix', "") }}
+									{% else %}
+									{{ "http://" + container.uuid + configs.get('frp_http_domain_suffix', "") + ":" +
+									configs.get('frp_http_port', "80")}}
+									{% endif %}
+									{% else %}
+									{{ configs.get('frp_direct_ip_address', "")}}:{{ container.port }}
+									{% endif %}
+								</span>
+							</td>
+							<td class="text-center whale-flag" title="{{ container.flag }}">
+								{{ container.flag }}
+							</td>
+							<td class="text-center">{{ container.start_time }}</td>
+							<td class="text-center">{{ container.renew_count }}</td>
+							<td class="text-center">
+								<a class="delete-container" container-id="{{ container.id }}" data-toggle="tooltip"
+									user-id="{{ container.user.id }}" data-placement="top"
+									title="Destroy Container #{{ container.id }}">
+									<i class="fas fa-times"></i>
+								</a>
+							</td>
+							<td class="text-center">
+								<a class="renew-container" container-id="{{ container.id }}" data-toggle="tooltip"
+									user-id="{{ container.user.id }}" data-placement="top"
+									challenge-id="{{ container.challenge_id }}"
+									title="Renew Container #{{ container.id }}">
+									<i class="fas fa-sync"></i>
+								</a>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		{% if pages > 1 %}
+		<div class="row mt-3">
+			<div class="col-md-12">
+				<div class="text-center pagination-cyber">Page
+					<br>
+					{% if curr_page != 1 %}
+					<a href="/plugins/ctfd-whale/admin/containers?page={{ curr_page - 1 }}">
+						&lt;&lt;&lt;
+					</a>
+					{% endif %}
+					{% for page in range(1, pages + 1) %}
+					{% if curr_page != page %}
+					<a href="/plugins/ctfd-whale/admin/containers?page={{ page }}">{{ page }}</a>
+					{% else %}
+					<b>{{ page }}</b>
+					{% endif %}
+					{% endfor %}
+					{% if curr_page != pages %}
+					<a href="/plugins/ctfd-whale/admin/containers?page={{ curr_page + 1 }}">
+						&gt;&gt;&gt;
+					</a>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+		{% endif %}
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="{{ url_for('plugins.ctfd-whale.assets', path='containers.js') }}"></script>
+{% endblock %}

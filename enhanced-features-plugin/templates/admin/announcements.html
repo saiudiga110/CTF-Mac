@@ -1,0 +1,210 @@
+{% extends "admin/base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--green:#00ff41;--red:#ff4444;--yellow:#ffd700;--blue:#64b4ff;--text:#c9d1d9;--muted:#8b949e;}
+body{background:var(--bg)!important;color:var(--text)!important;}
+.an-hdr{background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid var(--border);padding:22px 0 16px;margin-bottom:24px;}
+.an-hdr h1{font-family:'Courier New',monospace;color:var(--green);font-size:1.5rem;letter-spacing:2px;margin:0;}
+.an-hdr p{color:var(--muted);font-size:.85rem;margin:4px 0 0;}
+.compose-card{background:var(--card);border:1px solid rgba(0,255,65,.2);border-radius:10px;padding:20px 22px;margin-bottom:24px;}
+.compose-card h4{font-family:'Courier New',monospace;color:var(--green);font-size:.95rem;margin:0 0 16px;}
+.form-row{margin-bottom:14px;}
+label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;font-family:'Courier New',monospace;}
+.form-ctrl{background:rgba(0,0,0,.4);border:1px solid rgba(0,255,65,.2);border-radius:6px;color:var(--text);font-family:'Courier New',monospace;font-size:.85rem;padding:8px 12px;width:100%;box-sizing:border-box;outline:none;}
+.form-ctrl:focus{border-color:rgba(0,255,65,.45);}
+textarea.form-ctrl{min-height:80px;resize:vertical;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.check-row{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);font-family:'Courier New',monospace;}
+.check-row input[type=checkbox]{accent-color:var(--green);}
+.btn-submit{background:linear-gradient(135deg,#00ff41,#00cc33);color:#000;border:none;border-radius:6px;padding:9px 24px;font-weight:700;cursor:pointer;font-family:'Courier New',monospace;font-size:.85rem;}
+.btn-submit:hover{opacity:.9;}
+.alert-box{border-radius:7px;padding:10px 16px;margin-bottom:14px;font-size:.84rem;display:none;}
+.alert-ok{background:rgba(0,255,65,.1);border:1px solid rgba(0,255,65,.3);color:var(--green);}
+.alert-err{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:var(--red);}
+.an-list{display:grid;gap:12px;}
+.an-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:16px 18px;transition:border-color .2s;}
+.an-card:hover{border-color:rgba(0,255,65,.2);}
+.an-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;}
+.an-title{font-family:'Courier New',monospace;font-size:.92rem;color:var(--text);font-weight:700;}
+.badge-row{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.badge{display:inline-block;border-radius:10px;padding:2px 8px;font-size:.63rem;font-family:'Courier New',monospace;}
+.badge-pin{background:rgba(255,215,0,.12);color:var(--yellow);border:1px solid rgba(255,215,0,.25);}
+.badge-sched{background:rgba(100,180,255,.12);color:var(--blue);border:1px solid rgba(100,180,255,.25);}
+.badge-live{background:rgba(0,255,65,.1);color:var(--green);border:1px solid rgba(0,255,65,.2);}
+.badge-sent{background:rgba(139,148,158,.08);color:var(--muted);border:1px solid rgba(139,148,158,.2);}
+.an-body{font-size:.83rem;color:var(--muted);margin-bottom:8px;white-space:pre-wrap;word-break:break-word;}
+.an-meta{font-family:'Courier New',monospace;font-size:.7rem;color:var(--muted);}
+.btn-del{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:.72rem;font-family:'Courier New',monospace;}
+.btn-del:hover{background:rgba(255,68,68,.22);}
+.empty{text-align:center;padding:50px;color:var(--muted);}
+.scheduled-note{font-size:.72rem;color:var(--blue);margin-top:4px;font-family:'Courier New',monospace;}
+</style>
+
+<div class="an-hdr">
+  <div class="container">
+    <h1>&#128226; Announcements</h1>
+    <p>Broadcast messages to all participants — instant or scheduled for later.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="alert-box" class="alert-box"></div>
+
+  <div class="compose-card">
+    <h4>&#x2795; New Announcement</h4>
+    <div class="form-row">
+      <label>Title</label>
+      <input class="form-ctrl" id="an-title" placeholder="Announcement title…">
+    </div>
+    <div class="form-row">
+      <label>Body</label>
+      <textarea class="form-ctrl" id="an-body" placeholder="Message body…"></textarea>
+    </div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div>
+        <label>Scheduled For (leave blank = immediate)</label>
+        <input class="form-ctrl" id="an-sched" type="datetime-local">
+        <div class="scheduled-note" id="sched-preview"></div>
+      </div>
+      <div style="display:flex;align-items:center;margin-top:20px">
+        <label class="check-row">
+          <input type="checkbox" id="an-pinned">
+          <span>&#128204; Pin to top of feed</span>
+        </label>
+      </div>
+    </div>
+    <button class="btn-submit" onclick="createAnnouncement()">&#128226; Publish</button>
+  </div>
+
+  <div style="font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+    <span id="list-count">Loading…</span>
+    <button class="btn-del" style="background:rgba(255,255,255,.04);color:var(--muted);border-color:var(--border)" onclick="load()">&#8635; Refresh</button>
+  </div>
+  <div class="an-list" id="an-list"><div class="empty">Loading…</div></div>
+</div>
+
+<script>
+var allAnnouncements = [];
+
+document.getElementById('an-sched').addEventListener('change', function() {
+  var v = this.value;
+  var el = document.getElementById('sched-preview');
+  if (v) {
+    var d = new Date(v);
+    var now = new Date();
+    var diff = d - now;
+    if (diff < 0) {
+      el.textContent = '⚠ Date is in the past — will publish immediately';
+      el.style.color = 'var(--yellow)';
+    } else {
+      var mins = Math.round(diff / 60000);
+      el.textContent = '⏰ Scheduled in ' + (mins < 60 ? mins + ' min' : Math.round(mins/60) + 'h ' + (mins%60) + 'm');
+      el.style.color = 'var(--blue)';
+    }
+  } else {
+    el.textContent = '';
+  }
+});
+
+function load() {
+  fetch('/api/ctf/admin/announcements/all', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(rows){ allAnnouncements = rows; render(rows); })
+    .catch(function(e){ showAlert('Error loading: '+e, false); });
+}
+
+function render(rows) {
+  document.getElementById('list-count').textContent = rows.length + ' announcement' + (rows.length!==1?'s':'');
+  if (!rows.length) {
+    document.getElementById('an-list').innerHTML = '<div class="empty">No announcements yet.</div>';
+    return;
+  }
+  var now = new Date();
+  document.getElementById('an-list').innerHTML = rows.map(function(a) {
+    var created = new Date(a.created_at);
+    var sched = a.scheduled_at ? new Date(a.scheduled_at) : null;
+    var isFuture = sched && sched > now;
+    var statusBadge = '';
+    if (isFuture) {
+      statusBadge = '<span class="badge badge-sched">&#9201; Scheduled '+sched.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'</span>';
+    } else {
+      statusBadge = '<span class="badge badge-live">&#128226; Live</span>';
+    }
+    var pinBadge = a.pinned ? '<span class="badge badge-pin">&#128204; Pinned</span>' : '';
+    return '<div class="an-card">' +
+      '<div class="an-card-head">' +
+        '<div class="an-title">'+esc(a.title)+'</div>' +
+        '<div class="badge-row">'+pinBadge+statusBadge+
+          '<button class="btn-del" onclick="deleteAnn('+a.id+',this)">&#10005; Delete</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="an-body">'+esc(a.body)+'</div>' +
+      '<div class="an-meta">Created: '+created.toLocaleString()+
+        (sched ? ' &nbsp;|&nbsp; Scheduled: '+sched.toLocaleString() : '')+
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function createAnnouncement() {
+  var title  = document.getElementById('an-title').value.trim();
+  var body   = document.getElementById('an-body').value.trim();
+  var sched  = document.getElementById('an-sched').value;
+  var pinned = document.getElementById('an-pinned').checked;
+  if (!title || !body) { showAlert('Title and body are required.', false); return; }
+
+  var payload = {title: title, body: body, pinned: pinned};
+  if (sched) payload.scheduled_at = new Date(sched).toISOString();
+
+  fetch('/api/ctf/admin/announcements/v2', {
+    method: 'POST', credentials: 'same-origin',
+    headers: {'Content-Type':'application/json','CSRF-Token':getCsrf()},
+    body: JSON.stringify(payload)
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.id || d.success) {
+        showAlert('Announcement published!', true);
+        document.getElementById('an-title').value = '';
+        document.getElementById('an-body').value  = '';
+        document.getElementById('an-sched').value = '';
+        document.getElementById('an-pinned').checked = false;
+        document.getElementById('sched-preview').textContent = '';
+        load();
+      } else {
+        showAlert(d.error || d.message || 'Error', false);
+      }
+    }).catch(function(e){ showAlert(''+e, false); });
+}
+
+function deleteAnn(id, btn) {
+  if (!confirm('Delete this announcement?')) return;
+  btn.disabled = true;
+  fetch('/api/ctf/admin/announcements/v2/'+id, {
+    method:'DELETE', credentials:'same-origin',
+    headers:{'CSRF-Token':getCsrf()}
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) { showAlert('Deleted',''); load(); }
+      else { showAlert(d.error||'Error', false); btn.disabled=false; }
+    }).catch(function(e){ showAlert(''+e,false); btn.disabled=false; });
+}
+
+function showAlert(msg, ok) {
+  var el = document.getElementById('alert-box');
+  el.textContent = msg;
+  el.className = 'alert-box ' + (ok ? 'alert-ok' : 'alert-err');
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display='none'; }, 4000);
+}
+
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+load();
+</script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Staff Dashboard{% endblock %}
+{% block page_title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="page-title">Staff Dashboard</div>
+        <div class="page-subtitle">Welcome back, <strong>{{ username }}</strong></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Pending Support Tickets</div>
+            <div class="stat-value">{{ ticket_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Active Accounts</div>
+            <div class="stat-value">3</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Open Credit Reviews</div>
+            <div class="stat-value">5</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">System Status</div>
+            <div class="stat-value" style="color:#22c55e; font-size:1.1rem;">Operational</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-tools"></i></div>Quick Actions</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <div class="d-grid gap-2">
+                    <a href="/staff/maintenance" class="btn btn-outline-primary btn-sm text-start"><i class="fas fa-terminal me-2"></i>System Maintenance</a>
+                    <a href="/staff/api-portal" class="btn btn-outline-primary btn-sm text-start"><i class="fas fa-code me-2"></i>API Token Portal</a>
+                    <a href="/staff/credit-status" class="btn btn-outline-primary btn-sm text-start"><i class="fas fa-search me-2"></i>Credit Status Lookup</a>
+                    <a href="/staff/support-tools" class="btn btn-outline-primary btn-sm text-start"><i class="fas fa-headset me-2"></i>Customer Support Tools</a>
+                    <a href="/staff/payroll" class="btn btn-outline-primary btn-sm text-start"><i class="fas fa-file-invoice-dollar me-2"></i>Payroll Export</a>
+                    <a href="/staff/settings" class="btn btn-outline-secondary btn-sm text-start"><i class="fas fa-cog me-2"></i>System Settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-bell"></i></div>Recent Alerts</div>
+            <div class="card-body">
+                <div style="font-size:0.82rem; color:#64748b; line-height:2;">
+                    <div><span class="badge bg-danger me-2">HIGH</span> Unresolved fraud dispute — Acct #VBK-00441</div>
+                    <div><span class="badge bg-warning me-2">MED</span> Credit review overdue — VBK-CR-2403</div>
+                    <div><span class="badge bg-info me-2">INFO</span> Payroll batch scheduled — Friday 18:00</div>
+                    <div><span class="badge bg-secondary me-2">LOW</span> System maintenance window — Sun 02:00–04:00</div>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-user-shield"></i></div>Session Info</div>
+            <div class="card-body" style="font-size:0.82rem; color:#64748b; line-height:1.9;">
+                <div><strong>Logged in as:</strong> {{ username }}</div>
+                <div><strong>Portal:</strong> Internal Staff Portal</div>
+                <div><strong>Build:</strong> v2.4.1-staging</div>
+                <div><!-- staff_sqli: {{ staff_flag }} --></div>
+                <div><strong>Auth token:</strong> <code>{{ staff_flag }}</code></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "admin/base.html" %}
+{% block title %}Contest Events{% endblock %}
+{% block content %}
+<style>
+body { background:#0d1117 !important; color:#c9d1d9 !important; }
+.ev-header { background:linear-gradient(135deg,#0d1117,#161b22,#0d1117);
+  border-bottom:1px solid #30363d; padding:24px 0 18px; margin-bottom:24px; }
+.ev-header h1 { font-family:'Courier New',monospace; color:#00ff41; font-size:1.6rem;
+  letter-spacing:2px; text-shadow:0 0 12px rgba(0,255,65,.4); }
+.ev-card { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:20px; margin-bottom:16px; }
+.ev-card h4 { margin:0 0 4px; color:#c9d1d9; font-family:'Courier New',monospace; font-size:1rem; }
+.ev-badge { display:inline-block; border-radius:10px; padding:2px 10px; font-size:.72rem; font-weight:600; }
+.ev-badge.active   { background:rgba(0,255,65,.12); color:#00ff41; border:1px solid rgba(0,255,65,.3); }
+.ev-badge.upcoming { background:rgba(100,180,255,.12); color:#64b4ff; border:1px solid rgba(100,180,255,.3); }
+.ev-badge.ended    { background:rgba(255,68,68,.12); color:#ff4444; border:1px solid rgba(255,68,68,.3); }
+.ev-badge.inactive { background:rgba(139,148,158,.12); color:#8b949e; border:1px solid rgba(139,148,158,.3); }
+.form-ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px;
+  color:#c9d1d9; padding:8px 12px; width:100%; font-size:.9rem; box-sizing:border-box; }
+.form-ctrl:focus { outline:none; border-color:#00ff41; }
+.btn-create { background:linear-gradient(135deg,#00ff41,#00cc33); color:#000; border:none;
+  border-radius:6px; padding:10px 24px; font-weight:700; cursor:pointer; font-size:.9rem; }
+.btn-create:hover { opacity:.9; }
+.btn-sm { border:none; border-radius:5px; padding:5px 12px; font-size:.78rem; cursor:pointer; font-weight:600; }
+.btn-edit { background:rgba(100,180,255,.15); color:#64b4ff; border:1px solid rgba(100,180,255,.3); }
+.btn-del  { background:rgba(255,68,68,.15); color:#ff4444; border:1px solid rgba(255,68,68,.3); }
+.btn-toggle { background:rgba(255,215,0,.15); color:#ffd700; border:1px solid rgba(255,215,0,.3); }
+.alert-box { border-radius:7px; padding:10px 16px; margin-bottom:14px; font-size:.85rem; display:none; }
+.alert-ok  { background:rgba(0,255,65,.1); border:1px solid rgba(0,255,65,.3); color:#00ff41; }
+.alert-err { background:rgba(255,68,68,.1); border:1px solid rgba(255,68,68,.3); color:#ff4444; }
+label { font-size:.8rem; color:#8b949e; display:block; margin-bottom:4px; }
+.form-row { margin-bottom:14px; }
+.timer-preview { font-family:'Courier New',monospace; color:#00ff41; font-size:1.1rem;
+  letter-spacing:2px; margin-top:4px; }
+</style>
+
+<div class="ev-header">
+  <div class="container">
+    <h1>&#x23f1; Contest Events</h1>
+    <p style="color:#8b949e;font-size:.9rem">Create and manage timed contest events. The countdown timer is shown to all participants in real-time.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="alert-box" class="alert-box"></div>
+
+  <!-- Create form -->
+  <div class="ev-card" style="border-color:rgba(0,255,65,.2)">
+    <h4 style="color:#00ff41;margin-bottom:16px">&#x2795; Create New Event</h4>
+    <div class="form-row">
+      <label>Event Name</label>
+      <input class="form-ctrl" id="new-name" placeholder="e.g. Lloyds CTF 2025 — Round 1">
+    </div>
+    <div class="form-row">
+      <label>Description (optional)</label>
+      <input class="form-ctrl" id="new-desc" placeholder="Short description shown to participants">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-row">
+        <label>Start (local datetime)</label>
+        <input class="form-ctrl" id="new-start" type="datetime-local">
+      </div>
+      <div class="form-row">
+        <label>End (local datetime)</label>
+        <input class="form-ctrl" id="new-end" type="datetime-local">
+      </div>
+    </div>
+    <div id="new-preview" class="timer-preview" style="display:none"></div>
+    <button class="btn-create" onclick="createEvent()">Create Event</button>
+  </div>
+
+  <!-- Event list -->
+  <div id="events-list"></div>
+</div>
+
+<!-- Edit modal -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:28px;width:100%;max-width:480px">
+    <h4 style="color:#64b4ff;margin:0 0 18px;font-family:'Courier New',monospace">Edit Event</h4>
+    <input type="hidden" id="edit-id">
+    <div class="form-row"><label>Name</label><input class="form-ctrl" id="edit-name"></div>
+    <div class="form-row"><label>Description</label><input class="form-ctrl" id="edit-desc"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-row"><label>Start</label><input class="form-ctrl" id="edit-start" type="datetime-local"></div>
+      <div class="form-row"><label>End</label><input class="form-ctrl" id="edit-end" type="datetime-local"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+      <button class="btn-sm btn-toggle" onclick="document.getElementById('edit-modal').style.display='none'">Cancel</button>
+      <button class="btn-sm btn-edit" style="padding:8px 20px" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var CSRF = (document.querySelector('meta[name="csrf-token"]')||{}).getAttribute ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
+
+function ts(dtLocal){ return Math.floor(new Date(dtLocal).getTime()/1000); }
+function dtLocal(ts){ var d=new Date(ts*1000); return d.toISOString().slice(0,16); }
+function fmtDur(sec){ var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  return h+'h '+m+'m '+s+'s'; }
+
+function showAlert(msg,ok){
+  var b=document.getElementById('alert-box');
+  b.className='alert-box '+(ok?'alert-ok':'alert-err');
+  b.textContent=msg; b.style.display='block';
+  setTimeout(function(){b.style.display='none';},4000);
+}
+
+// Preview duration as user fills in times
+['new-start','new-end'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){
+    var s=document.getElementById('new-start').value, e=document.getElementById('new-end').value;
+    if(s&&e){ var diff=ts(e)-ts(s); var p=document.getElementById('new-preview');
+      p.textContent = diff>0 ? 'Duration: '+fmtDur(diff) : 'End must be after start';
+      p.style.color = diff>0 ? '#00ff41' : '#ff4444'; p.style.display=''; }
+  });
+});
+
+function createEvent(){
+  var n=document.getElementById('new-name').value.trim();
+  var d=document.getElementById('new-desc').value.trim();
+  var s=document.getElementById('new-start').value;
+  var e=document.getElementById('new-end').value;
+  if(!n||!s||!e){showAlert('Name, start and end are required',false);return;}
+  if(ts(s)>=ts(e)){showAlert('End must be after start',false);return;}
+  fetch('/api/ctf/events',{method:'POST',headers:{'Content-Type':'application/json','CSRF-Token':CSRF},
+    body:JSON.stringify({name:n,description:d,start_ts:ts(s),end_ts:ts(e),is_active:true})})
+  .then(function(r){return r.json();}).then(function(r){
+    if(r.success){showAlert('Event created!',true);loadEvents();
+      ['new-name','new-desc','new-start','new-end'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('new-preview').style.display='none';
+    } else {showAlert(r.message||'Failed',false);}
+  }).catch(function(){showAlert('Network error',false);});
+}
+
+function loadEvents(){
+  fetch('/api/ctf/events/all',{credentials:'same-origin'})
+  .then(function(r){return r.json();}).then(function(events){
+    var html='';
+    if(events.length===0){html='<div class="ev-card" style="text-align:center;color:#8b949e">No events yet.</div>';}
+    events.forEach(function(ev){
+      var sc=ev.status==='active'?'active':ev.status==='upcoming'?'upcoming':ev.status==='ended'?'ended':'inactive';
+      html+='<div class="ev-card" id="ev-'+ev.id+'">';
+      html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">';
+      html+='<h4>'+_esc(ev.name)+'</h4>';
+      html+='<span class="ev-badge '+sc+'">'+ev.status+(ev.is_active?'':' (inactive)')+'</span>';
+      html+='</div>';
+      html+='<div style="font-size:.8rem;color:#8b949e;margin-bottom:10px">';
+      html+='Start: '+new Date(ev.start_ts*1000).toLocaleString()+' &nbsp;|&nbsp; ';
+      html+='End: '+new Date(ev.end_ts*1000).toLocaleString()+'</div>';
+      html+='<div style="display:flex;gap:8px">';
+      html+='<button class="btn-sm btn-edit" onclick="openEdit('+JSON.stringify(ev)+')">Edit</button>';
+      html+='<button class="btn-sm btn-toggle" onclick="toggleEvent('+ev.id+','+!ev.is_active+')">'+(ev.is_active?'Deactivate':'Activate')+'</button>';
+      html+='<button class="btn-sm btn-del" onclick="deleteEvent('+ev.id+')">Delete</button>';
+      html+='</div></div>';
+    });
+    document.getElementById('events-list').innerHTML=html;
+  }).catch(function(){showAlert('Failed to load events',false);});
+}
+
+function openEdit(ev){
+  document.getElementById('edit-id').value=ev.id;
+  document.getElementById('edit-name').value=ev.name;
+  document.getElementById('edit-desc').value=ev.description||'';
+  document.getElementById('edit-start').value=dtLocal(ev.start_ts);
+  document.getElementById('edit-end').value=dtLocal(ev.end_ts);
+  var m=document.getElementById('edit-modal');
+  m.style.display='flex';
+}
+
+function saveEdit(){
+  var id=document.getElementById('edit-id').value;
+  var s=document.getElementById('edit-start').value;
+  var e=document.getElementById('edit-end').value;
+  fetch('/api/ctf/events/'+id,{method:'PUT',headers:{'Content-Type':'application/json','CSRF-Token':CSRF},
+    body:JSON.stringify({name:document.getElementById('edit-name').value,
+      description:document.getElementById('edit-desc').value,
+      start_ts:ts(s),end_ts:ts(e)})})
+  .then(function(r){return r.json();}).then(function(r){
+    if(r.success){document.getElementById('edit-modal').style.display='none';showAlert('Saved',true);loadEvents();}
+    else{showAlert(r.message||'Failed',false);}
+  });
+}
+
+function toggleEvent(id, active){
+  fetch('/api/ctf/events/'+id,{method:'PUT',headers:{'Content-Type':'application/json','CSRF-Token':CSRF},
+    body:JSON.stringify({is_active:active})})
+  .then(function(r){return r.json();}).then(function(r){
+    if(r.success){loadEvents();} else{showAlert('Failed',false);}
+  });
+}
+
+function deleteEvent(id){
+  if(!confirm('Delete this event? Chat messages linked to it will be purged.'))return;
+  fetch('/api/ctf/events/'+id,{method:'DELETE',headers:{'CSRF-Token':CSRF},credentials:'same-origin'})
+  .then(function(r){return r.json();}).then(function(r){
+    if(r.success){loadEvents();showAlert('Event deleted and chat purged',true);}
+    else{showAlert('Failed',false);}
+  });
+}
+
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadEvents();
+setInterval(loadEvents, 30000);
+</script>
+{% endblock %}

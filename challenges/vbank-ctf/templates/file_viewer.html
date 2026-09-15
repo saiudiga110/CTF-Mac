@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Report Archive{% endblock %}
+{% block page_title %}Report Archive{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">Internal Report Archive</div>
+    <div class="page-subtitle">Quarterly and annual audit reports — authorised personnel only</div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-folder-open"></i></div>
+                Available Reports
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for f in report_files %}
+                    <a href="/staff/files?name={{ f.name | urlencode }}"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3"
+                       style="font-size:0.82rem; {% if filename == f.name %}background:#eff6ff;{% endif %}">
+                        <span><i class="fas fa-file-alt me-2" style="color:#64748b;font-size:0.75rem;"></i>{{ f.name }}</span>
+                        <span style="font-size:0.7rem;color:#94a3b8;">{{ f.size }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                <div class="p-3" style="border-top:1px solid var(--mfg-border);">
+                    <form method="GET" action="/staff/files" class="d-flex gap-2">
+                        <input type="text" name="name" class="form-control form-control-sm"
+                               placeholder="filename.txt" value="{{ filename | e }}">
+                        <button type="submit" class="btn btn-primary btn-sm">View</button>
+                    </form>
+                    <div class="mt-2" style="font-size:0.7rem;color:#94a3b8;">
+                        Enter a report filename to view its contents.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+                {% if filename %}{{ filename | e }}{% else %}Select a report{% endif %}
+            </div>
+            <div class="card-body">
+                {% if file_error %}
+                    <div class="alert alert-warning py-2 mb-0" style="font-size:0.8rem;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>{{ file_error | e }}
+                    </div>
+                {% elif content %}
+                    <pre class="terminal" style="max-height:500px;overflow-y:auto;">{{ content | e }}</pre>
+                {% else %}
+                    <p style="color:var(--mfg-muted);font-size:0.85rem;">
+                        Select a report from the list or enter a filename to view its contents.
+                    </p>
+                    <div class="alert alert-internal mt-3 mb-0" style="font-size:0.75rem;">
+                        <strong>Note (TD-508):</strong> Path resolution uses os.path.join with base directory.
+                        Filename sanitisation: strips <code>../</code> sequences before join.
+                        Security review pending — Q2 hardening sprint.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

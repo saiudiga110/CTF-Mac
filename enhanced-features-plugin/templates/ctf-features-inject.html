@@ -1,0 +1,1758 @@
+<style>
+/* ═══════════════════════════════════════════════════════
+   CTF Feature Suite — Shared Styles
+   ══════════════════════════════════════════════════════ */
+
+/* Countdown Timer in Navbar */
+#ctf-countdown-wrap {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 6px; padding: 4px 14px; margin-left: 12px;
+}
+#ctf-countdown-label {
+  font-family: "JetBrains Mono", monospace; font-size: 0.65rem;
+  color: rgba(16,185,129,0.5); text-transform: uppercase; letter-spacing: 1px;
+}
+#ctf-countdown-time {
+  font-family: "JetBrains Mono", monospace; font-size: 1rem; font-weight: 700;
+  color: #10b981; letter-spacing: 3px; text-shadow: 0 0 12px rgba(16,185,129,0.4);
+  transition: color 0.5s;
+}
+#ctf-countdown-time.warn  { color: #ffcc00 !important; text-shadow: 0 0 12px rgba(255,204,0,0.4) !important; }
+#ctf-countdown-time.ended { color: #ff3333 !important; text-shadow: 0 0 12px rgba(255,51,51,0.4) !important; }
+
+/* First Blood Toast */
+#ctf-toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.ctf-toast {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: linear-gradient(135deg, #0b1a0b, #112011);
+  border: 1px solid rgba(16,185,129,0.4); border-left: 4px solid #10b981;
+  border-radius: 8px; padding: 14px 18px; min-width: 280px; max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(16,185,129,0.08);
+  animation: toast-in 0.4s cubic-bezier(.16,1,.3,1) forwards;
+  pointer-events: all; cursor: pointer;
+}
+.ctf-toast.fade-out { animation: toast-out 0.3s ease forwards; }
+@keyframes toast-in  { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toast-out { to   { transform: translateX(120%); opacity: 0; } }
+.ctf-toast-icon  { font-size: 1.6rem; flex-shrink: 0; }
+.ctf-toast-body  { flex: 1; }
+.ctf-toast-title { font-family: "Inter", monospace; font-size: 0.7rem; font-weight: 700;
+  color: #10b981; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+.ctf-toast-msg   { font-family: "JetBrains Mono", monospace; font-size: 0.82rem; color: #ccffcc; }
+.ctf-toast-pts   { font-size: 0.72rem; color: rgba(16,185,129,0.5); margin-top: 2px; }
+
+/* Live Scoreboard overlay (on /scoreboard page) */
+#ctf-live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 4px; padding: 3px 10px; font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem; color: rgba(16,185,129,0.6); letter-spacing: 1px;
+  margin-left: 10px; vertical-align: middle;
+}
+#ctf-live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+  box-shadow: 0 0 6px #10b981; animation: live-pulse 1.2s ease-in-out infinite;
+}
+@keyframes live-pulse { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+
+.ctf-rank-change {
+  font-size: 0.7rem; font-family: "JetBrains Mono", monospace;
+  animation: rank-flash 1.5s ease forwards;
+}
+@keyframes rank-flash { 0% { opacity:1; } 70% { opacity:1; } 100% { opacity:0; } }
+.ctf-rank-up   { color: #10b981; }
+.ctf-rank-down { color: #ff3333; }
+
+/* Team Chat Panel */
+#ctf-chat-panel {
+  position: fixed; bottom: 0; left: 24px; width: 320px; z-index: 1050;
+  border: 1px solid rgba(16,185,129,0.25); border-bottom: none; border-radius: 8px 8px 0 0;
+  background: #0b1a0b; box-shadow: 0 -4px 24px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column; transition: height 0.3s ease;
+  height: 42px; overflow: hidden;
+}
+#ctf-chat-panel.open { height: 380px; }
+#ctf-chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #112011; border-bottom: 1px solid rgba(16,185,129,0.12);
+  cursor: pointer; flex-shrink: 0; user-select: none;
+}
+#ctf-chat-header-title {
+  font-family: "Inter", monospace; font-size: 0.7rem; font-weight: 700;
+  color: #10b981; letter-spacing: 2px; text-transform: uppercase;
+}
+#ctf-chat-unread {
+  background: #10b981; color: #010801; font-size: 0.62rem; font-weight: 700;
+  border-radius: 10px; padding: 1px 7px; display: none;
+}
+#ctf-chat-messages {
+  flex: 1; overflow-y: auto; padding: 10px 12px; display: flex;
+  flex-direction: column; gap: 8px; scroll-behavior: smooth;
+}
+#ctf-chat-messages::-webkit-scrollbar { width: 4px; }
+#ctf-chat-messages::-webkit-scrollbar-thumb { background: rgba(16,185,129,0.15); border-radius: 2px; }
+.ctf-chat-msg { display: flex; flex-direction: column; gap: 2px; }
+.ctf-chat-msg-header { display: flex; justify-content: space-between; align-items: baseline; }
+.ctf-chat-author {
+  font-family: "Inter", monospace; font-size: 0.62rem; font-weight: 700;
+  color: #10b981; letter-spacing: 1px;
+}
+.ctf-chat-author.me { color: #64b4ff; }
+.ctf-chat-time { font-size: 0.6rem; color: rgba(80,112,80,0.8); font-family: "JetBrains Mono", monospace; }
+.ctf-chat-text {
+  font-family: "JetBrains Mono", monospace; font-size: 0.78rem;
+  color: #ccffcc; line-height: 1.4; word-break: break-word;
+  background: rgba(16,185,129,0.04); border-radius: 4px; padding: 4px 8px;
+}
+.ctf-chat-me .ctf-chat-text { background: rgba(100,180,255,0.06); }
+#ctf-chat-form { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid rgba(16,185,129,0.12); flex-shrink: 0; }
+#ctf-chat-input {
+  flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 4px; color: #ccffcc; font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem; padding: 6px 10px; outline: none;
+}
+#ctf-chat-input:focus { border-color: rgba(16,185,129,0.4); }
+#ctf-chat-send {
+  background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+  color: #10b981; border-radius: 4px; padding: 6px 12px; cursor: pointer;
+  font-size: 0.8rem; font-weight: 700; transition: background 0.2s;
+}
+#ctf-chat-send:hover { background: rgba(16,185,129,0.25); }
+
+/* Full-width Countdown Banner (< 1 hour remaining) */
+#ctf-banner-countdown {
+  position: relative; width: 100%;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(255,153,0,.1), rgba(255,204,0,.07));
+  border-bottom: 1px solid rgba(255,153,0,.3);
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-family: "Inter", monospace; z-index: 900;
+  animation: banner-glow 2.5s ease-in-out infinite;
+}
+#ctf-banner-countdown.urgent {
+  background: linear-gradient(135deg, rgba(255,51,51,.14), rgba(200,0,0,.08));
+  border-bottom-color: rgba(255,51,51,.4);
+  animation: banner-glow-red 1.2s ease-in-out infinite;
+}
+#ctf-banner-countdown.ended { display: none !important; }
+@keyframes banner-glow     { 0%,100%{box-shadow:0 2px 20px rgba(255,153,0,.1);}  50%{box-shadow:0 2px 28px rgba(255,153,0,.25);} }
+@keyframes banner-glow-red { 0%,100%{box-shadow:0 2px 20px rgba(255,51,51,.12);} 50%{box-shadow:0 2px 28px rgba(255,51,51,.3);} }
+#ctf-banner-label { font-size:.7rem; letter-spacing:2px; text-transform:uppercase; color:rgba(255,153,0,.7); }
+#ctf-banner-label.urgent { color:rgba(255,80,80,.8); }
+#ctf-banner-time  { font-size:1.4rem; font-weight:700; letter-spacing:4px; color:#ffcc00; text-shadow:0 0 16px rgba(255,204,0,.5); }
+#ctf-banner-time.urgent   { color:#ff4444; text-shadow:0 0 16px rgba(255,68,68,.5); }
+#ctf-banner-close {
+  position:absolute; right:16px; background:none; border:none;
+  color:rgba(255,255,255,.25); cursor:pointer; font-size:1rem; line-height:1;
+  padding:4px; transition:color .2s;
+}
+#ctf-banner-close:hover { color:rgba(255,255,255,.6); }
+
+/* Admin Solve Feed Panel */
+#ctf-admin-feed {
+  position: fixed; top: 68px; right: 18px; z-index: 1050; width: 360px;
+  background: rgba(10,14,20,.97); border: 1px solid rgba(16,185,129,.2);
+  border-radius: 10px; display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.7);
+  backdrop-filter: blur(10px); max-height: 480px;
+}
+#ctf-admin-feed-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: rgba(16,185,129,.05);
+  border-bottom: 1px solid rgba(16,185,129,.12); flex-shrink: 0;
+}
+#ctf-admin-feed-title {
+  font-family: "Inter", monospace; font-size: .68rem; font-weight: 700;
+  color: #10b981; letter-spacing: 2px; text-transform: uppercase;
+}
+#ctf-admin-feed-refresh {
+  background: none; border: 1px solid rgba(16,185,129,.2); border-radius: 4px;
+  color: rgba(16,185,129,.6); cursor: pointer; font-size: .75rem; padding: 3px 8px;
+  transition: all .2s;
+}
+#ctf-admin-feed-refresh:hover { background: rgba(16,185,129,.1); color: #10b981; }
+#ctf-admin-feed-list {
+  overflow-y: auto; flex: 1; padding: 6px 0;
+}
+#ctf-admin-feed-list::-webkit-scrollbar { width: 4px; }
+#ctf-admin-feed-list::-webkit-scrollbar-thumb { background: rgba(16,185,129,.15); border-radius: 2px; }
+.ctf-feed-row {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 7px 14px; border-bottom: 1px solid rgba(255,255,255,.04);
+  animation: feed-row-in .3s ease forwards;
+}
+@keyframes feed-row-in { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:translateX(0); } }
+.ctf-feed-row:hover { background: rgba(16,185,129,.03); }
+.ctf-feed-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ctf-feed-user { font-family: "Inter", monospace; font-size: .65rem; color: #10b981; font-weight: 700; }
+.ctf-feed-pts  { font-family: "JetBrains Mono", monospace; font-size: .7rem; color: #ffcc00; }
+.ctf-feed-chal { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctf-feed-cat  { font-size: .62rem; color: #8b949e; font-family: "JetBrains Mono", monospace; }
+.ctf-feed-time { font-size: .6rem; color: rgba(139,148,158,.6); font-family: "JetBrains Mono", monospace; flex-shrink: 0; }
+#ctf-admin-feed-toggle {
+  position: fixed; top: 68px; right: 18px; z-index: 1051;
+  background: rgba(10,14,20,.95); border: 1px solid rgba(16,185,129,.25);
+  border-radius: 8px; padding: 8px 12px; cursor: pointer; display: none;
+  font-family: "Inter", monospace; font-size: .65rem; color: #10b981;
+  letter-spacing: 1px; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+}
+
+/* Confetti particles */
+@keyframes ctf-confetti-fall {
+  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(105vh) rotate(540deg); opacity: 0; }
+}
+@keyframes ctf-confetti-sway {
+  0%,100% { margin-left: 0; }
+  33%     { margin-left: -8px; }
+  66%     { margin-left:  8px; }
+}
+
+/* Onboarding overlay */
+#ctf-onboard-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+  animation: onboard-fade-in .3s ease;
+}
+@keyframes onboard-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes onboard-fade-out { to   { opacity: 0; transform: scale(.97); } }
+#ctf-onboard-box {
+  background: #0d1117; border: 1px solid rgba(16,185,129,.25); border-radius: 14px;
+  padding: 36px 32px; width: 440px; max-width: 92vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,.8);
+  animation: onboard-slide-in .35s cubic-bezier(.16,1,.3,1);
+}
+@keyframes onboard-slide-in { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ctf-ob-icon  { font-size: 2.4rem; text-align: center; margin-bottom: 14px; }
+.ctf-ob-title {
+  font-family: "Inter", monospace; font-size: .95rem; font-weight: 700;
+  color: #10b981; text-align: center; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;
+}
+.ctf-ob-body  {
+  font-family: "JetBrains Mono", monospace; font-size: .82rem;
+  color: #c9d1d9; line-height: 1.65; text-align: center; margin-bottom: 22px;
+}
+.ctf-ob-body code { color: #ffcc00; background: rgba(255,204,0,.08); border: 1px solid rgba(255,204,0,.2); padding: 2px 8px; border-radius: 4px; }
+.ctf-ob-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 20px; }
+.ctf-ob-dot  { width: 8px; height: 8px; border-radius: 50%; background: rgba(16,185,129,.15); transition: all .25s; }
+.ctf-ob-dot.active { background: #10b981; box-shadow: 0 0 7px #10b981; }
+.ctf-ob-btns { display: flex; gap: 8px; justify-content: center; }
+.ctf-ob-btn  {
+  font-family: "JetBrains Mono", monospace; font-size: .8rem; padding: 9px 22px;
+  border-radius: 6px; cursor: pointer; transition: all .2s;
+  border: 1px solid rgba(16,185,129,.3); background: rgba(16,185,129,.07); color: #10b981;
+}
+.ctf-ob-btn:hover { background: rgba(16,185,129,.16); }
+.ctf-ob-btn.primary {
+  background: linear-gradient(135deg, #10b981, #00cc33); color: #010801;
+  border-color: transparent; font-weight: 700;
+}
+.ctf-ob-btn.primary:hover { filter: brightness(1.1); }
+
+/* Team presence bar */
+#ctf-presence-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px 14px; margin-bottom: 12px;
+  background: rgba(13,17,23,.7); border: 1px solid rgba(16,185,129,.1); border-radius: 6px;
+  font-family: "JetBrains Mono", monospace; font-size: .72rem;
+}
+.ctf-presence-label { color: rgba(16,185,129,.4); text-transform: uppercase; letter-spacing: 1px; font-size: .62rem; flex-shrink: 0; }
+.ctf-presence-member { display: flex; align-items: center; gap: 4px; }
+.ctf-presence-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ctf-presence-dot.online  { background: #10b981; box-shadow: 0 0 5px #10b981; animation: live-pulse 1.5s ease-in-out infinite; }
+.ctf-presence-dot.offline { background: rgba(139,148,158,.25); }
+.ctf-presence-name { color: #8b949e; }
+.ctf-presence-name.online { color: #10b981; }
+
+/* Solve-time badge on challenge cards */
+.ctf-solve-time {
+  display: block; font-size: .6rem; color: rgba(16,185,129,.45);
+  font-family: "JetBrains Mono", monospace; margin-top: 2px; letter-spacing: .5px;
+}
+
+/* Difficulty Vote Widget (shown in challenge modal) */
+#ctf-vote-widget {
+  border-top: 1px solid rgba(16,185,129,0.1); padding: 14px 0 4px; margin-top: 12px;
+}
+.ctf-vote-label {
+  font-family: "Inter", monospace; font-size: 0.68rem; color: rgba(16,185,129,0.5);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+}
+.ctf-stars { display: flex; gap: 5px; }
+.ctf-star {
+  font-size: 1.4rem; cursor: pointer; color: rgba(80,112,80,0.5);
+  transition: color 0.15s, transform 0.15s;
+}
+.ctf-star:hover, .ctf-star.active { color: #ffcc00; transform: scale(1.15); }
+.ctf-vote-result {
+  font-family: "JetBrains Mono", monospace; font-size: 0.72rem;
+  color: rgba(16,185,129,0.5); margin-top: 6px;
+}
+
+/* Admin Quick Bar (shown on /challenges for admins) */
+#ctf-admin-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  background: rgba(8,14,24,0.78);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(16,185,129,0.22);
+  border-radius: 10px; padding: 10px 18px; margin: 8px 0 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.40);
+}
+.ctf-ab-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Inter', 'JetBrains Mono', monospace;
+  font-size: 0.70rem; font-weight: 700;
+  color: #10b981; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap;
+}
+.ctf-ab-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.7);
+  animation: ctf-ab-pulse 2s ease-in-out infinite; display: inline-block; flex-shrink: 0;
+}
+@keyframes ctf-ab-pulse { 0%,100%{opacity:1} 50%{opacity:0.28} }
+.ctf-ab-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ctf-ab-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 6px;
+  font-size: 0.76rem; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+  text-decoration: none !important;
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.20);
+  color: #34d399 !important;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s; white-space: nowrap;
+}
+.ctf-ab-btn:hover {
+  background: rgba(16,185,129,0.16); border-color: rgba(16,185,129,0.40);
+  box-shadow: 0 4px 16px rgba(16,185,129,0.12); text-decoration: none !important;
+}
+.ctf-ab-hub {
+  background: rgba(16,185,129,0.13); border-color: rgba(16,185,129,0.30); color: #10b981 !important;
+}
+.ctf-ab-hub:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.18); }
+
+/* Write-up Panel (in challenge modal) */
+#ctf-writeup-panel {
+  border-top: 1px solid rgba(16,185,129,0.1); padding: 14px 0 4px; margin-top: 8px;
+}
+.ctf-writeup-toggle {
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+  color: #10b981; border-radius: 4px; padding: 6px 14px; cursor: pointer;
+  font-family: "JetBrains Mono", monospace; font-size: 0.75rem; transition: all 0.2s;
+}
+.ctf-writeup-toggle:hover { background: rgba(16,185,129,0.15); }
+#ctf-writeup-form { margin-top: 10px; display: none; }
+#ctf-writeup-form.open { display: block; }
+.ctf-writeup-input {
+  width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 4px; color: #ccffcc; font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem; padding: 7px 10px; outline: none; margin-bottom: 6px; box-sizing: border-box;
+}
+.ctf-writeup-input:focus { border-color: rgba(16,185,129,0.4); }
+.ctf-writeup-textarea { min-height: 100px; resize: vertical; }
+.ctf-writeup-submit {
+  background: linear-gradient(135deg, #10b981, #00cc33); color: #010801;
+  border: none; border-radius: 4px; padding: 8px 20px; cursor: pointer;
+  font-family: "JetBrains Mono", monospace; font-size: 0.78rem; font-weight: 700;
+}
+.ctf-writeup-public-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: rgba(16,185,129,0.6);
+}
+</style>
+
+<!-- Toast container -->
+<div id="ctf-toast-container"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = '/api/ctf';
+  var currentUser = null;
+  var currentTeamId = 0;
+
+  // ── Fetch current user info ────────────────────────────────────────────────
+  fetch('/api/v1/users/me', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.data) {
+        currentUser = d.data;
+        currentTeamId = currentUser.team_id || 0;
+        initChat();
+        if (currentTeamId) initTeamSolveNotifs();
+        initOnboarding();
+        initPresence();
+        injectAdminBar();
+      }
+    }).catch(function(){});
+
+  // ═══════════════════════════════════════════════════════
+  // 1. CTF COUNTDOWN TIMER
+  // ═══════════════════════════════════════════════════════
+  fetch(API + '/config', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(cfg) {
+      if (!cfg.end) return;
+      injectCountdown(cfg.end);
+    }).catch(function(){});
+
+  function injectCountdown(endTs) {
+    var nav = document.querySelector('.navbar-nav') || document.querySelector('nav');
+    if (!nav) return;
+    var wrap = document.createElement('li');
+    wrap.className = 'nav-item';
+    wrap.innerHTML =
+      '<div id="ctf-countdown-wrap">' +
+      '<span id="ctf-countdown-label">CTF ENDS</span>' +
+      '<span id="ctf-countdown-time">--:--:--</span>' +
+      '</div>';
+    nav.appendChild(wrap);
+    tickCountdown(endTs);
+    setInterval(function() { tickCountdown(endTs); }, 1000);
+    injectBigBanner(endTs);
+  }
+
+  function tickCountdown(endTs) {
+    var el = document.getElementById('ctf-countdown-time');
+    if (!el) return;
+    var now = Math.floor(Date.now() / 1000);
+    var rem = endTs - now;
+    if (rem <= 0) {
+      el.textContent = 'ENDED';
+      el.className = 'ended';
+      return;
+    }
+    var h = Math.floor(rem / 3600);
+    var m = Math.floor((rem % 3600) / 60);
+    var s = rem % 60;
+    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+    el.className = rem < 900 ? 'warn' : '';
+  }
+
+  var _bannerDismissed = false;
+
+  function injectBigBanner(endTs) {
+    function tick() {
+      if (_bannerDismissed) return;
+      var now = Math.floor(Date.now() / 1000);
+      var rem = endTs - now;
+      var banner = document.getElementById('ctf-banner-countdown');
+
+      if (rem <= 0) {
+        if (banner) banner.classList.add('ended');
+        return;
+      }
+      if (rem > 3600) {
+        if (banner) banner.style.display = 'none';
+        return;
+      }
+
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'ctf-banner-countdown';
+        var closeBtn = document.createElement('button');
+        closeBtn.id = 'ctf-banner-close';
+        closeBtn.title = 'Dismiss';
+        closeBtn.textContent = '×';
+        closeBtn.addEventListener('click', function() {
+          _bannerDismissed = true;
+          banner.style.display = 'none';
+        });
+        var label = document.createElement('span');
+        label.id = 'ctf-banner-label';
+        var timeEl = document.createElement('span');
+        timeEl.id = 'ctf-banner-time';
+        banner.appendChild(label);
+        banner.appendChild(timeEl);
+        banner.appendChild(closeBtn);
+        var header = document.querySelector('header, nav.navbar');
+        if (header && header.parentNode) {
+          header.parentNode.insertBefore(banner, header.nextSibling);
+        } else {
+          var main = document.querySelector('main') || document.body.firstChild;
+          if (main && main.parentNode) main.parentNode.insertBefore(banner, main);
+          else document.body.prepend(banner);
+        }
+      }
+
+      banner.style.display = 'flex';
+      var urgent = rem < 600;
+      banner.className = urgent ? 'urgent' : '';
+      var label = document.getElementById('ctf-banner-label');
+      var timeEl = document.getElementById('ctf-banner-time');
+      if (label) { label.textContent = urgent ? '⚠ FINAL COUNTDOWN' : '⏱ CTF ENDS IN'; label.className = urgent ? 'urgent' : ''; }
+      if (timeEl) {
+        var h = Math.floor(rem / 3600);
+        var m = Math.floor((rem % 3600) / 60);
+        var s = rem % 60;
+        timeEl.textContent = (h > 0 ? pad(h) + ':' : '') + pad(m) + ':' + pad(s);
+        timeEl.className = urgent ? 'urgent' : '';
+      }
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  // ═══════════════════════════════════════════════════════
+  // 2. FIRST BLOOD TOASTS (SSE + polling fallback)
+  // ═══════════════════════════════════════════════════════
+  var lastFirstBloodCheck = new Date().toISOString();
+
+  function showToast(icon, title, msg, pts) {
+    var container = document.getElementById('ctf-toast-container');
+    if (!container) return;
+    var t = document.createElement('div');
+    t.className = 'ctf-toast';
+    t.innerHTML =
+      '<div class="ctf-toast-icon">' + icon + '</div>' +
+      '<div class="ctf-toast-body">' +
+        '<div class="ctf-toast-title">' + title + '</div>' +
+        '<div class="ctf-toast-msg">' + escHtml(msg) + '</div>' +
+        (pts ? '<div class="ctf-toast-pts">+' + pts + ' pts</div>' : '') +
+      '</div>';
+    container.appendChild(t);
+    t.addEventListener('click', function() { dismissToast(t); });
+    setTimeout(function() { dismissToast(t); }, 7000);
+  }
+
+  function dismissToast(t) {
+    t.classList.add('fade-out');
+    setTimeout(function() { t.parentNode && t.parentNode.removeChild(t); }, 320);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Try SSE first
+  if (typeof EventSource !== 'undefined') {
+    try {
+      var es = new EventSource(API + '/stream');
+      es.addEventListener('first_blood', function(e) {
+        var d = JSON.parse(e.data);
+        showToast('🩸', '⚡ FIRST BLOOD', d.username + ' solved ' + d.challenge_name, d.points);
+      });
+      es.addEventListener('score_update', function() {
+        if (window.location.pathname.match(/^\/scoreboard/)) refreshScoreboard();
+      });
+    } catch(e) {}
+  } else {
+    // Polling fallback
+    setInterval(function() {
+      fetch(API + '/first-blood/recent?since=' + encodeURIComponent(lastFirstBloodCheck))
+        .then(function(r) { return r.json(); })
+        .then(function(rows) {
+          rows.forEach(function(fb) {
+            showToast('🩸', '⚡ FIRST BLOOD', fb.username + ' solved ' + fb.challenge_name, fb.points);
+          });
+          if (rows.length) lastFirstBloodCheck = new Date().toISOString();
+        }).catch(function(){});
+    }, 15000);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 3. LIVE SCOREBOARD
+  // ═══════════════════════════════════════════════════════
+  var prevScores = {};
+
+  function refreshScoreboard() {
+    fetch(API + '/scoreboard', { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(rows) {
+        rows.forEach(function(row) {
+          var prev = prevScores[row.user_id];
+          if (prev !== undefined && prev !== row.score) {
+            animateScoreChange(row.user_id, prev, row.score);
+          }
+          prevScores[row.user_id] = row.score;
+        });
+        patchScoreboardTable(rows);
+      }).catch(function(){});
+  }
+
+  function patchScoreboardTable(rows) {
+    // Inject live badge next to SCOREBOARD heading
+    var h1 = document.querySelector('h1');
+    if (h1 && !document.getElementById('ctf-live-badge')) {
+      var badge = document.createElement('span');
+      badge.id = 'ctf-live-badge';
+      badge.innerHTML = '<span id="ctf-live-dot"></span> LIVE';
+      h1.appendChild(badge);
+    }
+  }
+
+  function animateScoreChange(userId, oldScore, newScore) {
+    // Flash the score cell in the scoreboard table
+    var cells = document.querySelectorAll('[data-user-id="' + userId + '"] .score-cell');
+    cells.forEach(function(cell) {
+      cell.style.animation = 'none';
+      cell.offsetHeight;
+      cell.style.color = newScore > oldScore ? '#10b981' : '#ff3333';
+      setTimeout(function() { cell.style.color = ''; }, 1500);
+    });
+  }
+
+  if (window.location.pathname.match(/^\/scoreboard/)) {
+    refreshScoreboard();
+    setInterval(refreshScoreboard, 10000);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 4. TEAM CHAT PANEL
+  // ═══════════════════════════════════════════════════════
+  var chatLastId = 0;
+  var chatOpen = false;
+  var chatUnread = 0;
+
+  function initChat() {
+    var panel = document.createElement('div');
+    panel.id = 'ctf-chat-panel';
+    panel.innerHTML =
+      '<div id="ctf-chat-header">' +
+        '<span id="ctf-chat-header-title">&#128172; Team Chat</span>' +
+        '<span id="ctf-chat-unread"></span>' +
+      '</div>' +
+      '<div id="ctf-chat-messages"></div>' +
+      '<form id="ctf-chat-form">' +
+        '<input id="ctf-chat-input" placeholder="Message..." maxlength="500" autocomplete="off">' +
+        '<button id="ctf-chat-send" type="submit">&#8593;</button>' +
+      '</form>';
+    document.body.appendChild(panel);
+
+    document.getElementById('ctf-chat-header').addEventListener('click', toggleChat);
+    document.getElementById('ctf-chat-form').addEventListener('submit', sendChatMessage);
+
+    loadChatMessages();
+    setInterval(loadChatMessages, 4000);
+  }
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    var panel = document.getElementById('ctf-chat-panel');
+    if (chatOpen) {
+      panel.classList.add('open');
+      chatUnread = 0;
+      document.getElementById('ctf-chat-unread').style.display = 'none';
+      document.getElementById('ctf-chat-unread').textContent = '';
+      var msgs = document.getElementById('ctf-chat-messages');
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    } else {
+      panel.classList.remove('open');
+    }
+  }
+
+  function loadChatMessages() {
+    var teamId = currentTeamId || 0;
+    fetch(API + '/chat/' + teamId + '?since_id=' + chatLastId, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(msgs) {
+        if (!msgs || !msgs.length) return;
+        var container = document.getElementById('ctf-chat-messages');
+        if (!container) return;
+        var wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 20;
+        msgs.forEach(function(m) {
+          appendChatMessage(m, container);
+          chatLastId = Math.max(chatLastId, m.id);
+        });
+        if (wasAtBottom) container.scrollTop = container.scrollHeight;
+        if (!chatOpen) {
+          chatUnread += msgs.length;
+          var badge = document.getElementById('ctf-chat-unread');
+          badge.textContent = chatUnread;
+          badge.style.display = 'inline';
+        }
+      }).catch(function(){});
+  }
+
+  function appendChatMessage(m, container) {
+    var isMe = currentUser && m.username === currentUser.name;
+    var div = document.createElement('div');
+    div.className = 'ctf-chat-msg' + (isMe ? ' ctf-chat-me' : '');
+    var t = new Date(m.created_at);
+    var timeStr = t.getHours() + ':' + pad(t.getMinutes());
+    div.innerHTML =
+      '<div class="ctf-chat-msg-header">' +
+        '<span class="ctf-chat-author' + (isMe ? ' me' : '') + '">' + escHtml(m.username) + '</span>' +
+        '<span class="ctf-chat-time">' + timeStr + '</span>' +
+      '</div>' +
+      '<div class="ctf-chat-text">' + escHtml(m.message) + '</div>';
+    container.appendChild(div);
+  }
+
+  function sendChatMessage(e) {
+    e.preventDefault();
+    var input = document.getElementById('ctf-chat-input');
+    var text = input.value.trim();
+    if (!text) return;
+    var teamId = currentTeamId || 0;
+    fetch(API + '/chat/' + teamId, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+      body: JSON.stringify({ message: text })
+    }).then(function() { input.value = ''; loadChatMessages(); }).catch(function(){});
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 5. DIFFICULTY VOTE WIDGET (injected into challenge modal)
+  // ═══════════════════════════════════════════════════════
+  var activeChalId = null;
+  var activeSolved = false;
+
+  document.addEventListener('click', function(e) {
+    // CTFd challenge button click — detect via challenge modal show
+    var btn = e.target.closest('[data-challenge-id], .challenge-button, [data-cid]');
+    if (btn) {
+      var cid = btn.dataset.challengeId || btn.dataset.cid ||
+                btn.getAttribute('data-challenge-id');
+      if (cid) {
+        activeChalId = parseInt(cid);
+        // Feature 2: record when the challenge was first opened (for solve-time tracker)
+        if (!localStorage.getItem('ctf:time:' + activeChalId)) {
+          localStorage.setItem('ctf:open:' + activeChalId, Date.now().toString());
+        }
+      }
+    }
+  });
+
+  // Watch for challenge modal to open (MutationObserver)
+  var modalObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.nodeType !== 1) return;
+        var modal = node.id === 'challenge-window' ? node : node.querySelector && node.querySelector('#challenge-window');
+        if (!modal) {
+          if (node.classList && node.classList.contains('modal')) modal = node;
+        }
+        if (modal && activeChalId) {
+          setTimeout(function() { injectChallengeExtras(modal, activeChalId); }, 200);
+        }
+      });
+    });
+  });
+  modalObserver.observe(document.body, { childList: true, subtree: true });
+
+  function injectChallengeExtras(modal, chalId) {
+    // Remove old widgets
+    var old = modal.querySelectorAll('#ctf-vote-widget, #ctf-writeup-panel');
+    old.forEach(function(el) { el.parentNode.removeChild(el); });
+
+    // Check if solved
+    fetch('/api/v1/challenges/' + chalId, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var solved = d && d.data && d.data.solved_by_me;
+        injectVoteWidget(modal, chalId, solved);
+        if (solved) injectWriteupPanel(modal, chalId);
+      }).catch(function() {
+        injectVoteWidget(modal, chalId, false);
+      });
+  }
+
+  function injectVoteWidget(modal, chalId, solved) {
+    var body = modal.querySelector('.modal-body') || modal.querySelector('.challenge-body') || modal;
+    if (!body) return;
+    var widget = document.createElement('div');
+    widget.id = 'ctf-vote-widget';
+
+    fetch(API + '/vote/' + chalId, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var myVote = data.my_vote;
+        var avgText = data.avg ? ('Community: ' + data.avg + '★ (' + data.count + ' votes)') : 'No votes yet';
+        var stars = '';
+        for (var i = 1; i <= 5; i++) {
+          stars += '<span class="ctf-star' + (myVote >= i ? ' active' : '') + '" data-val="' + i + '">★</span>';
+        }
+        widget.innerHTML =
+          '<div class="ctf-vote-label">Rate Difficulty</div>' +
+          '<div class="ctf-stars">' + stars + '</div>' +
+          '<div class="ctf-vote-result" id="ctf-vote-avg">' + avgText + '</div>';
+
+        // Star hover + click
+        var starEls = widget.querySelectorAll('.ctf-star');
+        starEls.forEach(function(star) {
+          star.addEventListener('mouseover', function() {
+            var val = parseInt(star.dataset.val);
+            starEls.forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.val) <= val); });
+          });
+          star.addEventListener('mouseout', function() {
+            starEls.forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.val) <= (myVote || 0)); });
+          });
+          star.addEventListener('click', function() {
+            if (!solved) { showToast('⚠️','Vote','Solve the challenge first to vote!'); return; }
+            var val = parseInt(star.dataset.val);
+            fetch(API + '/vote/' + chalId, {
+              method: 'POST', credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+              body: JSON.stringify({ rating: val })
+            }).then(function(r) { return r.json(); })
+              .then(function() {
+                myVote = val;
+                starEls.forEach(function(s) { s.classList.toggle('active', parseInt(s.dataset.val) <= val); });
+                fetch(API + '/vote/' + chalId, { credentials: 'same-origin' })
+                  .then(function(r) { return r.json(); })
+                  .then(function(nd) {
+                    document.getElementById('ctf-vote-avg').textContent =
+                      'Community: ' + nd.avg + '★ (' + nd.count + ' votes)';
+                  });
+              }).catch(function(){});
+          });
+        });
+
+        body.appendChild(widget);
+      }).catch(function(){
+        body.appendChild(widget);
+      });
+  }
+
+  function injectWriteupPanel(modal, chalId) {
+    var body = modal.querySelector('.modal-body') || modal.querySelector('.challenge-body') || modal;
+    if (!body) return;
+    var panel = document.createElement('div');
+    panel.id = 'ctf-writeup-panel';
+
+    // Load existing writeup
+    fetch(API + '/writeup/' + chalId, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(wu) {
+        var btnLabel = wu ? '✏️ Edit Write-up' : '📝 Submit Write-up';
+        panel.innerHTML =
+          '<button class="ctf-writeup-toggle" id="ctf-wu-toggle">' + btnLabel + '</button>' +
+          '<div id="ctf-writeup-form">' +
+            '<input class="ctf-writeup-input" id="ctf-wu-title" placeholder="Write-up title" value="' +
+              escHtml(wu ? wu.title : '') + '">' +
+            '<textarea class="ctf-writeup-input ctf-writeup-textarea" id="ctf-wu-content" placeholder="Explain the exploit, tools used, and steps...">' +
+              (wu ? escHtml(wu.content) : '') + '</textarea>' +
+            '<div class="ctf-writeup-public-row">' +
+              '<input type="checkbox" id="ctf-wu-public"' + (wu && wu.public ? ' checked' : ' checked') + '>' +
+              '<label for="ctf-wu-public">Make public (visible to others after CTF)</label>' +
+            '</div>' +
+            '<button class="ctf-writeup-submit" id="ctf-wu-submit">Submit Write-up</button>' +
+          '</div>';
+
+        document.getElementById('ctf-wu-toggle').addEventListener('click', function() {
+          var form = document.getElementById('ctf-writeup-form');
+          form.classList.toggle('open');
+        });
+
+        document.getElementById('ctf-wu-submit').addEventListener('click', function() {
+          var title   = document.getElementById('ctf-wu-title').value.trim();
+          var content = document.getElementById('ctf-wu-content').value.trim();
+          var pub     = document.getElementById('ctf-wu-public').checked;
+          if (!title || !content) { showToast('⚠️','Write-up','Title and content are required'); return; }
+          fetch(API + '/writeup/' + chalId, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+            body: JSON.stringify({ title: title, content: content, is_public: pub })
+          }).then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.success) showToast('📝','Write-up','Submitted successfully!');
+              else showToast('⚠️','Write-up', d.message || 'Error');
+            }).catch(function(){});
+        });
+
+        body.appendChild(panel);
+      }).catch(function(){
+        body.appendChild(panel);
+      });
+  }
+
+  // ── CSRF helper ───────────────────────────────────────────────────────────
+  function getCsrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    if (m) return m.getAttribute('content');
+    if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+    return '';
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 6. FLAG SUBMISSION FEEDBACK (green / red)
+  // ═══════════════════════════════════════════════════════
+  (function patchFlagSubmission() {
+    // Intercept fetch to detect correct/wrong flag submissions
+    var origFetch = window.fetch;
+    window.fetch = function(input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+      var isAttempt = /\/api\/v1\/challenges\/\d+\/attempt/.test(url);
+      var prom = origFetch.apply(this, arguments);
+      if (!isAttempt) return prom;
+      return prom.then(function(response) {
+        // Clone so we can read the body without consuming it
+        var clone = response.clone();
+        clone.json().then(function(body) {
+          if (!body || !body.data) return;
+          var status = body.data.status;
+          if (status === 'correct') {
+            // Feature 2: save solve time
+            var _cidMatch = url.match(/\/api\/v1\/challenges\/(\d+)\/attempt/);
+            var _cid = _cidMatch ? _cidMatch[1] : (activeChalId || 0);
+            if (_cid) {
+              var _opened = parseInt(localStorage.getItem('ctf:open:' + _cid) || 0);
+              if (_opened) {
+                localStorage.setItem('ctf:time:' + _cid, Math.round((Date.now() - _opened) / 1000).toString());
+              }
+            }
+            // Feature 3: confetti!
+            fireConfetti();
+            showFlagResult(true, body.data.message || 'Correct! Flag accepted.');
+            _updateStatsWidget();
+          } else if (status === 'incorrect') {
+            showFlagResult(false, body.data.message || 'Incorrect flag. Try again.');
+          } else if (status === 'already_solved') {
+            showFlagResult(true, 'Already solved — you got this one!');
+          } else if (status === 'ratelimited' || response.status === 429) {
+            showFlagResult(false, body.data.message || 'Too many attempts. Wait before retrying.');
+          }
+        }).catch(function(){});
+        return response;
+      });
+    };
+
+    function showFlagResult(correct, msg) {
+      // Remove previous result banner
+      var old = document.getElementById('ctf-flag-result');
+      if (old) old.parentNode && old.parentNode.removeChild(old);
+
+      var color = correct ? '#10b981' : '#ff4444';
+      var bg    = correct ? 'rgba(16,185,129,0.08)' : 'rgba(255,68,68,0.08)';
+      var border= correct ? 'rgba(16,185,129,0.35)' : 'rgba(255,68,68,0.35)';
+      var icon  = correct ? '✅' : '❌';
+
+      // Show inside the challenge modal if open
+      var modal = document.querySelector('#challenge-window .modal-body, .modal.show .modal-body');
+      var banner = document.createElement('div');
+      banner.id = 'ctf-flag-result';
+      banner.style.cssText = 'background:'+bg+';border:1px solid '+border+';border-radius:7px;'+
+        'padding:10px 16px;margin-top:12px;font-family:"JetBrains Mono",monospace;'+
+        'font-size:.88rem;color:'+color+';display:flex;align-items:center;gap:10px;'+
+        'animation:toast-in .35s cubic-bezier(.16,1,.3,1) forwards;';
+      banner.innerHTML = '<span style="font-size:1.2rem">'+icon+'</span><span>'+escHtml(msg)+'</span>';
+
+      if (modal) {
+        modal.appendChild(banner);
+      } else {
+        // Fallback: toast notification
+        showToast(icon, correct ? 'FLAG ACCEPTED' : 'WRONG FLAG', msg);
+        return;
+      }
+      if (!correct) {
+        setTimeout(function() { banner.parentNode && banner.parentNode.removeChild(banner); }, 4000);
+      }
+    }
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 7. PLAYER STATS WIDGET (correct / wrong / total)
+  // ═══════════════════════════════════════════════════════
+  function _buildStatsWidget() {
+    if (document.getElementById('ctf-stats-widget')) return;
+    var widget = document.createElement('div');
+    widget.id = 'ctf-stats-widget';
+    widget.style.cssText = 'position:fixed;top:16px;right:18px;z-index:1040;'+
+      'background:rgba(13,17,23,.92);border:1px solid rgba(16,185,129,.2);border-radius:9px;'+
+      'padding:10px 14px;font-family:"JetBrains Mono",monospace;font-size:.72rem;'+
+      'color:#8b949e;display:flex;flex-direction:column;gap:4px;backdrop-filter:blur(8px);'+
+      'min-width:130px;';
+    widget.innerHTML = '<div style="color:rgba(16,185,129,.5);letter-spacing:1px;text-transform:uppercase;font-size:.62rem;margin-bottom:2px">My Progress</div>'+
+      '<div id="ctf-stat-correct" style="color:#10b981">✓ — correct</div>'+
+      '<div id="ctf-stat-wrong" style="color:#ff4444">✗ — wrong</div>'+
+      '<div id="ctf-stat-pct" style="color:#64b4ff">— / — (—%)</div>';
+    document.body.appendChild(widget);
+    _updateStatsWidget();
+  }
+
+  function _updateStatsWidget() {
+    fetch(API + '/stats/me', { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var c = document.getElementById('ctf-stat-correct');
+        var w = document.getElementById('ctf-stat-wrong');
+        var p = document.getElementById('ctf-stat-pct');
+        if (c) c.textContent = '✓ '+d.correct+' correct';
+        if (w) w.textContent = '✗ '+d.wrong+' wrong';
+        if (p) p.textContent = d.correct+' / '+d.total+' ('+d.percent+'%)';
+      }).catch(function(){});
+  }
+
+  // Build stats widget for all non-admin pages
+  if (!window.location.pathname.startsWith('/admin')) {
+    setTimeout(_buildStatsWidget, 1200);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 8. CONTEST/EVENT TIMER (right side floating panel)
+  // ═══════════════════════════════════════════════════════
+  (function initEventTimer() {
+    function fetchAndRender() {
+      fetch(API + '/events', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(events) {
+          var existing = document.getElementById('ctf-event-timer');
+          if (!events || events.length === 0) {
+            if (existing) existing.style.display = 'none';
+            return;
+          }
+          var ev = events[0]; // Show the first active event
+          if (!existing) {
+            var el = document.createElement('div');
+            el.id = 'ctf-event-timer';
+            el.style.cssText = 'position:fixed;top:72px;right:18px;z-index:1045;'+
+              'background:rgba(13,17,23,.92);border:1px solid rgba(16,185,129,.2);border-radius:10px;'+
+              'padding:14px 18px;font-family:"JetBrains Mono",monospace;backdrop-filter:blur(10px);'+
+              'min-width:180px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.5);';
+            document.body.appendChild(el);
+            existing = el;
+          }
+          existing.style.display = 'block';
+          var now = Math.floor(Date.now() / 1000);
+          var rem = ev.end_ts - now;
+          var h=Math.floor(rem/3600), m=Math.floor((rem%3600)/60), s=rem%60;
+          var timeStr = rem <= 0 ? 'ENDED' : (pad(h)+':'+pad(m)+':'+pad(s));
+          var color = rem <= 0 ? '#ff4444' : (rem < 900 ? '#ffcc00' : '#10b981');
+          existing.innerHTML =
+            '<div style="font-size:.6rem;color:rgba(16,185,129,.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">'+escHtml(ev.name)+'</div>'+
+            '<div style="font-size:1.6rem;font-weight:700;letter-spacing:4px;color:'+color+';text-shadow:0 0 12px '+color+'40">'+timeStr+'</div>'+
+            '<div style="font-size:.62rem;color:#8b949e;margin-top:4px">'+(rem <= 0 ? 'Contest over' : 'remaining')+'</div>';
+        }).catch(function(){});
+    }
+    fetchAndRender();
+    setInterval(fetchAndRender, 1000);
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 9. CHALLENGE FILTER TABS (on /challenges page)
+  // ═══════════════════════════════════════════════════════
+  (function initChallengeFilter() {
+    if (!window.location.pathname.match(/^\/challenges/)) return;
+
+    // Wait for CTFd to render challenge cards
+    function tryInjectFilters() {
+      var container = document.querySelector('#challenges-board, .challenges-board, #challenge-container, .container-fluid');
+      if (!container) { setTimeout(tryInjectFilters, 500); return; }
+      if (document.getElementById('ctf-filter-bar')) return;
+
+      var bar = document.createElement('div');
+      bar.id = 'ctf-filter-bar';
+      bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:0 4px;';
+      var filters = [
+        { label: 'All', val: 'all' },
+        { label: '&#x1f7e2; Beginner', val: 'beginner' },
+        { label: '&#x1f7e1; Intermediate', val: 'intermediate' },
+        { label: '&#x1f534; Advanced', val: 'advanced' },
+      ];
+      filters.forEach(function(f, i) {
+        var btn = document.createElement('button');
+        btn.innerHTML = f.label;
+        btn.dataset.filter = f.val;
+        btn.style.cssText = 'background:rgba(13,17,23,.8);border:1px solid rgba(16,185,129,'+(i===0?'.4':'.15')+');'+
+          'border-radius:18px;padding:5px 16px;font-size:.8rem;cursor:pointer;transition:all .2s;'+
+          'color:'+(i===0?'#10b981':'#8b949e')+';font-family:"JetBrains Mono",monospace;';
+        if (i === 0) btn.classList.add('ctf-filter-active');
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('#ctf-filter-bar button').forEach(function(b) {
+            b.style.color='#8b949e'; b.style.borderColor='rgba(16,185,129,.15)'; b.classList.remove('ctf-filter-active');
+          });
+          btn.style.color='#10b981'; btn.style.borderColor='rgba(16,185,129,.4)'; btn.classList.add('ctf-filter-active');
+          filterChallengeCards(f.val);
+        });
+        bar.appendChild(btn);
+      });
+
+      // Insert before the board
+      container.parentNode && container.parentNode.insertBefore(bar, container);
+    }
+
+    function filterChallengeCards(filterVal) {
+      var cards = document.querySelectorAll(
+        '.col-md-4, .challenge-card-wrapper, [class*="challenge"], .card[data-challenge-id], '+
+        'div[data-challenge-id], #challenges-board .col, #challenges-board > div'
+      );
+      cards.forEach(function(card) {
+        if (filterVal === 'all') { card.style.display = ''; return; }
+        // Try to find category text in the card
+        var cat = (card.textContent || '').toLowerCase();
+        var catEl = card.querySelector('.category, .badge, [class*="category"]');
+        if (catEl) cat = catEl.textContent.toLowerCase();
+        var show = (filterVal === 'beginner' && cat.includes('beginner')) ||
+                   (filterVal === 'intermediate' && cat.includes('intermediate')) ||
+                   (filterVal === 'advanced' && cat.includes('advanced'));
+        card.style.display = show ? '' : 'none';
+      });
+    }
+
+    setTimeout(tryInjectFilters, 800);
+
+    // Re-inject after CTFd dynamically loads challenges
+    var obs = new MutationObserver(function() {
+      if (!document.getElementById('ctf-filter-bar')) tryInjectFilters();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 10. EXTEND PWN MACHINE BUTTON (injected into Pwn panel only, visible when running)
+  // ═══════════════════════════════════════════════════════
+  (function initExtendBtn() {
+    function isPwnRunning() {
+      var destroyBtn = document.getElementById('pwn-btn-destroy');
+      return destroyBtn && destroyBtn.style.display !== 'none';
+    }
+
+    function removeBtn() {
+      var b = document.getElementById('ctf-extend-btn');
+      if (b && b.parentNode) b.parentNode.removeChild(b);
+    }
+
+    function tryInject() {
+      if (!isPwnRunning()) {
+        removeBtn();
+        return;
+      }
+
+      if (document.getElementById('ctf-extend-btn')) return;
+
+      var panel = document.querySelector('.instance-panel-pwn');
+      if (!panel) return;
+
+      var btn = document.createElement('button');
+      btn.id = 'ctf-extend-btn';
+      btn.innerHTML = '&#x23f1; Extend (60 min)';
+      btn.style.cssText = 'background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);'+
+        'color:#10b981;border-radius:6px;padding:6px 14px;font-family:"JetBrains Mono",monospace;'+
+        'font-size:.78rem;cursor:pointer;transition:all .2s;margin-top:8px;display:block;width:100%;';
+      btn.addEventListener('mouseenter', function(){ btn.style.background='rgba(16,185,129,.2)'; });
+      btn.addEventListener('mouseleave', function(){ btn.style.background='rgba(16,185,129,.1)'; });
+      btn.addEventListener('click', function() {
+        btn.disabled = true; btn.innerHTML = '&#x23f3; Extending...';
+        fetch('/plugins/ctfd-target/kali/reset', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'CSRF-Token': getCsrf() }
+        }).then(function(r){ return r.json(); })
+          .then(function(d){
+            showToast(d.success ? '&#x23f1;' : '⚠️', d.success ? 'EXTENDED' : 'ERROR', d.msg || 'Done');
+            btn.disabled = false; btn.innerHTML = '&#x23f1; Extend (60 min)';
+            if (d.success && window.ctfRefreshStatus) setTimeout(window.ctfRefreshStatus, 800);
+          }).catch(function(){
+            btn.disabled = false; btn.innerHTML = '&#x23f1; Extend (60 min)';
+          });
+      });
+
+      var actionsDiv = panel.querySelector('.instance-panel-actions');
+      if (actionsDiv) actionsDiv.appendChild(btn);
+      else panel.appendChild(btn);
+    }
+
+    setTimeout(tryInject, 2000);
+    setInterval(tryInject, 3000);
+  })();
+
+  // ══════════════════════════════════════════════════���════
+  // 11. ANNOUNCEMENT TOASTS (via SSE)
+  // ═══════════════════════════════════════════════════════
+  (function initAnnouncements() {
+    // Show pinned/recent announcements on page load
+    fetch(API + '/announcements', {credentials: 'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        rows.slice(0,3).forEach(function(a){
+          var age = Date.now() - new Date(a.created_at).getTime();
+          if (a.pinned || age < 3600000) {
+            showToast(a.pinned ? '📌' : '📢', a.title, a.body);
+          }
+        });
+      }).catch(function(){});
+
+    // Live announcements via SSE
+    if (typeof EventSource !== 'undefined') {
+      try {
+        var es2 = new EventSource(API + '/stream');
+        es2.addEventListener('announcement', function(e){
+          var d = JSON.parse(e.data);
+          showToast(d.pinned ? '📌' : '📢', d.title, d.body);
+        });
+      } catch(err){}
+    }
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 12. PROGRESS TRACKER (on /challenges)
+  // ═══════════════════════════════════════════════════════
+  (function initProgressTracker() {
+    if (!window.location.pathname.match(/^\/challenges/)) return;
+
+    function catClass(name) {
+      var n = name.toLowerCase();
+      if (n.includes('basic') || n.includes('beginner')) return 'basic';
+      if (n.includes('intermediate')) return 'intermediate';
+      if (n.includes('advanced')) return 'advanced';
+      return 'other';
+    }
+
+    function catColor(cls) {
+      return cls === 'basic' ? '#00c853' : cls === 'intermediate' ? '#ffd700' : cls === 'advanced' ? '#ff4444' : '#64b4ff';
+    }
+
+    function renderTracker(data) {
+      if (document.getElementById('ctf-progress-tracker')) return;
+      var wrap = document.createElement('div');
+      wrap.id = 'ctf-progress-tracker';
+      var pct = data.total ? Math.round(data.solved / data.total * 100) : 0;
+      var html =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+          '<span style="font-family:\'Inter\',monospace;font-size:.72rem;letter-spacing:2px;color:#10b981;text-transform:uppercase;">Progress</span>' +
+          '<span style="font-family:\'JetBrains Mono\',monospace;font-size:.82rem;color:#8b949e;">' + data.solved + ' / ' + data.total + ' solved</span>' +
+        '</div>' +
+        '<div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-bottom:14px;">' +
+          '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#10b981,#00cc33);border-radius:3px;transition:width .6s ease;"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
+      data.categories.forEach(function(cat) {
+        var cls = catClass(cat.name);
+        var col = catColor(cls);
+        var catPct = cat.total ? Math.round(cat.solved / cat.total * 100) : 0;
+        html +=
+          '<div style="flex:1;min-width:160px;background:rgba(13,17,23,.7);border:1px solid rgba(255,255,255,.08);' +
+            'border-left:3px solid ' + col + ';border-radius:6px;padding:8px 12px;">' +
+            '<div style="font-size:.67rem;color:' + col + ';font-family:\'Inter\',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">' +
+              escHtml(cat.name) +
+            '</div>' +
+            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.88rem;color:#c9d1d9;">' +
+              cat.solved + '/' + cat.total +
+              ' <span style="font-size:.72rem;color:#8b949e;">(' + catPct + '%)</span>' +
+            '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+      wrap.innerHTML = html;
+
+      wrap.style.cssText = 'background:rgba(13,17,23,.85);border:1px solid rgba(16,185,129,.15);' +
+        'border-radius:10px;padding:16px 20px;margin-bottom:20px;backdrop-filter:blur(6px);' +
+        'width:100%;box-sizing:border-box;';
+
+      function tryInsert() {
+        var main = document.querySelector('main .container, main > .row, main');
+        var board = document.querySelector('#challenges-board,.challenges-board,#challenge-container');
+        var target = board || main;
+        if (!target) { setTimeout(tryInsert, 400); return; }
+        var banner = document.getElementById('target-instance-banner');
+        if (banner && banner.parentNode) {
+          banner.parentNode.insertBefore(wrap, banner.nextSibling);
+        } else {
+          target.parentNode ? target.parentNode.insertBefore(wrap, target) : target.prepend(wrap);
+        }
+      }
+      tryInsert();
+    }
+
+    fetch(API + '/progress/me', {credentials: 'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(data){ setTimeout(function(){ renderTracker(data); }, 600); })
+      .catch(function(){});
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 13. FIRST BLOOD BADGES (on /challenges)
+  // ═══════════════════════════════════════════════════════
+  (function initFirstBloodBadges() {
+    if (!window.location.pathname.match(/^\/challenges/)) return;
+
+    var fbMap = {};
+
+    fetch(API + '/first-blood', {credentials: 'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        rows.forEach(function(fb){ fbMap[fb.challenge_name] = fb.username; });
+        tryInjectBadges();
+      }).catch(function(){});
+
+    function tryInjectBadges() {
+      var btns = document.querySelectorAll('.challenge-button[data-challenge-id]:not([data-fb-done])');
+      btns.forEach(function(btn) {
+        btn.dataset.fbDone = '1';
+        var name = (btn.querySelector('.challenge-name, h5, h4, strong') || btn).textContent.trim();
+        var solver = fbMap[name];
+        if (!solver) {
+          // Try partial match
+          Object.keys(fbMap).forEach(function(k){
+            if (name.toLowerCase().includes(k.toLowerCase().slice(0,8))) solver = fbMap[k];
+          });
+        }
+        if (solver) {
+          var badge = document.createElement('span');
+          badge.style.cssText = 'display:block;font-size:.65rem;color:#ff6b6b;margin-top:3px;' +
+            'font-family:"JetBrains Mono",monospace;letter-spacing:.5px;';
+          badge.innerHTML = '&#x1fa78; ' + escHtml(solver);
+          btn.appendChild(badge);
+        }
+        // Feature 2: solve-time badge
+        var chalId2 = parseInt(btn.dataset.challengeId || btn.getAttribute('data-challenge-id') || 0);
+        if (chalId2 && !btn.querySelector('.ctf-solve-time')) {
+          var elapsed = parseInt(localStorage.getItem('ctf:time:' + chalId2) || 0);
+          if (elapsed > 0) {
+            var mins = Math.floor(elapsed / 60), secs = elapsed % 60;
+            var tb = document.createElement('span');
+            tb.className = 'ctf-solve-time';
+            tb.textContent = '⏱ ' + (mins > 0 ? mins + 'm ' + secs + 's' : secs + 's');
+            btn.appendChild(tb);
+          }
+        }
+      });
+    }
+
+    // Re-check as Alpine renders cards
+    var _fbObs = new MutationObserver(function(){ tryInjectBadges(); });
+    _fbObs.observe(document.body, {childList: true, subtree: true});
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 14. TEAMMATE SOLVE NOTIFICATIONS
+  // ═══════════════════════════════════════════════════════
+  function initTeamSolveNotifs() {
+    var lastTs = Math.floor(Date.now() / 1000);
+    var seen = {};
+
+    function poll() {
+      fetch('/api/features/team/solves?since=' + lastTs, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(rows) {
+          if (!Array.isArray(rows)) return;
+          rows.forEach(function(s) {
+            var key = s.username + ':' + s.challenge + ':' + s.ts;
+            if (seen[key]) return;
+            seen[key] = true;
+            showTeammateToast(s.username, s.challenge, s.value);
+            if (s.ts > lastTs) lastTs = s.ts;
+          });
+        }).catch(function(){});
+    }
+
+    setInterval(poll, 30000);
+  }
+
+  function showTeammateToast(username, challenge, pts) {
+    var container = document.getElementById('ctf-toast-container');
+    if (!container) return;
+    var t = document.createElement('div');
+    t.className = 'ctf-toast';
+    t.style.borderLeftColor = '#64b4ff';
+    t.style.borderColor = 'rgba(100,180,255,0.35)';
+    t.innerHTML =
+      '<div class="ctf-toast-icon">&#x1f91d;</div>' +
+      '<div class="ctf-toast-body">' +
+        '<div class="ctf-toast-title" style="color:#64b4ff;">TEAMMATE SOLVE</div>' +
+        '<div class="ctf-toast-msg">' + escHtml(username) + ' cracked <em>' + escHtml(challenge) + '</em></div>' +
+        (pts ? '<div class="ctf-toast-pts" style="color:rgba(100,180,255,0.5);">+' + pts + ' pts</div>' : '') +
+      '</div>';
+    container.appendChild(t);
+    t.addEventListener('click', function() { dismissToast(t); });
+    setTimeout(function() { dismissToast(t); }, 7000);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 15. ADMIN SOLVE FEED PANEL (on /admin pages)
+  // ═══════════════════════════════════════════════════════
+  (function initAdminFeed() {
+    if (!window.location.pathname.startsWith('/admin')) return;
+
+    var feedVisible = true;
+
+    var panel = document.createElement('div');
+    panel.id = 'ctf-admin-feed';
+    panel.innerHTML =
+      '<div id="ctf-admin-feed-header">' +
+        '<span id="ctf-admin-feed-title">&#128202; Live Solve Feed</span>' +
+        '<div style="display:flex;gap:6px;align-items:center;">' +
+          '<span id="ctf-feed-count" style="font-family:\'JetBrains Mono\',monospace;font-size:.65rem;color:#8b949e;"></span>' +
+          '<button id="ctf-admin-feed-refresh" title="Refresh">&#8635;</button>' +
+          '<button id="ctf-admin-feed-minimize" style="background:none;border:1px solid rgba(16,185,129,.2);border-radius:4px;color:rgba(16,185,129,.5);cursor:pointer;font-size:.75rem;padding:3px 8px;transition:all .2s;" title="Minimize">&#8722;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="ctf-admin-feed-list"></div>';
+    document.body.appendChild(panel);
+
+    document.getElementById('ctf-admin-feed-refresh').addEventListener('click', loadFeed);
+    document.getElementById('ctf-admin-feed-minimize').addEventListener('click', function() {
+      feedVisible = !feedVisible;
+      var list = document.getElementById('ctf-admin-feed-list');
+      var btn = document.getElementById('ctf-admin-feed-minimize');
+      if (list) list.style.display = feedVisible ? '' : 'none';
+      if (btn) btn.innerHTML = feedVisible ? '&#8722;' : '&#43;';
+      panel.style.maxHeight = feedVisible ? '480px' : 'none';
+    });
+
+    function fmtTime(ts) {
+      try {
+        var d = typeof ts === 'number' ? new Date(ts * 1000) : new Date(ts);
+        var hh = d.getHours(), mm = d.getMinutes(), ss = d.getSeconds();
+        return (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+      } catch(e) { return '??:??:??'; }
+    }
+
+    function catColor(cat) {
+      var c = (cat || '').toLowerCase();
+      if (c.includes('basic') || c.includes('beginner')) return '#00c853';
+      if (c.includes('intermediate')) return '#ffd700';
+      if (c.includes('advanced')) return '#ff4444';
+      return '#64b4ff';
+    }
+
+    function loadFeed() {
+      var btn = document.getElementById('ctf-admin-feed-refresh');
+      if (btn) { btn.disabled = true; btn.innerHTML = '&#8635;'; }
+      fetch('/api/features/admin/solve-feed', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (btn) { btn.disabled = false; }
+          var list = document.getElementById('ctf-admin-feed-list');
+          var countEl = document.getElementById('ctf-feed-count');
+          if (!list) return;
+          var solves = Array.isArray(d) ? d : (d.solves || []);
+          if (countEl) countEl.textContent = solves.length + ' recent';
+          if (!solves.length) {
+            list.innerHTML = '<div style="padding:18px;text-align:center;font-family:\'JetBrains Mono\',monospace;font-size:.75rem;color:#8b949e;">No solves yet</div>';
+            return;
+          }
+          list.innerHTML = solves.slice(0, 25).map(function(s) {
+            var col = catColor(s.category);
+            return '<div class="ctf-feed-row">' +
+              '<div class="ctf-feed-row-top">' +
+                '<span class="ctf-feed-user">' + escHtml(s.solver || s.name || '?') + '</span>' +
+                '<span class="ctf-feed-pts">+' + (s.value || 0) + ' pts</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">' +
+                '<span class="ctf-feed-chal">' + escHtml(s.challenge || '?') + '</span>' +
+                '<span class="ctf-feed-time">' + fmtTime(s.ts || s.timestamp) + '</span>' +
+              '</div>' +
+              '<div class="ctf-feed-cat" style="color:' + col + ';">' + escHtml(s.category || '') + '</div>' +
+            '</div>';
+          }).join('');
+        })
+        .catch(function() {
+          if (btn) { btn.disabled = false; }
+        });
+    }
+
+    loadFeed();
+    setInterval(loadFeed, 30000);
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 15. LIVE SCOREBOARD GRAPH (Chart.js — on /scoreboard)
+  // ═══════════════════════════════════════════════════════
+  (function initScoreboardGraph() {
+    if (!window.location.pathname.match(/^\/scoreboard/)) return;
+
+    function injectGraph(historyData) {
+      if (document.getElementById('ctf-score-graph-wrap')) return;
+      if (!historyData || !historyData.length) return;
+
+      var wrap = document.createElement('div');
+      wrap.id = 'ctf-score-graph-wrap';
+      wrap.style.cssText = 'background:rgba(13,17,23,.9);border:1px solid rgba(16,185,129,.15);' +
+        'border-radius:10px;padding:20px 24px;margin:0 0 28px;';
+      wrap.innerHTML =
+        '<div style="font-family:\'Inter\',monospace;font-size:.72rem;color:#10b981;letter-spacing:2px;' +
+          'text-transform:uppercase;margin-bottom:14px;">Score Over Time</div>' +
+        '<canvas id="ctf-score-canvas" height="100"></canvas>';
+
+      var h1 = document.querySelector('h1');
+      if (h1 && h1.parentNode) {
+        h1.parentNode.insertBefore(wrap, h1.nextSibling);
+      } else {
+        var main = document.querySelector('main');
+        if (main) main.prepend(wrap);
+      }
+
+      // Load Chart.js if not present
+      function buildChart() {
+        var COLORS = ['#10b981','#64b4ff','#ffd700','#ff6b6b','#a855f7','#06b6d4','#f97316','#10b981','#ec4899','#84cc16'];
+        var datasets = historyData.map(function(u, i) {
+          return {
+            label: u.username,
+            data: u.data,
+            borderColor: COLORS[i % COLORS.length],
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.3,
+          };
+        });
+        var ctx = document.getElementById('ctf-score-canvas').getContext('2d');
+        new window.Chart(ctx, {
+          type: 'line',
+          data: {datasets: datasets},
+          options: {
+            responsive: true,
+            interaction: {mode: 'index', intersect: false},
+            scales: {
+              x: {
+                type: 'time',
+                time: {unit: 'minute', displayFormats: {minute: 'HH:mm', hour: 'HH:mm'}},
+                grid: {color: 'rgba(255,255,255,.05)'},
+                ticks: {color: '#8b949e', font: {family: 'JetBrains Mono'}},
+              },
+              y: {
+                grid: {color: 'rgba(255,255,255,.05)'},
+                ticks: {color: '#8b949e', font: {family: 'JetBrains Mono'}},
+              }
+            },
+            plugins: {
+              legend: {labels: {color: '#c9d1d9', font: {family: 'JetBrains Mono', size: 11}}},
+              tooltip: {
+                backgroundColor: 'rgba(13,17,23,.95)',
+                borderColor: 'rgba(16,185,129,.3)',
+                borderWidth: 1,
+                titleColor: '#10b981',
+                bodyColor: '#c9d1d9',
+              }
+            }
+          }
+        });
+      }
+
+      if (window.Chart) {
+        buildChart();
+      } else {
+        var s1 = document.createElement('script');
+        s1.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+        s1.onload = function() {
+          var s2 = document.createElement('script');
+          s2.src = 'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js';
+          s2.onload = buildChart;
+          document.head.appendChild(s2);
+        };
+        document.head.appendChild(s1);
+      }
+    }
+
+    fetch(API + '/score-history', {credentials: 'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(data){ setTimeout(function(){ injectGraph(data); }, 800); })
+      .catch(function(){});
+
+    // Refresh graph on SSE score_update
+    if (typeof EventSource !== 'undefined') {
+      try {
+        new EventSource(API + '/stream').addEventListener('score_update', function(){
+          fetch(API + '/score-history', {credentials: 'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+              var old = document.getElementById('ctf-score-graph-wrap');
+              if (old) old.parentNode.removeChild(old);
+              injectGraph(data);
+            }).catch(function(){});
+        });
+      } catch(err){}
+    }
+  })();
+
+  // ═══════════════════════════════════════════════════════
+  // 16. CONFETTI BURST (feature 3)
+  // ═══════════════════════════════════════════════════════
+  function fireConfetti() {
+    var colors = ['#10b981','#ffcc00','#ff4444','#64b4ff','#ff69b4','#a855f7','#06b6d4','#f97316'];
+    for (var i = 0; i < 90; i++) {
+      (function(i) {
+        setTimeout(function() {
+          var p = document.createElement('div');
+          var sz = 4 + Math.random() * 7;
+          p.style.cssText =
+            'position:fixed;top:-14px;pointer-events:none;z-index:9997;' +
+            'left:' + (8 + Math.random() * 84) + '%;' +
+            'width:' + sz + 'px;height:' + sz + 'px;' +
+            'background:' + colors[Math.floor(Math.random() * colors.length)] + ';' +
+            'border-radius:' + (Math.random() > 0.4 ? '50%' : '2px') + ';' +
+            'animation:ctf-confetti-fall ' + (1.3 + Math.random() * 1.5) + 's ease-in forwards,' +
+            'ctf-confetti-sway ' + (0.22 + Math.random() * 0.28) + 's ease-in-out infinite;';
+          document.body.appendChild(p);
+          setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p); }, 3200);
+        }, i * 16);
+      })(i);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 17. ONBOARDING MODAL (feature 4)
+  // ═══════════════════════════════════════════════════════
+  function initOnboarding() {
+    if (!currentUser || localStorage.getItem('ctf:onboarded')) return;
+
+    var slides = [
+      { icon: '🎯', title: 'Welcome to Lloyds vBank CTF',
+        body: 'You\'re about to hack a simulated banking application. Find vulnerabilities, extract flags, and earn points. Good luck.' },
+      { icon: '⚡', title: 'Your Attack Environment',
+        body: 'On the <strong>Challenges</strong> page you\'ll find an isolated <strong>vBank</strong> instance (your target) and a <strong>Linux Pwn Machine</strong> preloaded with tools. Launch both with one click.' },
+      { icon: '🏴', title: 'Flag Format',
+        body: 'Flags look like <code>CTF{xxxxxxxxxxxxxxxx}</code> — 16 lowercase hex characters. Copy and paste them exactly into the challenge submit box.' }
+    ];
+
+    var idx = 0;
+    var overlay = document.createElement('div');
+    overlay.id = 'ctf-onboard-overlay';
+    var box = document.createElement('div');
+    box.id = 'ctf-onboard-box';
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function render() {
+      var s = slides[idx];
+      box.innerHTML =
+        '<div class="ctf-ob-icon">' + s.icon + '</div>' +
+        '<div class="ctf-ob-title">' + s.title + '</div>' +
+        '<div class="ctf-ob-body">' + s.body + '</div>' +
+        '<div class="ctf-ob-dots">' +
+          slides.map(function(_, i) { return '<div class="ctf-ob-dot' + (i === idx ? ' active' : '') + '"></div>'; }).join('') +
+        '</div>' +
+        '<div class="ctf-ob-btns">' +
+          (idx > 0 ? '<button class="ctf-ob-btn" id="ctf-ob-back">&#8592; Back</button>' : '') +
+          (idx < slides.length - 1
+            ? '<button class="ctf-ob-btn primary" id="ctf-ob-next">Next &#8594;</button>'
+            : '<button class="ctf-ob-btn primary" id="ctf-ob-done">Let\'s Go! &#x1f680;</button>') +
+        '</div>';
+
+      var nb = document.getElementById('ctf-ob-next');
+      var bb = document.getElementById('ctf-ob-back');
+      var db = document.getElementById('ctf-ob-done');
+      if (nb) nb.onclick = function() { idx++; render(); };
+      if (bb) bb.onclick = function() { idx--; render(); };
+      if (db) db.onclick = close;
+    }
+
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+
+    function close() {
+      localStorage.setItem('ctf:onboarded', '1');
+      overlay.style.animation = 'onboard-fade-out .25s ease forwards';
+      setTimeout(function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 270);
+    }
+
+    render();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 18. TEAM PRESENCE INDICATOR (feature 5)
+  // ═══════════════════════════════════════════════════════
+  function initPresence() {
+    // Heartbeat — tell the server we're online
+    function heartbeat() {
+      fetch('/api/features/presence', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'CSRF-Token': getCsrf(), 'Content-Type': 'application/json' }
+      }).catch(function(){});
+    }
+    heartbeat();
+    setInterval(heartbeat, 60000);
+
+    if (!currentTeamId) return;
+
+    var presenceBar = null;
+
+    function updatePresence() {
+      fetch('/api/features/team/presence', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(members) {
+          if (!Array.isArray(members) || !members.length) return;
+
+          if (!presenceBar) {
+            presenceBar = document.createElement('div');
+            presenceBar.id = 'ctf-presence-bar';
+            var lbl = document.createElement('span');
+            lbl.className = 'ctf-presence-label';
+            lbl.textContent = 'Team Online';
+            presenceBar.appendChild(lbl);
+
+            function tryInsert() {
+              var tracker = document.getElementById('ctf-progress-tracker');
+              var banner  = document.getElementById('target-instance-banner');
+              if (tracker && tracker.parentNode) {
+                tracker.parentNode.insertBefore(presenceBar, tracker.nextSibling);
+              } else if (banner && banner.parentNode) {
+                banner.parentNode.insertBefore(presenceBar, banner.nextSibling);
+              } else {
+                var main = document.querySelector('main');
+                if (main) main.prepend(presenceBar);
+                else setTimeout(tryInsert, 600);
+              }
+            }
+            setTimeout(tryInsert, 700);
+          }
+
+          // Rebuild member dots
+          presenceBar.querySelectorAll('.ctf-presence-member').forEach(function(el) { el.parentNode.removeChild(el); });
+          members.forEach(function(m) {
+            var el = document.createElement('div');
+            el.className = 'ctf-presence-member';
+            el.innerHTML =
+              '<span class="ctf-presence-dot ' + (m.online ? 'online' : 'offline') + '"></span>' +
+              '<span class="ctf-presence-name' + (m.online ? ' online' : '') + '">' + escHtml(m.username) + '</span>';
+            presenceBar.appendChild(el);
+          });
+
+          // Inject dots on /scoreboard next to teammate names
+          if (window.location.pathname.match(/^\/scoreboard/)) {
+            var onlineNames = {};
+            members.forEach(function(m) { if (m.online) onlineNames[m.username] = true; });
+            document.querySelectorAll('table tbody tr').forEach(function(row) {
+              var cell = row.querySelector('td:nth-child(2)');
+              if (!cell) return;
+              var name = cell.textContent.trim();
+              if (onlineNames[name] && !cell.querySelector('.ctf-presence-dot')) {
+                var dot = document.createElement('span');
+                dot.className = 'ctf-presence-dot online';
+                dot.style.cssText = 'display:inline-block;margin-left:6px;vertical-align:middle;';
+                cell.appendChild(dot);
+              }
+            });
+          }
+        }).catch(function(){});
+    }
+
+    updatePresence();
+    setInterval(updatePresence, 60000);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // 20. ADMIN QUICK BAR (admin viewing /challenges)
+  // ═══════════════════════════════════════════════════════
+  function injectAdminBar() {
+    if (!currentUser || currentUser.type !== 'admin') return;
+    if (!window.location.pathname.match(/^\/challenges/)) return;
+    if (document.getElementById('ctf-admin-bar')) return;
+
+    var bar = document.createElement('div');
+    bar.id = 'ctf-admin-bar';
+    bar.innerHTML =
+      '<div class="ctf-ab-badge">' +
+        '<span class="ctf-ab-dot"></span>' +
+        'Admin Mode' +
+      '</div>' +
+      '<div class="ctf-ab-actions">' +
+        '<a class="ctf-ab-btn" href="/admin/challenges">&#9998;&nbsp;Manage Challenges</a>' +
+        '<a class="ctf-ab-btn" href="/admin/submissions">&#128196;&nbsp;Submissions</a>' +
+        '<a class="ctf-ab-btn" href="/api/ctf/admin/challenges/dashboard">&#128202;&nbsp;Dashboard</a>' +
+        '<a class="ctf-ab-btn ctf-ab-hub" href="/plugins/ctfd-target/admin/hub">&#9670;&nbsp;CTF Ops Hub</a>' +
+      '</div>';
+
+    function tryInsert() {
+      var target = document.querySelector('.container-fluid') ||
+                   document.querySelector('main') ||
+                   document.querySelector('.main-content');
+      if (target) {
+        target.insertBefore(bar, target.firstChild);
+      } else {
+        setTimeout(tryInsert, 350);
+      }
+    }
+    setTimeout(tryInsert, 150);
+  }
+
+})();
+</script>

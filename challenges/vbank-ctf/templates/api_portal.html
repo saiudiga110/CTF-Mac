@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}API Portal{% endblock %}
+{% block page_title %}Developer API Portal{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-12">
+        <div class="alert alert-internal mb-3" style="font-size:0.8rem;">
+            <i class="fas fa-code me-2"></i><strong>vBank API v2 — Developer Preview</strong> &nbsp;|&nbsp;
+            JWT authentication required. Use <code>POST /api/v2/auth/token</code> to obtain a bearer token.
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-key"></i></div>POST /api/v2/auth/token — Get Bearer Token</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <p class="text-muted">Generates a JWT bearer token for your current session. Role defaults to <code>employee</code>.</p>
+                <button class="btn btn-primary btn-sm" onclick="getToken()"><i class="fas fa-bolt me-1"></i>Get Token</button>
+                <div id="token-result" class="mt-3" style="display:none;">
+                    <div class="terminal" id="token-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-user"></i></div>GET /api/v2/profile — Decode Token</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <p class="text-muted">Decodes and returns the JWT payload without signature verification (debug utility).</p>
+                <div class="input-group mb-2">
+                    <span class="input-group-text" style="font-size:0.78rem;">Bearer</span>
+                    <input type="text" id="profile-token" class="form-control" placeholder="Paste JWT here" style="font-size:0.78rem; font-family:monospace;">
+                    <button class="btn btn-outline-primary btn-sm" onclick="getProfile()">Decode</button>
+                </div>
+                <div id="profile-result" class="mt-2" style="display:none;">
+                    <div class="terminal" id="profile-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-vault"></i></div>GET /api/v2/corporate/vault — Corporate Vault</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <p class="text-muted">Access the corporate asset vault. Requires <code>role: admin</code> in JWT payload.</p>
+                <div class="input-group mb-2">
+                    <span class="input-group-text" style="font-size:0.78rem;">Bearer</span>
+                    <input type="text" id="vault-token" class="form-control" placeholder="Paste JWT with role=admin" style="font-size:0.78rem; font-family:monospace;">
+                    <button class="btn btn-danger btn-sm" onclick="getVault()">Access Vault</button>
+                </div>
+                <div id="vault-result" class="mt-2" style="display:none;">
+                    <div class="terminal" id="vault-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>API Notes</div>
+            <div class="card-body" style="font-size:0.8rem; line-height:1.7; color:#475569;">
+                <p><strong>Algorithm:</strong> HS256</p>
+                <p><strong>Roles:</strong> <code>employee</code> | <code>manager</code> | <code>admin</code></p>
+                <p class="mb-0"><strong>Vault:</strong> Requires <code>role: admin</code> claim in token payload</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getToken() {
+    fetch('/api/v2/auth/token', {method:'POST'})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('token-result').style.display='block';
+            document.getElementById('token-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+function getProfile() {
+    var token = document.getElementById('profile-token').value;
+    fetch('/api/v2/profile', {headers:{'Authorization':'Bearer '+token}})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('profile-result').style.display='block';
+            document.getElementById('profile-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+function getVault() {
+    var token = document.getElementById('vault-token').value;
+    fetch('/api/v2/corporate/vault', {headers:{'Authorization':'Bearer '+token}})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('vault-result').style.display='block';
+            document.getElementById('vault-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+</script>
+{% endblock %}

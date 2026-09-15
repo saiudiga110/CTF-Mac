@@ -1,0 +1,33 @@
+services:
+  lan-load-balancer:
+    image: haproxy:2.9-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - BACKEND_1=${BACKEND_1:?Set BACKEND_1 to the first CTF host LAN IP}
+      - BACKEND_2=${BACKEND_2:?Set BACKEND_2 to the second CTF host LAN IP}
+      - BACKEND_3=${BACKEND_3:?Set BACKEND_3 to the third CTF host LAN IP}
+      - BACKEND_4=${BACKEND_4:?Set BACKEND_4 to the fourth CTF host LAN IP}
+    volumes:
+      - ./load-balancer/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+
+  lan-dns:
+    build: ./dnsmasq
+    restart: always
+    command:
+      - "--no-daemon"
+      - "--address=/lloydsctf.lab/${LB_IP:-127.0.0.1}"
+      - "--address=/ctfd.lab/${LB_IP:-127.0.0.1}"
+      - "--address=/.lab/${LB_IP:-127.0.0.1}"
+      - "--server=8.8.8.8"
+      - "--server=1.1.1.1"
+      - "--no-resolv"
+      - "--listen-address=0.0.0.0"
+      - "--log-facility=-"
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    cap_add:
+      - NET_ADMIN

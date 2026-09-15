@@ -1,0 +1,84 @@
+{% extends "customer_base.html" %}
+{% block title %}Transaction Receipts{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-receipt"></i></div>Retrieve Encrypted Receipt</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">
+                    Transaction receipts are encrypted using AES for secure storage and transmission.
+                </p>
+                <div class="input-group mb-3">
+                    <input type="text" id="txn-id" class="form-control" placeholder="e.g. TXN-20240101 or TXN-SYSTEM" style="font-family:monospace;">
+                    <button class="btn btn-primary" onclick="fetchReceipt()"><i class="fas fa-search me-1"></i>Fetch</button>
+                </div>
+                <div class="mb-2" style="font-size:0.78rem; color:#64748b;">
+                    Available: <code>TXN-20240101</code> &nbsp; <code>TXN-20240102</code> &nbsp; <code>TXN-SYSTEM</code>
+                </div>
+                <div id="receipt-result" style="display:none;">
+                    <div class="terminal" id="receipt-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-unlock"></i></div>Decrypt Receipt</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">Decrypt a receipt using the 16-byte AES key.</p>
+                <div class="mb-3">
+                    <label class="form-label">Ciphertext (Base64)</label>
+                    <input type="text" id="ct-input" class="form-control" style="font-family:monospace; font-size:0.78rem;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">AES Key (exactly 16 bytes)</label>
+                    <input type="text" id="key-input" class="form-control" style="font-family:monospace;" placeholder="e.g. vbank_security!!">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="decryptReceipt()"><i class="fas fa-lock-open me-1"></i>Decrypt</button>
+                <div id="decrypt-result" class="mt-3" style="display:none;">
+                    <div class="terminal" id="decrypt-output" style="min-height:40px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>Encryption Info</div>
+            <div class="card-body" style="font-size:0.82rem; color:#64748b; line-height:1.8;">
+                <p><strong>Algorithm:</strong> AES-128-ECB</p>
+                <p><strong>Block size:</strong> 16 bytes</p>
+                <p><strong>Key hint:</strong> Bank name + underscore + "security" + "!!"</p>
+                <p class="text-danger mb-0" style="font-size:0.75rem;"><i class="fas fa-exclamation-triangle me-1"></i>ECB mode leaks block patterns — migration to GCM pending</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fetchReceipt() {
+    var id = document.getElementById('txn-id').value.trim();
+    if (!id) return;
+    fetch('/api/v1/receipts/' + id)
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('receipt-result').style.display = 'block';
+            document.getElementById('receipt-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+function decryptReceipt() {
+    var ct  = document.getElementById('ct-input').value.trim();
+    var key = document.getElementById('key-input').value.trim();
+    var fd  = new FormData();
+    fd.append('ciphertext', ct);
+    fd.append('key', key);
+    fetch('/api/v1/receipts/decrypt', {method:'POST', body:fd})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('decrypt-result').style.display = 'block';
+            document.getElementById('decrypt-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+</script>
+{% endblock %}

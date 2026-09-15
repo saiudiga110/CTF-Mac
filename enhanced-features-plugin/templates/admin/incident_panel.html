@@ -1,0 +1,384 @@
+{% extends "admin/base.html" %}
+{% block title %}Incident Panel{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --ip-bg:      #0d1117;
+  --ip-card:    #161b22;
+  --ip-border:  #30363d;
+  --ip-green:   #39FF14;
+  --ip-green2:  #006341;
+  --ip-red:     #ff4444;
+  --ip-yellow:  #ffd700;
+  --ip-blue:    #64b4ff;
+  --ip-text:    #c9d1d9;
+  --ip-muted:   #8b949e;
+  --mono:       'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+
+body { background: var(--ip-bg) !important; color: var(--ip-text) !important; }
+
+.ip-header {
+  background: linear-gradient(135deg, #0d1117, #161b22);
+  border-bottom: 1px solid var(--ip-border);
+  padding: 22px 32px 16px;
+  margin-bottom: 24px;
+  display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.ip-header h1 { font-family: var(--mono); color: var(--ip-red); font-size: 1.4rem; margin: 0; letter-spacing: 2px; }
+.ip-header h1::after { display: none !important; }
+.ip-header p  { color: var(--ip-muted); font-size: .82rem; margin: 4px 0 0; }
+
+.ip-controls {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 20px; padding: 0 32px;
+}
+.ip-controls label { font-size: .72rem; color: var(--ip-muted); font-family: var(--mono); }
+.ip-controls input[type=number] {
+  background: #0d1117; border: 1px solid var(--ip-border); color: var(--ip-text);
+  border-radius: 4px; padding: 5px 10px; font-family: var(--mono); font-size: .8rem; width: 70px;
+}
+.btn-load {
+  background: rgba(255,68,68,.12); color: var(--ip-red); border: 1px solid rgba(255,68,68,.35);
+  border-radius: 5px; padding: 6px 18px; cursor: pointer;
+  font-family: var(--mono); font-size: .78rem; transition: all .22s;
+}
+.btn-load:hover { background: rgba(255,68,68,.25); }
+.auto-badge { font-size: .68rem; color: var(--ip-muted); font-family: var(--mono); }
+
+.ip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 0 32px 32px;
+}
+@media (max-width: 1024px) { .ip-grid { grid-template-columns: 1fr; padding: 0 16px 24px; } }
+
+.ip-card {
+  background: var(--ip-card);
+  border: 1px solid var(--ip-border);
+  border-radius: 8px; overflow: hidden;
+}
+.ip-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ip-border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ip-card-header .title {
+  font-family: var(--mono); font-size: .72rem; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.ip-card-header .cnt {
+  font-family: var(--mono); font-size: .75rem; font-weight: 700;
+  padding: 2px 10px; border-radius: 10px;
+}
+.title-stuck   { color: #ffaa00; }
+.title-spam    { color: var(--ip-red); }
+.title-dead    { color: var(--ip-blue); }
+.title-loop    { color: #c084fc; }
+.cnt-ok   { background: rgba(57,255,20,.1); color: var(--ip-green); border: 1px solid rgba(57,255,20,.25); }
+.cnt-warn { background: rgba(255,170,0,.1); color: #ffaa00; border: 1px solid rgba(255,170,0,.25); }
+.cnt-err  { background: rgba(255,68,68,.1); color: var(--ip-red); border: 1px solid rgba(255,68,68,.25); }
+
+.ip-table-wrap { max-height: 340px; overflow-y: auto; }
+table.ip-table { width: 100%; border-collapse: collapse; }
+table.ip-table th {
+  font-family: var(--mono); font-size: .65rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--ip-muted); padding: 8px 12px; border-bottom: 1px solid var(--ip-border); text-align: left;
+}
+table.ip-table td {
+  padding: 9px 12px; border-bottom: 1px solid rgba(48,54,61,.5); font-size: .8rem; vertical-align: middle;
+}
+table.ip-table tr:hover td { background: rgba(57,255,20,.03); }
+.empty-row td { text-align: center; color: var(--ip-muted); padding: 30px; font-size: .82rem; }
+
+.status-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-family: var(--mono); font-size: .65rem; font-weight: 700;
+}
+.sb-running  { background: rgba(57,255,20,.1); color: var(--ip-green); }
+.sb-exited   { background: rgba(255,68,68,.1); color: var(--ip-red); }
+.sb-other    { background: rgba(255,215,0,.1); color: var(--ip-yellow); }
+
+.btn-kill {
+  background: rgba(255,68,68,.1); color: var(--ip-red);
+  border: 1px solid rgba(255,68,68,.25); border-radius: 4px;
+  padding: 3px 10px; cursor: pointer; font-size: .7rem;
+  font-family: var(--mono); transition: all .2s;
+}
+.btn-kill:hover { background: rgba(255,68,68,.25); }
+.btn-kill:disabled { opacity: .4; cursor: not-allowed; }
+
+.user-link { color: var(--ip-blue) !important; text-decoration: none; font-weight: 600; }
+.user-link:hover { color: var(--ip-green) !important; }
+
+.summary-row {
+  display: flex; gap: 12px; flex-wrap: wrap; padding: 0 32px; margin-bottom: 20px;
+}
+.summary-card {
+  background: var(--ip-card); border: 1px solid var(--ip-border);
+  border-radius: 6px; padding: 12px 20px; min-width: 110px; flex: 1; text-align: center;
+}
+.summary-card .val { font-family: var(--mono); font-size: 1.55rem; font-weight: 700; }
+.summary-card .lbl { font-size: .65rem; color: var(--ip-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+
+.last-refresh { font-family: var(--mono); font-size: .68rem; color: var(--ip-muted); padding: 0 32px; margin-bottom: 16px; }
+
+.toast {
+  position: fixed; bottom: 22px; right: 22px;
+  background: var(--ip-card); border: 1px solid rgba(57,255,20,.3);
+  border-radius: 6px; padding: 10px 18px;
+  font-family: var(--mono); font-size: .78rem; color: var(--ip-green);
+  z-index: 9999; display: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+</style>
+
+<div class="ip-header">
+  <div>
+    <h1><i class="fas fa-exclamation-triangle" style="margin-right:10px"></i>Incident Panel</h1>
+    <p>Live view — stuck players, flag spammers, dead containers, restart loops.</p>
+  </div>
+  <button class="btn-load" onclick="load()">
+    <i class="fas fa-sync-alt"></i> Refresh
+  </button>
+</div>
+
+<!-- Controls -->
+<div class="ip-controls">
+  <label>Stuck after <input type="number" id="stuck-min" value="30" min="5" max="1440"> min</label>
+  <label>Spam window <input type="number" id="spam-window" value="300" min="60" max="3600"> s</label>
+  <label>Spam threshold <input type="number" id="spam-thresh" value="8" min="2" max="50"></label>
+  <label>Restart loops ≥ <input type="number" id="loop-thresh" value="3" min="2" max="20"></label>
+  <span class="auto-badge" id="auto-next">Auto-refresh in 20s</span>
+</div>
+
+<!-- Summary -->
+<div class="summary-row">
+  <div class="summary-card"><div class="val" id="s-stuck" style="color:#ffaa00">—</div><div class="lbl">Stuck Players</div></div>
+  <div class="summary-card"><div class="val" id="s-spam"  style="color:var(--ip-red)">—</div><div class="lbl">Flag Spammers</div></div>
+  <div class="summary-card"><div class="val" id="s-dead"  style="color:var(--ip-blue)">—</div><div class="lbl">Dead Containers</div></div>
+  <div class="summary-card"><div class="val" id="s-loops" style="color:#c084fc">—</div><div class="lbl">Restart Loops</div></div>
+</div>
+
+<div class="last-refresh" id="last-refresh">Fetching…</div>
+
+<div class="ip-grid">
+
+  <!-- ── Stuck players ──────────────────────────────────────────────── -->
+  <div class="ip-card">
+    <div class="ip-card-header">
+      <span class="title title-stuck"><i class="fas fa-user-clock" style="margin-right:7px"></i>Stuck Players</span>
+      <span class="cnt cnt-warn" id="cnt-stuck">0</span>
+    </div>
+    <div class="ip-table-wrap">
+      <table class="ip-table">
+        <thead><tr><th>Player</th><th>Joined</th><th>Team</th></tr></thead>
+        <tbody id="tbl-stuck"><tr class="empty-row"><td colspan="3">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Flag spammers ──────────────────────────────────────────────── -->
+  <div class="ip-card">
+    <div class="ip-card-header">
+      <span class="title title-spam"><i class="fas fa-bomb" style="margin-right:7px"></i>Flag Spammers</span>
+      <span class="cnt cnt-err" id="cnt-spam">0</span>
+    </div>
+    <div class="ip-table-wrap">
+      <table class="ip-table">
+        <thead><tr><th>Player</th><th>Wrong flags</th><th>Window</th></tr></thead>
+        <tbody id="tbl-spam"><tr class="empty-row"><td colspan="3">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Dead containers ────────────────────────────────────────────── -->
+  <div class="ip-card">
+    <div class="ip-card-header">
+      <span class="title title-dead"><i class="fas fa-server" style="margin-right:7px"></i>Dead Containers</span>
+      <span class="cnt cnt-err" id="cnt-dead">0</span>
+    </div>
+    <div class="ip-table-wrap">
+      <table class="ip-table">
+        <thead><tr><th>Container</th><th>User</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tbl-dead"><tr class="empty-row"><td colspan="4">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Restart loops ──────────────────────────────────────────────── -->
+  <div class="ip-card">
+    <div class="ip-card-header">
+      <span class="title title-loop"><i class="fas fa-redo-alt" style="margin-right:7px"></i>Restart Loops</span>
+      <span class="cnt cnt-err" id="cnt-loops">0</span>
+    </div>
+    <div class="ip-table-wrap">
+      <table class="ip-table">
+        <thead><tr><th>Container</th><th>User</th><th>Restarts</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tbl-loops"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var autoTimer  = null;
+  var countdown  = 20;
+  var refreshSec = 20;
+
+  function load() {
+    var params = new URLSearchParams({
+      stuck_min:         document.getElementById('stuck-min').value,
+      spam_window:       document.getElementById('spam-window').value,
+      spam_threshold:    document.getElementById('spam-thresh').value,
+      restart_threshold: document.getElementById('loop-thresh').value,
+    });
+    document.getElementById('last-refresh').textContent = 'Refreshing…';
+    fetch('/api/mission/admin/incidents?' + params, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.getElementById('last-refresh').textContent =
+          'Last refresh: ' + new Date().toLocaleTimeString() +
+          '  |  ' + d.stuck_players.length + ' stuck · ' +
+          d.flag_spammers.length + ' spammers · ' +
+          d.dead_containers.length + ' dead · ' +
+          d.restart_loops.length + ' loops';
+
+        renderStuck(d.stuck_players);
+        renderSpam(d.flag_spammers, d.thresholds.spam_window_sec);
+        renderDead(d.dead_containers);
+        renderLoops(d.restart_loops);
+
+        document.getElementById('s-stuck').textContent = d.stuck_players.length;
+        document.getElementById('s-spam').textContent  = d.flag_spammers.length;
+        document.getElementById('s-dead').textContent  = d.dead_containers.length;
+        document.getElementById('s-loops').textContent = d.restart_loops.length;
+
+        document.getElementById('cnt-stuck').textContent = d.stuck_players.length;
+        document.getElementById('cnt-spam').textContent  = d.flag_spammers.length;
+        document.getElementById('cnt-dead').textContent  = d.dead_containers.length;
+        document.getElementById('cnt-loops').textContent = d.restart_loops.length;
+
+        resetCountdown();
+      })
+      .catch(function (e) {
+        document.getElementById('last-refresh').textContent = 'Error: ' + e.message;
+      });
+  }
+
+  function renderStuck(rows) {
+    var tbody = document.getElementById('tbl-stuck');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="3">&#10003; No stuck players</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      return '<tr><td><a class="user-link" href="/admin/users/' + r.user_id + '">' +
+        esc(r.username) + '</a></td>' +
+        '<td style="font-family:var(--mono);font-size:.75rem">' + r.joined_min_ago + 'm ago</td>' +
+        '<td style="color:var(--ip-muted)">' + (r.team_id || '—') + '</td></tr>';
+    }).join('');
+  }
+
+  function renderSpam(rows, windowSec) {
+    var tbody = document.getElementById('tbl-spam');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="3">&#10003; No spammers</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      return '<tr><td><a class="user-link" href="/admin/users/' + r.user_id + '">' +
+        esc(r.username) + '</a></td>' +
+        '<td style="font-family:var(--mono);font-weight:700;color:var(--ip-red)">' + r.wrong_count + '</td>' +
+        '<td style="font-family:var(--mono);font-size:.7rem;color:var(--ip-muted)">' + windowSec + 's</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderDead(rows) {
+    var tbody = document.getElementById('tbl-dead');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="4">&#10003; No dead containers</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      var sc = r.status === 'running' ? 'sb-running' : r.status === 'exited' ? 'sb-exited' : 'sb-other';
+      return '<tr>' +
+        '<td style="font-family:var(--mono);font-size:.72rem;word-break:break-all">' + esc(r.name) + '</td>' +
+        '<td>' + esc(r.username) + '</td>' +
+        '<td><span class="status-badge ' + sc + '">' + esc(r.status) + '</span></td>' +
+        '<td><button class="btn-kill" onclick="kill(\'' + esc(r.name) + '\',this)">Kill</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderLoops(rows) {
+    var tbody = document.getElementById('tbl-loops');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">&#10003; No restart loops</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      var sc = r.status === 'running' ? 'sb-running' : r.status === 'exited' ? 'sb-exited' : 'sb-other';
+      return '<tr>' +
+        '<td style="font-family:var(--mono);font-size:.72rem;word-break:break-all">' + esc(r.name) + '</td>' +
+        '<td>' + esc(r.username) + '</td>' +
+        '<td style="font-family:var(--mono);font-weight:700;color:#c084fc">' + r.restart_count + '</td>' +
+        '<td><span class="status-badge ' + sc + '">' + esc(r.status) + '</span></td>' +
+        '<td><button class="btn-kill" onclick="kill(\'' + esc(r.name) + '\',this)">Kill</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  window.kill = function (name, btn) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    fetch('/api/mission/admin/incidents/resolve', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json',
+                 'CSRF-Token': (window.init && window.init.csrfNonce) || '' },
+      body: JSON.stringify({ action: 'kill_container', container_name: name }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        showToast(d.success ? '✓ Killed ' + name : '✗ ' + (d.error || 'Failed'));
+        setTimeout(load, 600);
+      })
+      .catch(function (e) { showToast('Error: ' + e.message); btn.disabled = false; });
+  };
+
+  function resetCountdown() {
+    countdown = refreshSec;
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = setInterval(function () {
+      countdown--;
+      document.getElementById('auto-next').textContent = 'Auto-refresh in ' + countdown + 's';
+      if (countdown <= 0) { load(); }
+    }, 1000);
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function () { t.style.display = 'none'; }, 3500);
+  }
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  load();
+}());
+</script>
+{% endblock %}

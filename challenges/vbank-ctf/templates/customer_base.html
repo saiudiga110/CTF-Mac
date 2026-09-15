@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Account{% endblock %} — vBank</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --vb-blue:   #1565c0;
+            --vb-navy:   #0d2137;
+            --vb-light:  #f4f7fb;
+            --vb-border: #e1e8ef;
+            --vb-text:   #1e293b;
+            --vb-muted:  #64748b;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--vb-light); font-family: 'Segoe UI', system-ui, sans-serif; color: var(--vb-text); margin: 0; }
+        .topnav {
+            background: #fff; border-bottom: 1px solid var(--vb-border);
+            height: 60px; padding: 0 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .topnav-left { display: flex; align-items: center; gap: 40px; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .nav-logo .icon { width: 32px; height: 32px; background: var(--vb-blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.9rem; }
+        .nav-logo .name { font-size: 1rem; font-weight: 800; color: var(--vb-blue); }
+        .nav-links { display: flex; gap: 4px; }
+        .nav-links a {
+            color: var(--vb-muted); text-decoration: none; font-size: 0.82rem; font-weight: 500;
+            padding: 6px 12px; border-radius: 6px; transition: background 0.15s, color 0.15s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-links a:hover  { background: #f1f5f9; color: var(--vb-text); }
+        .nav-links a.active { color: var(--vb-blue); border-bottom-color: var(--vb-blue); font-weight: 600; }
+        .topnav-right { display: flex; align-items: center; gap: 14px; }
+        .user-chip {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--vb-light); border: 1px solid var(--vb-border);
+            border-radius: 20px; padding: 5px 14px 5px 8px;
+            font-size: 0.78rem; color: var(--vb-muted);
+        }
+        .user-chip .avatar {
+            width: 26px; height: 26px; background: var(--vb-blue);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.7rem; font-weight: 700;
+        }
+        .signout-btn {
+            color: var(--vb-muted); text-decoration: none; font-size: 0.78rem;
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 10px; border-radius: 6px; transition: background 0.15s;
+        }
+        .signout-btn:hover { background: #fee2e2; color: #dc2626; }
+        .content-area { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--vb-text); margin-bottom: 4px; }
+        .page-header p  { font-size: 0.82rem; color: var(--vb-muted); }
+        .card { border: 1px solid var(--vb-border); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); background: #fff; }
+        .card-header {
+            background: #fff; border-bottom: 1px solid var(--vb-border);
+            border-radius: 10px 10px 0 0 !important;
+            padding: 14px 20px; font-weight: 600; font-size: 0.875rem; color: var(--vb-text);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-header .card-icon {
+            width: 30px; height: 30px; background: var(--vb-light); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--vb-blue); font-size: 0.85rem;
+        }
+        .card-body { padding: 20px; }
+        .stat-card {
+            background: #fff; border: 1px solid var(--vb-border); border-radius: 10px;
+            padding: 20px; display: flex; align-items: flex-start; gap: 16px;
+        }
+        .stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+        .stat-label { font-size: 0.75rem; color: var(--vb-muted); font-weight: 500; margin-bottom: 4px; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--vb-text); }
+        .stat-sub { font-size: 0.72rem; color: var(--vb-muted); margin-top: 4px; }
+        .btn-primary  { background: var(--vb-blue); border-color: var(--vb-blue); }
+        .btn-primary:hover  { background: #0d47a1; border-color: #0d47a1; }
+        .btn-outline-primary { color: var(--vb-blue); border-color: var(--vb-blue); }
+        .btn-outline-primary:hover { background: var(--vb-blue); }
+        .table { font-size: 0.84rem; }
+        .table thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--vb-muted); font-weight: 600; border-bottom-width: 1px; }
+        .table td { vertical-align: middle; }
+        .alert { font-size: 0.84rem; border-radius: 8px; }
+        .alert-dev { background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; border-left: 4px solid #f59e0b; }
+        .form-control, .form-select { border-color: var(--vb-border); font-size: 0.875rem; }
+        .form-control:focus, .form-select:focus { border-color: var(--vb-blue); box-shadow: 0 0 0 3px rgba(21,101,192,0.12); }
+        .form-label { font-size: 0.8rem; font-weight: 600; color: var(--vb-muted); }
+        .terminal { background: #0f1923; color: #a8d8a8; font-family: monospace; font-size: 0.82rem; border-radius: 8px; padding: 16px; min-height: 80px; white-space: pre-wrap; word-break: break-all; }
+        .account-badge { background: #dbeafe; color: var(--vb-blue); border-radius: 6px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<nav class="topnav">
+    <div class="topnav-left">
+        <a class="nav-logo" href="/account/dashboard">
+            <div class="icon"><i class="fas fa-university"></i></div>
+            <div class="name">vBank</div>
+        </a>
+        <div class="nav-links">
+            <a href="/account/dashboard"        {% if request.path == '/account/dashboard' %}class="active"{% endif %}><i class="fas fa-chart-pie me-1"></i>Dashboard</a>
+            <a href="/account/transfer"          {% if 'transfer' in request.path and 'express' not in request.path %}class="active"{% endif %}><i class="fas fa-paper-plane me-1"></i>Transfers</a>
+            <a href="/account/statements"        {% if 'statements' in request.path %}class="active"{% endif %}><i class="fas fa-file-invoice-dollar me-1"></i>Statements</a>
+            <a href="/account/express-transfer"  {% if 'express' in request.path %}class="active"{% endif %}><i class="fas fa-bolt me-1"></i>Express</a>
+            <a href="/account/receipts"          {% if 'receipts' in request.path %}class="active"{% endif %}><i class="fas fa-receipt me-1"></i>Receipts</a>
+            <a href="/account/support"           {% if 'support' in request.path %}class="active"{% endif %}><i class="fas fa-headset me-1"></i>Support</a>
+            <a href="/account/payment"           {% if request.path == '/account/payment' %}class="active"{% endif %}><i class="fas fa-file-invoice-dollar me-1"></i>Pay Bills</a>
+            <a href="/account/profile"           {% if request.path == '/account/profile' %}class="active"{% endif %}><i class="fas fa-user-circle me-1"></i>Profile</a>
+        </div>
+    </div>
+    <div class="topnav-right">
+        <div class="user-chip">
+            <div class="avatar">{{ (session.get('customer_user','U') | upper)[0] }}</div>
+            <span>{{ session.get('customer_user','Customer') }}</span>
+        </div>
+        <a href="/customer/logout" class="signout-btn"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+    </div>
+</nav>
+
+<div class="content-area">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

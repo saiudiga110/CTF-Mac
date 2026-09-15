@@ -1,0 +1,64 @@
+{% extends "customer_base.html" %}
+{% block title %}Bill Payment{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>Bill Payment</div>
+            <div class="card-body">
+                <div class="alert alert-dev mb-4" style="font-size:0.8rem;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Dev Note (Jake):</strong> CSRF tokens skipped for now — frontend handles it. TD-621.
+                </div>
+
+                {% if flag %}
+                <div class="alert mb-4" style="background:#f0fdf4; border:1px solid #86efac; color:#166534; border-left:4px solid #22c55e; border-radius:8px;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Payment submitted successfully.</strong><br>
+                    {{ message }}<br><br>
+                    <span style="font-family:monospace; font-size:0.85rem; font-weight:700;">{{ flag }}</span>
+                    <div style="font-size:0.75rem; color:#4ade80; margin-top:6px;">
+                        Notice: This payment was accepted from any origin — no CSRF validation in place.
+                    </div>
+                </div>
+                {% elif message %}
+                <div class="alert mb-4" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">
+                    <i class="fas fa-check-circle me-2"></i> {{ message }}
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/account/payment">
+                    <!-- No hidden csrf_token field — INTENTIONALLY VULNERABLE -->
+                    <div class="mb-3">
+                        <label class="form-label">Payee Name</label>
+                        <input type="text" name="payee" class="form-control" placeholder="e.g. British Gas" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount (GBP)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">£</span>
+                            <input type="number" name="amount" class="form-control" placeholder="0.00" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Reference</label>
+                        <input type="text" name="ref" class="form-control" placeholder="e.g. Account 123456">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Pay Now</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>About This Feature</div>
+            <div class="card-body" style="font-size:0.82rem; color:#475569; line-height:1.8;">
+                <p>Use this form to pay utility bills, credit cards, or any registered payee directly from your vBank account.</p>
+                <p><strong>Processing time:</strong> Instant for registered payees; 1 day for new payees.</p>
+                <p><strong>Limits:</strong> Up to £5,000 per payment, £10,000 per day.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

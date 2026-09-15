@@ -1,0 +1,321 @@
+<style>
+:root {
+  --as-w: 220px;
+  --as-bg: #070b14;
+  --as-border: rgba(148,163,184,0.12);
+  --as-text: #cbd5e1;
+  --as-muted: #64748b;
+  --as-green: #34d399;
+}
+#lloyds-admin-sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--as-w);
+  height: 100%;
+  height: 100dvh;
+  background: var(--as-bg);
+  border-right: 1px solid var(--as-border);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.22s ease;
+}
+nav.navbar,
+.navbar,
+#sidebar,
+.sidenav,
+.admin-sidebar:not(#lloyds-admin-sidebar),
+.admin-subnav {
+  display: none !important;
+}
+main[role="main"], .main-content {
+  margin-left: var(--as-w) !important;
+  margin-top: 0 !important;
+  padding-top: 16px !important;
+  max-width: 100%;
+}
+footer.footer { margin-left: var(--as-w) !important; }
+
+#as-logo {
+  padding: 16px;
+  border-bottom: 1px solid var(--as-border);
+}
+#as-logo a { text-decoration: none !important; color: inherit; display: block; }
+#as-logo-text { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }
+#as-logo-sub { font-size: 0.72rem; color: var(--as-muted); margin-top: 2px; }
+
+#as-nav { flex: 1; overflow-y: auto; padding: 8px 0 16px; -webkit-overflow-scrolling: touch; }
+#as-nav::-webkit-scrollbar { width: 3px; }
+#as-nav::-webkit-scrollbar-thumb { background: var(--as-border); }
+
+.as-section {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--as-muted);
+  padding: 14px 16px 6px;
+}
+.as-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  color: var(--as-text) !important;
+  font-size: 0.9rem;
+  text-decoration: none !important;
+  border-left: 2px solid transparent;
+}
+.as-link:hover { color: #f8fafc !important; background: rgba(148,163,184,0.06); }
+.as-link.active {
+  color: var(--as-green) !important;
+  border-left-color: var(--as-green);
+  background: rgba(16,185,129,0.08);
+  font-weight: 600;
+}
+.as-badge {
+  min-width: 1.4rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(16,185,129,0.16);
+  color: var(--as-green);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+.as-badge.is-zero { background: rgba(148,163,184,0.12); color: var(--as-muted); }
+
+#as-foot {
+  padding: 10px 16px;
+  border-top: 1px solid var(--as-border);
+  font-size: 0.72rem;
+  color: var(--as-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#as-live { color: var(--as-green); }
+#as-live.is-down { color: #f87171; }
+.as-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+}
+.as-dot.is-ok { background: var(--as-green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+.as-dot.is-bad { background: #f87171; box-shadow: 0 0 8px rgba(248,113,113,0.5); }
+#as-ops-issues.is-zero { display: none; }
+
+#as-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1090;
+}
+
+#as-hamburger {
+  display: none;
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  z-index: 1200;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #0f172a;
+  border: 1px solid var(--as-border);
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#as-hamburger span {
+  width: 16px; height: 2px;
+  background: #94a3b8; border-radius: 1px;
+}
+
+@media (max-width: 1024px) {
+  #lloyds-admin-sidebar { transform: translateX(-105%); }
+  #lloyds-admin-sidebar.is-open { transform: translateX(0); }
+  #as-backdrop.is-on { display: block; }
+  #as-hamburger { display: flex; }
+  main[role="main"], .main-content, footer.footer { margin-left: 0 !important; }
+  .admin-wrap { padding-top: 58px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lloyds-admin-sidebar { transition: none; }
+}
+</style>
+
+<div id="as-backdrop"></div>
+<div id="lloyds-admin-sidebar">
+  <div id="as-logo">
+    <a href="/plugins/ctfd-target/admin/hub">
+      <div id="as-logo-text">Lloyds CTF</div>
+      <div id="as-logo-sub">Admin</div>
+    </a>
+  </div>
+  <div id="as-nav">
+    <a class="as-link" href="/plugins/ctfd-target/admin/hub" data-path="/plugins/ctfd-target/admin/hub">Dashboards</a>
+    <a class="as-link" href="/plugins/ctfd-target/admin/ops" data-path="/plugins/ctfd-target/admin/ops">
+      <span>Operations</span>
+      <span class="as-badge is-zero" id="as-ops-issues">0</span>
+    </a>
+    <div class="as-section">Setup</div>
+    <a class="as-link" href="/plugins/ctfd-target/admin/network" data-path="/plugins/ctfd-target/admin/network">
+      <span>Network</span>
+      <span class="as-dot" id="as-dot-dns" title="DNS"></span>
+    </a>
+    <a class="as-link" href="/plugins/ctfd-target/admin/settings" data-path="/plugins/ctfd-target/admin/settings">Settings</a>
+    <a class="as-link" href="/plugins/ctfd-target/admin/dashboard" data-path="/plugins/ctfd-target/admin/dashboard">
+      <span>Instances</span>
+      <span class="as-badge is-zero" id="as-instance-count">0</span>
+    </a>
+    <div class="as-section">Live</div>
+    <a class="as-link" href="/plugins/ctf-live/admin/live" data-path="/plugins/ctf-live/admin/live">Live feed</a>
+    <a class="as-link" href="/plugins/ctfd-target/board" data-path="/plugins/ctfd-target/board">Projector</a>
+    <a class="as-link" href="/api/ctf/analytics/dashboard" data-path="/api/ctf/analytics">Analytics</a>
+    <a class="as-link" href="/admin/scoreboard" data-path="/admin/scoreboard">Scoreboard</a>
+    <div class="as-section">Event</div>
+    <a class="as-link" href="/admin/challenges" data-path="/admin/challenges">Challenges</a>
+    <a class="as-link" href="/api/ctf/admin/users/dashboard" data-path="/api/ctf/admin/users">Users</a>
+    <a class="as-link" href="/admin/config" data-path="/admin/config">Config</a>
+    <a class="as-link" href="/challenges">Player view</a>
+  </div>
+  <div id="as-foot">
+    <span id="as-foot-user">admin</span>
+    <span id="as-live"></span>
+  </div>
+</div>
+<button id="as-hamburger" type="button" aria-label="Open menu">
+  <span></span><span></span><span></span>
+</button>
+
+<script>
+(function () {
+  var sidebar = document.getElementById('lloyds-admin-sidebar');
+  var backdrop = document.getElementById('as-backdrop');
+  var burger = document.getElementById('as-hamburger');
+
+  function closeMenu() {
+    sidebar.classList.remove('is-open');
+    backdrop.classList.remove('is-on');
+  }
+  function openMenu() {
+    sidebar.classList.add('is-open');
+    backdrop.classList.add('is-on');
+  }
+  burger.addEventListener('click', function () {
+    if (sidebar.classList.contains('is-open')) closeMenu();
+    else openMenu();
+  });
+  backdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  sidebar.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', closeMenu);
+  });
+
+  var path = window.location.pathname;
+  var best = null, bestLen = -1;
+  sidebar.querySelectorAll('.as-link[data-path]').forEach(function (a) {
+    var pattern = a.getAttribute('data-path');
+    if (path === pattern || path.startsWith(pattern)) {
+      if (pattern.length > bestLen) { best = a; bestLen = pattern.length; }
+    }
+  });
+  if (best) best.classList.add('active');
+
+  var nameEl = document.getElementById('as-foot-user');
+  if (nameEl && window.init && window.init.userName) {
+    try { nameEl.textContent = JSON.parse(window.init.userName) || 'admin'; }
+    catch (e) { nameEl.textContent = window.init.userName || 'admin'; }
+  }
+
+  function refreshOverview() {
+    fetch('/plugins/ctfd-target/admin/overview', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.success) return;
+        var badge = document.getElementById('as-instance-count');
+        if (badge) {
+          badge.textContent = String(d.instances || 0);
+          badge.classList.toggle('is-zero', !d.instances);
+        }
+        var issues = (d.checklist || []).filter(function (c) { return !c.ok; }).length;
+        var opsBadge = document.getElementById('as-ops-issues');
+        if (opsBadge) {
+          opsBadge.textContent = String(issues);
+          opsBadge.classList.toggle('is-zero', !issues);
+          opsBadge.classList.toggle('is-warn', !!issues);
+        }
+        var dnsDot = document.getElementById('as-dot-dns');
+        if (dnsDot) {
+          dnsDot.className = 'as-dot ' + (d.dns_running ? 'is-ok' : 'is-bad');
+          dnsDot.title = d.dns_running ? 'DNS up' : 'DNS down';
+        }
+        var live = document.getElementById('as-live');
+        if (live) {
+          live.textContent = d.dns_running ? 'DNS up' : 'DNS down';
+          live.classList.toggle('is-down', !d.dns_running);
+        }
+        var sub = document.getElementById('as-logo-sub');
+        if (sub) sub.textContent = d.production ? 'Production' : 'Admin';
+        window.ctfAdminOverview = d;
+        document.dispatchEvent(new CustomEvent('ctf-overview', { detail: d }));
+      })
+      .catch(function () {});
+  }
+  refreshOverview();
+  setInterval(refreshOverview, 15000);
+})();
+</script>
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<style id="lloyds-admin-skin">
+:root {
+  --green: #10b981 !important;
+  --cg-green: #10b981 !important;
+  --d-green: #10b981 !important;
+  --ip-green: #10b981 !important;
+  --bg: #080f1e !important;
+  --card: #0f172a !important;
+  --cg-card: #0f172a !important;
+  --cg-card2: #111827 !important;
+  --cg-border: rgba(16,185,129,0.18) !important;
+  --cg-text: #e2e8f0 !important;
+  --cg-muted: #64748b !important;
+  --text: #e2e8f0 !important;
+  --muted: #94a3b8 !important;
+  --cg-font-head: Inter, system-ui, sans-serif !important;
+  --cg-font-mono: "JetBrains Mono", monospace !important;
+}
+main[role="main"] h1,
+.an-hdr h1, .sf-hdr h1, .crud-header h1, .um-header h1,
+.er-header h1, .ev-header h1, .ip-header h1, .an-page h1 {
+  font-family: Inter, system-ui, sans-serif !important;
+  letter-spacing: -0.02em !important;
+  text-transform: none !important;
+  text-shadow: none !important;
+}
+.btn-green, .btn-submit, .btn-create, .btn-save {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #fff !important;
+  border: 0 !important;
+  text-shadow: none !important;
+}
+.live-dot, .dot-running, .status-running, .idle-ok, .meter-ok {
+  background: #10b981 !important;
+  box-shadow: 0 0 6px rgba(16,185,129,0.45) !important;
+}
+.form-ctrl:focus, .form-control:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.18) !important;
+}
+.alert-ok { color: #10b981 !important; }
+</style>

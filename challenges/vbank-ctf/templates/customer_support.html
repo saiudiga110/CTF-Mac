@@ -1,0 +1,59 @@
+{% extends "customer_base.html" %}
+{% block title %}Support Ticket{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-headset"></i></div>Submit Support Ticket</div>
+            <div class="card-body">
+                {% if msg %}
+                <div class="alert alert-success mb-3" style="font-size:0.84rem;">
+                    <i class="fas fa-check-circle me-2"></i>{{ msg }}
+                </div>
+                {% endif %}
+                <p class="text-muted mb-4" style="font-size:0.84rem;">
+                    Our support team reviews all tickets within 24 hours (SLA). For urgent issues call <strong>0800 123 4567</strong>.
+                </p>
+                <form method="POST" action="/account/support">
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select">
+                            <option>General Query</option>
+                            <option>Online Banking</option>
+                            <option>Card Issue</option>
+                            <option>Transfer Problem</option>
+                            <option>Fraud / Dispute</option>
+                            <option>Account Access</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea name="message" class="form-control" rows="5" placeholder="Describe your issue in detail..." required></textarea>
+                        <div class="form-text" style="font-size:0.75rem;">Do not include sensitive card or account details in your message.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Submit Ticket</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-phone"></i></div>Contact Options</div>
+            <div class="card-body" style="font-size:0.84rem; line-height:1.9; color:#475569;">
+                <div><i class="fas fa-phone-alt me-2" style="color:#1565c0;"></i><strong>0800 123 4567</strong> (24/7)</div>
+                <div><i class="fas fa-envelope me-2" style="color:#1565c0;"></i>support@vbank.co.uk</div>
+                <div><i class="fas fa-comments me-2" style="color:#1565c0;"></i>Live chat available 08:00–20:00</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-clock"></i></div>SLA Times</div>
+            <div class="card-body" style="font-size:0.82rem; color:#64748b; line-height:1.8;">
+                <div><span class="badge bg-danger me-2">Urgent</span> Fraud / Security — 2 hours</div>
+                <div><span class="badge bg-warning me-2">High</span> Account Access — 4 hours</div>
+                <div><span class="badge bg-info me-2">Normal</span> General Queries — 24 hours</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

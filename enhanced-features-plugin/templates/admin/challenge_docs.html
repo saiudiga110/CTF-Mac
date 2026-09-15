@@ -1,0 +1,386 @@
+{% extends "admin/base.html" %}
+{% block title %}Challenge Docs & Solutions{% endblock %}
+{% block content %}
+<style>
+:root{--d-bg:#0d1117;--d-card:#161b22;--d-border:#30363d;--d-green:#00ff41;--d-blue:#64b4ff;--d-yellow:#ffd700;--d-red:#ff4444;--d-text:#c9d1d9;--d-muted:#8b949e;}
+body{background:var(--d-bg)!important;color:var(--d-text)!important;}
+.docs-hdr{background:linear-gradient(135deg,#0d1117,#161b22,#0d1117);border-bottom:1px solid var(--d-border);padding:24px 0 18px;margin-bottom:24px;}
+.docs-hdr h1{font-family:'Courier New',monospace;color:var(--d-green);font-size:1.6rem;letter-spacing:2px;text-shadow:0 0 14px rgba(0,255,65,.35);}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-chip{background:var(--d-card);border:1px solid var(--d-border);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;}
+.stat-chip .val{font-size:1.4rem;font-weight:700;color:var(--d-green);}
+.stat-chip .lbl{font-size:.68rem;color:var(--d-muted);text-transform:uppercase;letter-spacing:1px;}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+.btn-new{background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.35);color:var(--d-green);border-radius:7px;padding:8px 18px;cursor:pointer;font-family:'Courier New',monospace;font-size:.82rem;font-weight:700;transition:background .2s;}
+.btn-new:hover{background:rgba(0,255,65,.22);}
+.filter-tabs{display:flex;gap:7px;flex-wrap:wrap;}
+.ftab{background:var(--d-card);border:1px solid var(--d-border);border-radius:18px;padding:4px 14px;font-size:.75rem;cursor:pointer;color:var(--d-muted);transition:all .2s;user-select:none;}
+.ftab:hover,.ftab.active{background:rgba(0,255,65,.09);border-color:var(--d-green);color:var(--d-green);}
+.chal-card{background:var(--d-card);border:1px solid var(--d-border);border-radius:10px;margin-bottom:16px;overflow:hidden;transition:border-color .2s;}
+.chal-card:hover{border-color:rgba(0,255,65,.3);}
+.chal-card.basic{border-left:4px solid #00c853;}
+.chal-card.intermediate{border-left:4px solid #ffd700;}
+.chal-card.advanced{border-left:4px solid #ff4444;}
+.card-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--d-border);cursor:pointer;}
+.card-hdr:hover{background:rgba(255,255,255,.02);}
+.cnum{border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;}
+.cnum.basic{background:rgba(0,200,83,.12);color:#00c853;}
+.cnum.intermediate{background:rgba(255,215,0,.12);color:#ffd700;}
+.cnum.advanced{background:rgba(255,68,68,.12);color:#ff4444;}
+.hdr-info{flex:1;}
+.hdr-info h3{margin:0;font-size:.88rem;color:var(--d-text);font-family:'Courier New',monospace;}
+.hdr-meta{display:flex;align-items:center;gap:7px;margin-top:2px;}
+.badge{display:inline-block;border-radius:10px;padding:2px 8px;font-size:.67rem;font-weight:600;}
+.badge-b{background:rgba(0,200,83,.15);color:#00c853;border:1px solid rgba(0,200,83,.3);}
+.badge-i{background:rgba(255,215,0,.15);color:#ffd700;border:1px solid rgba(255,215,0,.3);}
+.badge-a{background:rgba(255,68,68,.15);color:#ff4444;border:1px solid rgba(255,68,68,.3);}
+.badge-pts{background:rgba(100,180,255,.1);color:var(--d-blue);border:1px solid rgba(100,180,255,.25);border-radius:10px;padding:2px 8px;font-size:.67rem;font-weight:600;}
+.vtag{background:rgba(255,215,0,.07);color:#e8c84a;border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:2px 8px;font-size:.65rem;}
+.chev{color:var(--d-muted);margin-left:auto;transition:transform .25s;font-size:.9rem;}
+.chev.open{transform:rotate(180deg);}
+.hdr-actions{display:flex;gap:6px;margin-left:4px;}
+.btn-edit,.btn-del{border:none;border-radius:5px;padding:4px 11px;cursor:pointer;font-size:.72rem;font-weight:600;transition:background .2s;}
+.btn-edit{background:rgba(100,180,255,.12);color:var(--d-blue);}
+.btn-edit:hover{background:rgba(100,180,255,.22);}
+.btn-del{background:rgba(255,68,68,.1);color:var(--d-red);}
+.btn-del:hover{background:rgba(255,68,68,.2);}
+.card-body{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.card-body.open{max-height:9999px;}
+.card-inner{padding:16px 20px 20px;}
+.sec-title{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--d-muted);margin:0 0 6px;}
+.concept-box{background:rgba(255,255,255,.02);border:1px solid var(--d-border);border-radius:6px;padding:10px 13px;margin-bottom:14px;font-size:.83rem;line-height:1.65;}
+.steps{margin-bottom:14px;}
+.step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
+.snum{background:rgba(0,255,65,.1);color:var(--d-green);border:1px solid rgba(0,255,65,.25);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:2px;}
+.stext{font-size:.83rem;line-height:1.6;}
+.code-block{background:#0d1117;border:1px solid var(--d-border);border-radius:6px;padding:10px 13px;font-family:'Courier New',monospace;font-size:.78rem;color:#e6db74;white-space:pre;overflow-x:auto;margin:7px 0 14px;}
+.code-lang{font-size:.6rem;color:var(--d-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.flag-box{background:rgba(0,255,65,.04);border:1px solid rgba(0,255,65,.2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:12px;}
+.flag-val{font-family:'Courier New',monospace;color:var(--d-green);font-size:.85rem;}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--d-card);border:1px solid rgba(0,255,65,.25);border-radius:12px;padding:28px 32px;width:700px;max-width:96vw;max-height:90vh;overflow-y:auto;}
+.modal-box h2{font-family:'Courier New',monospace;color:var(--d-green);font-size:1.1rem;letter-spacing:1px;margin:0 0 20px;}
+.form-row{margin-bottom:14px;}
+.form-row label{display:block;font-size:.72rem;color:var(--d-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.form-inp{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(0,255,65,.15);border-radius:6px;color:var(--d-text);font-family:'Courier New',monospace;font-size:.84rem;padding:8px 12px;outline:none;box-sizing:border-box;transition:border-color .2s;}
+.form-inp:focus{border-color:rgba(0,255,65,.45);}
+textarea.form-inp{min-height:90px;resize:vertical;}
+.steps-editor,.codes-editor{border:1px solid var(--d-border);border-radius:7px;padding:10px;margin-top:4px;}
+.step-row,.code-row{display:flex;gap:6px;margin-bottom:7px;align-items:flex-start;}
+.step-row input,.code-row input,.code-row textarea{flex:1;}
+.btn-add-row{background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.2);color:var(--d-green);border-radius:5px;padding:4px 12px;cursor:pointer;font-size:.75rem;margin-top:4px;}
+.btn-rm-row{background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.2);color:var(--d-red);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:.75rem;flex-shrink:0;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--d-border);padding-top:16px;}
+.btn-save{background:linear-gradient(135deg,#00ff41,#00cc33);color:#010801;border:none;border-radius:7px;padding:9px 22px;cursor:pointer;font-weight:700;font-size:.84rem;font-family:'Courier New',monospace;}
+.btn-cancel{background:rgba(255,255,255,.05);border:1px solid var(--d-border);color:var(--d-muted);border-radius:7px;padding:9px 18px;cursor:pointer;font-size:.84rem;}
+.toast-msg{position:fixed;bottom:24px;right:24px;background:var(--d-card);border:1px solid rgba(0,255,65,.3);border-radius:8px;padding:10px 18px;font-family:'Courier New',monospace;font-size:.82rem;color:var(--d-green);z-index:3000;animation:ti .3s ease;display:none;}
+@keyframes ti{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+
+<div class="docs-hdr">
+  <div class="container">
+    <h1>&#x1f6e1; Challenge Docs &amp; Solutions</h1>
+    <p style="color:var(--d-muted);font-size:.85rem;margin:4px 0 0">Admin-only attack guide. Click a card to expand. Press <kbd>Ctrl+E</kbd> to expand all. <kbd>Ctrl+N</kbd> to add new.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stat-row" id="stat-row"></div>
+
+  <div class="toolbar">
+    <button class="btn-new" onclick="openModal(null)">&#43; New Doc</button>
+    <div class="filter-tabs" id="filter-tabs">
+      <div class="ftab active" onclick="doFilter('all',this)">All</div>
+      <div class="ftab" onclick="doFilter('basic',this)">&#x1f7e2; Basic</div>
+      <div class="ftab" onclick="doFilter('intermediate',this)">&#x1f7e1; Intermediate</div>
+      <div class="ftab" onclick="doFilter('advanced',this)">&#x1f534; Advanced</div>
+    </div>
+  </div>
+
+  <div id="docs-list"></div>
+</div>
+
+<!-- Edit/Create Modal -->
+<div class="modal-overlay" id="edit-modal" onclick="closeOnBg(event)">
+  <div class="modal-box">
+    <h2 id="modal-title">&#x270f; Edit Doc</h2>
+    <input type="hidden" id="edit-id">
+    <div class="form-row">
+      <label>Challenge Name</label>
+      <input class="form-inp" id="edit-name" placeholder="e.g. The Intern's Mistake">
+    </div>
+    <div class="form-row">
+      <label>Category</label>
+      <select class="form-inp" id="edit-category">
+        <option>Web — Basic</option>
+        <option>Web — Intermediate</option>
+        <option>Web — Advanced</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Vulnerability Type</label>
+      <input class="form-inp" id="edit-vuln" placeholder="e.g. SQL Injection, XSS, SSRF">
+    </div>
+    <div class="form-row">
+      <label>Concept / Background</label>
+      <textarea class="form-inp" id="edit-concept" placeholder="Explain the vulnerability theory..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>Steps to Exploit</label>
+      <div class="steps-editor" id="steps-editor"></div>
+      <button class="btn-add-row" onclick="addStep()">&#43; Add Step</button>
+    </div>
+    <div class="form-row">
+      <label>Code Examples</label>
+      <div class="codes-editor" id="codes-editor"></div>
+      <button class="btn-add-row" onclick="addCode()">&#43; Add Example</button>
+    </div>
+    <div class="form-row">
+      <label>Flag Key</label>
+      <input class="form-inp" id="edit-flagkey" placeholder="e.g. source_code, sqli_login">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveDoc()">&#x1f4be; Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-msg" id="toast"></div>
+
+<script>
+var allDocs = [];
+var currentFilter = 'all';
+
+function catClass(cat) {
+  var c = (cat||'').toLowerCase();
+  if (c.includes('basic') || c.includes('beginner')) return 'basic';
+  if (c.includes('advanced')) return 'advanced';
+  return 'intermediate';
+}
+
+function loadDocs() {
+  fetch('/api/ctf/admin/docs', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(docs){
+      allDocs = docs;
+      renderStats();
+      renderList();
+    }).catch(function(e){showToast('Error loading docs: '+e,'#ff4444');});
+}
+
+function renderStats() {
+  var basic=0,inter=0,adv=0;
+  allDocs.forEach(function(d){
+    var c=catClass(d.category);
+    if(c==='basic')basic++;else if(c==='advanced')adv++;else inter++;
+  });
+  document.getElementById('stat-row').innerHTML =
+    chip(allDocs.length,'Docs','var(--d-green)')+
+    chip(basic,'Basic','#00c853')+
+    chip(inter,'Intermediate','#ffd700')+
+    chip(adv,'Advanced','#ff4444');
+}
+
+function chip(val,lbl,col){
+  return '<div class="stat-chip"><div class="val" style="color:'+col+'">'+val+'</div><div class="lbl">'+lbl+'</div></div>';
+}
+
+function renderList() {
+  var list = document.getElementById('docs-list');
+  var filtered = currentFilter==='all' ? allDocs : allDocs.filter(function(d){return catClass(d.category)===currentFilter;});
+  if(!filtered.length){list.innerHTML='<p style="color:var(--d-muted);padding:20px 0;">No docs yet. Click "+ New Doc" to add one.</p>';return;}
+  list.innerHTML = filtered.map(function(d,i){
+    var cls = catClass(d.category);
+    return '<div class="chal-card '+cls+'" id="dc'+d.id+'">'+
+      '<div class="card-hdr" onclick="tog('+d.id+')">'+
+        '<div class="cnum '+cls+'">'+(i+1)+'</div>'+
+        '<div class="hdr-info">'+
+          '<h3>'+esc(d.challenge_name)+'</h3>'+
+          '<div class="hdr-meta">'+
+            '<span class="badge badge-'+cls[0]+'">'+esc(d.category)+'</span>'+
+            (d.vuln_type?'<span class="vtag">'+esc(d.vuln_type)+'</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div class="hdr-actions" onclick="event.stopPropagation()">'+
+          '<button class="btn-edit" onclick="openModal('+d.id+')">&#x270e; Edit</button>'+
+          '<button class="btn-del" onclick="deleteDoc('+d.id+')">&#x1f5d1;</button>'+
+        '</div>'+
+        '<span class="chev" id="chev'+d.id+'">&#9660;</span>'+
+      '</div>'+
+      '<div class="card-body" id="cb'+d.id+'">'+
+        '<div class="card-inner">'+
+          (d.concept?'<p class="sec-title">Concept</p><div class="concept-box">'+esc(d.concept)+'</div>':'')+
+          (d.steps&&d.steps.length?
+            '<p class="sec-title">Exploit Steps</p><div class="steps">'+
+            d.steps.map(function(s,si){
+              return '<div class="step"><div class="snum">'+(si+1)+'</div><div class="stext">'+esc(s)+'</div></div>';
+            }).join('')+'</div>':'')+
+          (d.code_examples&&d.code_examples.length?
+            '<p class="sec-title">Code Examples</p>'+
+            d.code_examples.map(function(ex){
+              return '<div class="code-lang">'+esc(ex.lang||'bash')+'</div>'+
+                     '<div class="code-block">'+esc(ex.code||'')+'</div>';
+            }).join(''):'')+
+          (d.flag_key?
+            '<div class="flag-box"><span style="font-size:1.1rem">&#x1f3f3;</span>'+
+            '<div><span style="font-size:.62rem;color:var(--d-muted);display:block;text-transform:uppercase;letter-spacing:1px;">Flag Key</span>'+
+            '<span class="flag-val">'+esc(d.flag_key)+'</span></div></div>':'')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function tog(id) {
+  var b=document.getElementById('cb'+id), c=document.getElementById('chev'+id);
+  b.classList.toggle('open'); c.classList.toggle('open');
+}
+
+function doFilter(val,el) {
+  currentFilter=val;
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  renderList();
+}
+
+// ── Modal ────────────────────────────────────────────────
+function openModal(id) {
+  var modal = document.getElementById('edit-modal');
+  document.getElementById('edit-id').value = id || '';
+  document.getElementById('modal-title').textContent = id ? '\u270F Edit Doc' : '\u2795 New Doc';
+  document.getElementById('steps-editor').innerHTML = '';
+  document.getElementById('codes-editor').innerHTML = '';
+
+  if (id) {
+    var d = allDocs.find(function(x){return x.id===id;});
+    if (!d) return;
+    document.getElementById('edit-name').value = d.challenge_name||'';
+    document.getElementById('edit-category').value = d.category||'Web — Basic';
+    document.getElementById('edit-vuln').value = d.vuln_type||'';
+    document.getElementById('edit-concept').value = d.concept||'';
+    document.getElementById('edit-flagkey').value = d.flag_key||'';
+    (d.steps||[]).forEach(function(s){addStep(s);});
+    (d.code_examples||[]).forEach(function(ex){addCode(ex.lang,ex.code);});
+  } else {
+    document.getElementById('edit-name').value='';
+    document.getElementById('edit-category').value='Web — Basic';
+    document.getElementById('edit-vuln').value='';
+    document.getElementById('edit-concept').value='';
+    document.getElementById('edit-flagkey').value='';
+  }
+  modal.classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+function closeOnBg(e) {
+  if (e.target === document.getElementById('edit-modal')) closeModal();
+}
+
+function addStep(val) {
+  var row = document.createElement('div');
+  row.className = 'step-row';
+  row.innerHTML =
+    '<input class="form-inp step-input" placeholder="Describe this step..." value="'+esc(val||'')+'" style="font-size:.8rem;">'+
+    '<button class="btn-rm-row" onclick="this.parentNode.remove()">&#x2715;</button>';
+  document.getElementById('steps-editor').appendChild(row);
+}
+
+function addCode(lang, code) {
+  var row = document.createElement('div');
+  row.className = 'code-row';
+  row.style.flexDirection='column';
+  row.innerHTML =
+    '<div style="display:flex;gap:6px;margin-bottom:4px;">'+
+      '<input class="form-inp code-lang-input" placeholder="bash / python" value="'+esc(lang||'bash')+'" style="flex:0 0 90px;font-size:.78rem;">'+
+      '<button class="btn-rm-row" onclick="this.closest(\'.code-row\').remove()">&#x2715;</button>'+
+    '</div>'+
+    '<textarea class="form-inp code-code-input" rows="4" placeholder="Paste code here...">'+esc(code||'')+'</textarea>';
+  document.getElementById('codes-editor').appendChild(row);
+}
+
+function saveDoc() {
+  var id = document.getElementById('edit-id').value;
+  var steps = Array.from(document.querySelectorAll('.step-input')).map(function(i){return i.value.trim();}).filter(Boolean);
+  var codes = Array.from(document.querySelectorAll('.code-row')).map(function(row){
+    var lang = (row.querySelector('.code-lang-input')||{}).value||'bash';
+    var code = (row.querySelector('.code-code-input')||{}).value||'';
+    return {lang:lang.trim(), code:code.trim()};
+  }).filter(function(x){return x.code;});
+
+  var payload = {
+    challenge_name: document.getElementById('edit-name').value.trim(),
+    category:       document.getElementById('edit-category').value,
+    vuln_type:      document.getElementById('edit-vuln').value.trim(),
+    concept:        document.getElementById('edit-concept').value.trim(),
+    flag_key:       document.getElementById('edit-flagkey').value.trim(),
+    steps:          steps,
+    code_examples:  codes,
+  };
+  if (!payload.challenge_name) { showToast('Challenge name is required','#ff4444'); return; }
+
+  var url  = id ? '/api/ctf/admin/docs/'+id : '/api/ctf/admin/docs';
+  var meth = id ? 'PUT' : 'POST';
+
+  fetch(url, {
+    method: meth, credentials: 'same-origin',
+    headers: {'Content-Type':'application/json', 'CSRF-Token': getCsrf()},
+    body: JSON.stringify(payload),
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) { showToast('Saved!','#00ff41'); closeModal(); loadDocs(); }
+      else showToast(d.message||'Error','#ff4444');
+    }).catch(function(e){showToast(''+e,'#ff4444');});
+}
+
+function deleteDoc(id) {
+  var d = allDocs.find(function(x){return x.id===id;});
+  if (!confirm('Delete doc for "' + (d?d.challenge_name:'#'+id) + '"?')) return;
+  fetch('/api/ctf/admin/docs/'+id, {
+    method:'DELETE', credentials:'same-origin',
+    headers:{'CSRF-Token':getCsrf()},
+  }).then(function(r){return r.json();})
+    .then(function(res){
+      if(res.success){showToast('Deleted','#00ff41');loadDocs();}
+      else showToast(res.message||'Error','#ff4444');
+    }).catch(function(e){showToast(''+e,'#ff4444');});
+}
+
+function getCsrf() {
+  var m=document.querySelector('meta[name="csrf-token"]');
+  if(m) return m.getAttribute('content');
+  if(window.init&&window.init.csrfNonce) return window.init.csrfNonce;
+  return '';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg,col) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.style.color=col||'var(--d-green)'; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(function(){t.style.display='none';},3000);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.key==='e'){
+    e.preventDefault();
+    document.querySelectorAll('.card-body:not(.open)').forEach(function(b){
+      var id=b.id.replace('cb','');
+      tog(parseInt(id));
+    });
+  }
+  if(e.ctrlKey&&e.key==='n'){e.preventDefault();openModal(null);}
+  if(e.key==='Escape') closeModal();
+});
+
+loadDocs();
+</script>
+{% endblock %}

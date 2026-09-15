@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — vBank Customer Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!--
+        vBank Customer Portal v2.4.1-staging
+        Auth module — Jake Thompson (contractor, Jan 2024):
+          TODO: parameterize SQL queries before UAT freeze (TD-289)
+          dev_hint: customer login uses MD5 password hash
+    -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; display: flex; min-height: 100vh; }
+        .split { display: flex; width: 100%; }
+        .brand-panel {
+            width: 44%; background: linear-gradient(160deg, #0d2137 0%, #1565c0 100%);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 48px 52px; position: relative; overflow: hidden;
+        }
+        .brand-panel::before { content:''; position:absolute; top:-80px; right:-80px; width:320px; height:320px; background:rgba(255,255,255,0.04); border-radius:50%; }
+        .brand-panel::after  { content:''; position:absolute; bottom:-60px; left:-60px; width:240px; height:240px; background:rgba(255,255,255,0.03); border-radius:50%; }
+        .brand-logo { display:flex; align-items:center; gap:14px; }
+        .brand-logo .icon { width:46px; height:46px; background:rgba(255,255,255,0.15); border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.3rem; }
+        .brand-logo .name { color:#fff; font-size:1.2rem; font-weight:800; }
+        .brand-logo .sub  { color:rgba(255,255,255,0.55); font-size:0.75rem; }
+        .brand-hero { position:relative; z-index:1; }
+        .brand-hero h1 { color:#fff; font-size:1.9rem; font-weight:700; line-height:1.3; margin-bottom:16px; }
+        .brand-hero p  { color:rgba(255,255,255,0.65); font-size:0.88rem; line-height:1.75; }
+        .brand-features { position:relative; z-index:1; }
+        .brand-feature  { display:flex; align-items:center; gap:12px; margin-bottom:13px; color:rgba(255,255,255,0.8); font-size:0.82rem; }
+        .brand-feature i { color:#63b3ff; width:16px; }
+        .brand-footer { color:rgba(255,255,255,0.3); font-size:0.7rem; position:relative; z-index:1; }
+        .login-panel { flex:1; display:flex; align-items:center; justify-content:center; padding:48px 40px; background:#fff; }
+        .login-box { width:100%; max-width:400px; }
+        .login-box h2 { font-size:1.4rem; font-weight:700; color:#1e293b; margin-bottom:6px; }
+        .login-box .subtitle { color:#64748b; font-size:0.84rem; margin-bottom:30px; }
+        .form-group { margin-bottom:18px; }
+        .form-label { display:block; font-size:0.75rem; font-weight:600; color:#64748b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em; }
+        .form-control { width:100%; padding:11px 14px; border:1.5px solid #e1e8ef; border-radius:8px; font-size:0.875rem; color:#1e293b; outline:none; transition:border-color 0.15s, box-shadow 0.15s; }
+        .form-control:focus { border-color:#1565c0; box-shadow:0 0 0 3px rgba(21,101,192,0.12); }
+        .input-wrap { position:relative; }
+        .input-wrap .form-control { padding-left:40px; }
+        .input-wrap i { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.85rem; }
+        .btn-signin { width:100%; padding:12px; background:#1565c0; color:#fff; border:none; border-radius:8px; font-size:0.9rem; font-weight:600; cursor:pointer; transition:background 0.15s; margin-top:8px; }
+        .btn-signin:hover { background:#0d47a1; }
+        .error-msg { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:10px 14px; font-size:0.82rem; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+        .login-help { margin-top:24px; padding-top:20px; border-top:1px solid #f1f5f9; }
+        .login-help p { font-size:0.78rem; color:#94a3b8; text-align:center; }
+        .login-help a { color:#1565c0; text-decoration:none; }
+        .security-notice { background:#f8fafc; border:1px solid #e1e8ef; border-radius:8px; padding:12px 14px; margin-top:20px; font-size:0.75rem; color:#64748b; display:flex; align-items:flex-start; gap:8px; }
+        .security-notice i { color:#94a3b8; margin-top:1px; flex-shrink:0; }
+    </style>
+</head>
+<body>
+<div class="split">
+    <div class="brand-panel">
+        <div class="brand-logo">
+            <div class="icon"><i class="fas fa-university"></i></div>
+            <div>
+                <div class="name">vBank</div>
+                <div class="sub">Customer Portal</div>
+            </div>
+        </div>
+        <div class="brand-hero">
+            <h1>Welcome back to vBank</h1>
+            <p>Securely access your accounts, transfer funds, view statements, and manage your finances from anywhere.</p>
+        </div>
+        <div class="brand-features">
+            <div class="brand-feature"><i class="fas fa-check-circle"></i> Real-time account balances &amp; statements</div>
+            <div class="brand-feature"><i class="fas fa-check-circle"></i> Instant wire transfers &amp; payments</div>
+            <div class="brand-feature"><i class="fas fa-check-circle"></i> 24/7 secure online banking</div>
+            <div class="brand-feature"><i class="fas fa-check-circle"></i> FSCS protected up to £85,000</div>
+        </div>
+        <div class="brand-footer">&copy; 2024 vBank plc &nbsp;|&nbsp; Authorised by the FCA &nbsp;|&nbsp; All transactions monitored</div>
+    </div>
+    <div class="login-panel">
+        <div class="login-box">
+            <h2>Customer Sign In</h2>
+            <p class="subtitle">Access your vBank account with your online banking credentials.</p>
+            {% if error %}
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+            {% endif %}
+            <form method="POST" action="/customer/login{% if next_url %}?next={{ next_url }}{% endif %}">
+                {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="username" class="form-control" placeholder="Enter your username" autocomplete="username" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-signin"><i class="fas fa-sign-in-alt me-2"></i>Sign In to vBank</button>
+            </form>
+            <div class="login-help">
+                <p>Forgotten your password? <a href="/customer/forgot">Reset online</a> or call <a href="#">0800 123 4567</a></p>
+                <p style="margin-top:8px;">Not a customer yet? <a href="#">Open an account</a></p>
+            </div>
+            <div class="security-notice">
+                <i class="fas fa-shield-alt"></i>
+                <span>This system is for authorised vBank customers only. All access is logged. Never share your password with anyone — vBank will never ask for it.</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

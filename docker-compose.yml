@@ -1,0 +1,355 @@
+services:
+
+  # Reverse proxy - routes *.lab subdomains to containers
+  proxy:
+    build: ./nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - proxy-certs:/etc/nginx/certs
+    environment:
+      - DEFAULT_HOST=${CTF_HOSTNAME:-lloydsctf.lab}
+      - TRUST_DOWNSTREAM_PROXY=false
+      - HTTPS_METHOD=noop
+    networks:
+      proxy-net:
+      default:
+
+  # DNS server - resolves *.lab to HOST_IP for all LAN clients
+  dnsmasq:
+    build: ./dnsmasq
+    restart: always
+    command:
+      - "--no-daemon"
+      - "--address=/.lab/${HOST_IP:-127.0.0.1}"
+      - "--server=8.8.8.8"
+      - "--server=1.1.1.1"
+      - "--no-resolv"
+      - "--listen-address=0.0.0.0"
+      - "--log-facility=-"
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      default:
+
+  # CTFd
+  ctfd:
+    build: .
+    user: root
+    restart: always
+    environment:
+      - SECRET_KEY=${CTFD_SECRET_KEY}
+      - UPLOAD_FOLDER=/var/uploads
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - DATABASE_URL=mysql+pymysql://ctfd:${MYSQL_PASSWORD}@db/ctfd
+      - REDIS_URL=redis://cache:6379
+      - WORKERS=${WORKERS:-1}
+      - PRODUCTION=${PRODUCTION:-0}
+      - LOG_FOLDER=/var/log/CTFd
+      - ACCESS_LOG=-
+      - ERROR_LOG=-
+      - PYTHONDONTWRITEBYTECODE=1
+      - FLAG_SECRET=${FLAG_SECRET}
+      - HOST_IP=${HOST_IP}
+      - CHALLENGE_CATALOG=/opt/CTFd/challenge-catalog.json
+      - CTFD_TARGET_TARGET_MODE=global
+      - CTFD_TARGET_TARGET_PORT_RANGE_START=${TARGET_PORT_RANGE_START:-20000}
+      - CTFD_TARGET_TARGET_PORT_RANGE_END=${TARGET_PORT_RANGE_END:-20999}
+      - CTFD_TARGET_KALI_PORT_RANGE_START=${KALI_PORT_RANGE_START:-21000}
+      - CTFD_TARGET_KALI_PORT_RANGE_END=${KALI_PORT_RANGE_END:-21999}
+      - CTFD_TARGET_ENABLE_KALI=${CTFD_TARGET_ENABLE_KALI:-1}
+      - CTFD_TARGET_KALI_IMAGE=${CTFD_TARGET_KALI_IMAGE:-kali-ctf}
+      - CTFD_TARGET_KALI_MEM_LIMIT=${KALI_MEM_LIMIT:-2048m}
+      - CTFD_TARGET_KALI_CPU_QUOTA=${KALI_CPU_QUOTA:-100000}
+      - CTFD_TARGET_KALI_DISK_MB=${KALI_DISK_MB:-2048}
+      - CTFD_TARGET_KALI_PIDS_LIMIT=${KALI_PIDS_LIMIT:-512}
+      - CTFD_TARGET_KALI_SHM_SIZE=${KALI_SHM_SIZE:-512m}
+      - CTFD_TARGET_KALI_IMAGE_PLATFORM=${KALI_IMAGE_PLATFORM:-multi}
+      - CTFD_TARGET_ORCHESTRATOR=${CTFD_TARGET_ORCHESTRATOR:-local}
+      - CTFD_TARGET_INSTANCE_MANAGER_URL=${INSTANCE_MANAGER_URL:-http://instance-manager:8088}
+      - CTFD_TARGET_INSTANCE_MANAGER_SECRET=${INSTANCE_MANAGER_SECRET}
+      - CTFD_TARGET_IMAGE_PLATFORM=${CTFD_TARGET_IMAGE_PLATFORM:-multi}
+      - CTFD_TARGET_INSTANCE_DISK_MB=${CTFD_TARGET_INSTANCE_DISK_MB:-256}
+      - VIRTUAL_HOST=${CTF_HOSTNAME:-lloydsctf.lab},ctfd.lab,${HOST_IP:-127.0.0.1}
+      - VIRTUAL_PORT=8000
+    volumes:
+      - ctfd-logs:/var/log/CTFd
+      - ctfd-uploads:/var/uploads
+      - ctfd-backups:/var/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      default:
+      internal:
+      proxy-net:
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # MariaDB
+  db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=ctfd
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=ctfd
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb -h 127.0.0.1 -uctfd -p\"$$MYSQL_PASSWORD\" ctfd -e 'SELECT 1' >/dev/null 2>&1"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      internal:
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --wait_timeout=28800
+      - --log-warnings=0
+
+  # Redis
+  cache:
+    image: redis:7
+    restart: always
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      internal:
+
+  # vBank CTF Challenge image
+  instance-manager:
+    build:
+      context: .
+      dockerfile: infra/instance_manager/Dockerfile
+    restart: always
+    command: ["gunicorn", "-b", "0.0.0.0:8088", "--workers", "1", "--threads", "8", "--timeout", "0", "--graceful-timeout", "30", "infra.instance_manager.app:app"]
+    environment:
+      - INSTANCE_MANAGER_SECRET=${INSTANCE_MANAGER_SECRET}
+      - INSTANCE_MANAGER_DB=/data/instance-manager.sqlite3
+      - INSTANCE_MANAGER_DEPLOY_MODE=${INSTANCE_MANAGER_DEPLOY_MODE:-allocate}
+    volumes:
+      - instance-manager-data:/data
+    ports:
+      - "8088:8088"
+    networks:
+      default:
+      internal:
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8088/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  local-worker-agent:
+    build:
+      context: .
+      dockerfile: infra/instance_manager/Dockerfile
+    restart: always
+    command:
+      - sh
+      - -c
+      - "WORKER_SERVE=0 python -u -m infra.instance_manager.worker_agent & exec gunicorn -b 0.0.0.0:8090 --workers 1 --threads 8 --timeout 0 --graceful-timeout 30 infra.instance_manager.worker_agent:app"
+    environment:
+      - INSTANCE_MANAGER_URL=http://instance-manager:8088
+      - INSTANCE_MANAGER_SECRET=${INSTANCE_MANAGER_SECRET}
+      - WORKER_ID=${WORKER_ID:-local-worker}
+      - WORKER_AGENT_URL=http://local-worker-agent:8090
+      - WORKER_PUBLIC_IP=${HOST_IP:-127.0.0.1}
+      - WORKER_AGENT_PORT=8090
+      - WORKER_TARGET_PORT_START=${TARGET_PORT_RANGE_START:-20000}
+      - WORKER_TARGET_PORT_END=${TARGET_PORT_RANGE_END:-20999}
+      - WORKER_CONTAINER_LIMIT=${WORKER_CONTAINER_LIMIT:-80}
+      - WORKER_RUNTIME_CPUS=${WORKER_RUNTIME_CPUS:-}
+      - WORKER_RUNTIME_RAM_MB=${WORKER_RUNTIME_RAM_MB:-}
+      - WORKER_EXTRA_PLATFORMS=${WORKER_EXTRA_PLATFORMS:-}
+      - WORKER_ASSUME_AMD64_EMULATION=${WORKER_ASSUME_AMD64_EMULATION:-0}
+      - WORKER_LABELS=${WORKER_LABELS:-role=local-worker}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      instance-manager:
+        condition: service_healthy
+    networks:
+      default:
+      internal:
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  vbank-ctf:
+    build: ./challenges/vbank-ctf
+    image: vbank-ctf
+    restart: always
+    environment:
+      - FLAG_SECRET=${FLAG_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - ANALYTICS_BASE_URL=http://vbank-analytics:3000
+      - TEAM_ID=0
+    networks:
+      default:
+
+  # vBank Analytics
+  vbank-analytics:
+    build: ./challenges/vbank-analytics
+    image: vbank-analytics
+    restart: always
+    environment:
+      - FLAG_SECRET=${FLAG_SECRET}
+      - TEAM_ID=0
+    networks:
+      default:
+
+  # Grouped vBank target images (build-only; launched per challenge)
+  vbank-auth:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: auth
+    image: vbank-auth:1
+    restart: "no"
+    command: echo "vbank-auth:1 image ready"
+    networks:
+      default:
+
+  vbank-idor:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: idor
+    image: vbank-idor:1
+    restart: "no"
+    command: echo "vbank-idor:1 image ready"
+    networks:
+      default:
+
+  vbank-logic:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: logic
+    image: vbank-logic:1
+    restart: "no"
+    command: echo "vbank-logic:1 image ready"
+    networks:
+      default:
+
+  vbank-xss:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: xss
+    image: vbank-xss:1
+    restart: "no"
+    command: echo "vbank-xss:1 image ready"
+    networks:
+      default:
+
+  vbank-staff-auth:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: staff-auth
+    image: vbank-staff-auth:1
+    restart: "no"
+    command: echo "vbank-staff-auth:1 image ready"
+    networks:
+      default:
+
+  vbank-staff-deep:
+    build:
+      context: ./challenges/vbank-ctf
+      args:
+        TARGET_PROFILE: staff-deep
+    image: vbank-staff-deep:1
+    restart: "no"
+    command: echo "vbank-staff-deep:1 image ready"
+    networks:
+      default:
+
+  # CTFd
+  setup:
+    build:
+      context: .
+      dockerfile: ctfd/setup/Dockerfile
+    environment:
+      - CTFD_URL=http://ctfd:8000
+      - DB_HOST=db
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=ctfd
+      - ADMIN_NAME=${ADMIN_NAME}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - CTF_NAME=${CTF_NAME:-Lloyds vBank CTF}
+      - CTF_DESCRIPTION=Break into vBank - 7 web security challenges across customer and staff portals.
+      - FLAG_SECRET=${FLAG_SECRET}
+      - VBANK_URL=http://${CTF_HOSTNAME:-lloydsctf.lab}
+      - CHALLENGE_CATALOG=/setup/challenge-catalog.json
+    depends_on:
+      ctfd:
+        condition: service_healthy
+    networks:
+      default:
+      internal:
+    restart: "no"
+
+  # Kali Linux attack workstation image
+  # platform: linux/amd64 forces x86 on Apple Silicon via Rosetta 2.
+  # This ensures burpsuite, masscan, and all other x86-only Kali tools are available.
+  kali:
+    build:
+      context: ./challenges/parrot
+    platform: linux/amd64
+    image: kali-ctf:latest
+    restart: "no"
+    command: echo "Kali Linux Pwn Machine image ready for per-user instances"
+    networks:
+      default:
+
+
+networks:
+  default:
+  internal:
+    internal: true
+  # Shared network for nginx-proxy to reach all target/kali containers
+  proxy-net:
+    name: proxy-net
+    driver: bridge
+
+
+
+volumes:
+  proxy-certs:
+  ctfd-logs:
+  ctfd-uploads:
+  ctfd-backups:
+  mysql-data:
+  redis-data:
+  instance-manager-data:
+
+
+

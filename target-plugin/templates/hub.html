@@ -1,0 +1,117 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<div class="admin-wrap admin-wrap-wide">
+  <header class="admin-pagehead">
+    <div>
+      <h1 class="admin-title">Dashboards</h1>
+      <p class="admin-lead" id="hub-services">Checking stack…</p>
+    </div>
+    <p class="admin-ready" id="hub-ready">Checking…</p>
+  </header>
+  <div class="admin-field" style="margin-bottom:16px;">
+    <label for="hub-filter">Find a page</label>
+    <input id="hub-filter" type="text" placeholder="Operations, live feed, users…">
+  </div>
+
+  <div class="admin-stat-row" id="hub-stats">
+    <div class="admin-stat"><strong id="stat-instances">—</strong><span>Running instances</span></div>
+    <div class="admin-stat"><strong id="stat-players">—</strong><span>Players online</span></div>
+    <div class="admin-stat"><strong id="stat-dns">—</strong><span>DNS</span></div>
+    <div class="admin-stat"><strong id="stat-ip">—</strong><span>Host IP</span></div>
+  </div>
+
+  <div class="admin-dash-grid">
+    <div class="admin-card" style="padding-top:16px;padding-bottom:10px;">
+      <h2>Setup</h2>
+      <ul class="admin-hub-list">
+        <li><a href="/plugins/ctfd-target/admin/ops"><span class="admin-hub-name">Operations</span><span class="admin-hub-desc">Go live, briefing, backup</span></a></li>
+        <li><a href="/plugins/ctfd-target/board" target="_blank" rel="noopener"><span class="admin-hub-name">Projector board</span><span class="admin-hub-desc">Countdown and live scores</span></a></li>
+        <li><a href="/plugins/ctfd-target/admin/ops/pack" target="_blank" rel="noopener"><span class="admin-hub-name">Player pack</span><span class="admin-hub-desc">Printable roster and join QR</span></a></li>
+        <li><a href="/plugins/ctfd-target/admin/network"><span class="admin-hub-name">Network</span><span class="admin-hub-desc">LAN IP and DNS</span></a></li>
+        <li><a href="/plugins/ctfd-target/admin/settings"><span class="admin-hub-name">Settings</span><span class="admin-hub-desc">Instance mode and images</span></a></li>
+        <li><a href="/plugins/ctfd-target/admin/dashboard"><span class="admin-hub-name">Instances</span><span class="admin-hub-desc">Player containers</span></a></li>
+        <li><a href="/api/ctf/admin/containers/dashboard"><span class="admin-hub-name">Container health</span><span class="admin-hub-desc">Status and usage</span></a></li>
+        <li><a href="/api/ctf/admin/idle-containers/dashboard"><span class="admin-hub-name">Idle containers</span><span class="admin-hub-desc">Stop unused stacks</span></a></li>
+      </ul>
+    </div>
+    <div class="admin-card" style="padding-top:16px;padding-bottom:10px;">
+      <h2>Live</h2>
+      <ul class="admin-hub-list">
+        <li><a href="/plugins/ctf-live/admin/live"><span class="admin-hub-name">Live feed</span><span class="admin-hub-desc">Solves and broadcasts</span></a></li>
+        <li><a href="/plugins/ctf-live/admin/progress"><span class="admin-hub-name">Progress grid</span><span class="admin-hub-desc">Who solved what</span></a></li>
+        <li><a href="/api/ctf/admin/solve-feed/dashboard"><span class="admin-hub-name">Solve feed</span><span class="admin-hub-desc">Recent solves</span></a></li>
+        <li><a href="/api/ctf/admin/leaderboard/dashboard"><span class="admin-hub-name">Leaderboard</span><span class="admin-hub-desc">Rankings</span></a></li>
+        <li><a href="/api/ctf/analytics/dashboard"><span class="admin-hub-name">Analytics</span><span class="admin-hub-desc">Solve rates and activity</span></a></li>
+        <li><a href="/api/ctf/admin/flag-attempts/dashboard"><span class="admin-hub-name">Flag attempts</span><span class="admin-hub-desc">Correct and wrong submits</span></a></li>
+        <li><a href="/api/ctf/admin/hint-analytics/dashboard"><span class="admin-hub-name">Hint analytics</span><span class="admin-hub-desc">Hint use and cost</span></a></li>
+      </ul>
+    </div>
+    <div class="admin-card" style="padding-top:16px;padding-bottom:10px;">
+      <h2>Content</h2>
+      <ul class="admin-hub-list">
+        <li><a href="/admin/challenges"><span class="admin-hub-name">Challenges</span><span class="admin-hub-desc">CTFd challenge list</span></a></li>
+        <li><a href="/api/ctf/admin/challenges/dashboard"><span class="admin-hub-name">Challenge manager</span><span class="admin-hub-desc">Create and schedule</span></a></li>
+        <li><a href="/admin/challenge-docs"><span class="admin-hub-name">Challenge docs</span><span class="admin-hub-desc">Write-up notes</span></a></li>
+        <li><a href="/api/ctf/admin/announcements/dashboard"><span class="admin-hub-name">Announcements</span><span class="admin-hub-desc">Messages to players</span></a></li>
+        <li><a href="/api/ctf/events/admin/dashboard"><span class="admin-hub-name">Events</span><span class="admin-hub-desc">Timers and unlocks</span></a></li>
+      </ul>
+    </div>
+    <div class="admin-card" style="padding-top:16px;padding-bottom:10px;">
+      <h2>Players</h2>
+      <ul class="admin-hub-list">
+        <li><a href="/api/ctf/admin/users/dashboard"><span class="admin-hub-name">Users</span><span class="admin-hub-desc">Players and bans</span></a></li>
+        <li><a href="/api/ctf/admin/suspicious/dashboard"><span class="admin-hub-name">Suspicious activity</span><span class="admin-hub-desc">Flagged attempts</span></a></li>
+        <li><a href="/api/mission/incident-panel"><span class="admin-hub-name">Incidents</span><span class="admin-hub-desc">Stuck players and spam</span></a></li>
+        <li><a href="/api/ctf/admin/data-eraser/dashboard"><span class="admin-hub-name">Data eraser</span><span class="admin-hub-desc">Clear test data</span></a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  function paint(d) {
+    if (!d) return;
+    document.getElementById('stat-instances').textContent = d.instances != null ? d.instances : '—';
+    document.getElementById('stat-players').textContent = d.players != null ? d.players : '—';
+    document.getElementById('stat-dns').textContent = d.dns_running ? 'Up' : 'Down';
+    document.getElementById('stat-ip').textContent = d.host_ip || 'Not set';
+    var dnsBox = document.getElementById('stat-dns');
+    if (dnsBox && dnsBox.parentElement) {
+      dnsBox.parentElement.classList.toggle('is-good', !!d.dns_running);
+      dnsBox.parentElement.classList.toggle('is-bad', !d.dns_running);
+    }
+    var svc = d.services || {};
+    var names = ['ctfd', 'db', 'cache', 'proxy', 'dnsmasq'];
+    var bits = names.map(function (n) {
+      var st = svc[n] || 'missing';
+      return n + ' ' + (st === 'running' ? 'up' : st);
+    });
+    var el = document.getElementById('hub-services');
+    if (el) el.textContent = bits.join(' · ');
+    var ready = document.getElementById('hub-ready');
+    if (ready) {
+      var fails = (d.checklist || []).filter(function (c) { return !c.ok; });
+      ready.textContent = fails.length ? (fails.length + ' to fix') : 'Ready';
+      ready.className = 'admin-ready' + (fails.length ? ' is-bad' : ' is-good');
+    }
+  }
+  if (window.ctfAdminOverview) paint(window.ctfAdminOverview);
+  document.addEventListener('ctf-overview', function (e) { paint(e.detail); });
+  var filter = document.getElementById('hub-filter');
+  if (filter) {
+    filter.addEventListener('input', function () {
+      var q = filter.value.toLowerCase().trim();
+      document.querySelectorAll('.admin-hub-list li').forEach(function (li) {
+        var text = (li.textContent || '').toLowerCase();
+        li.style.display = !q || text.indexOf(q) !== -1 ? '' : 'none';
+      });
+      document.querySelectorAll('.admin-dash-grid .admin-card').forEach(function (card) {
+        var visible = card.querySelectorAll('.admin-hub-list li:not([style*="display: none"])').length;
+        card.style.display = visible ? '' : 'none';
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

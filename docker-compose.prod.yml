@@ -1,0 +1,73 @@
+# Production overlay for a LAN-hosted event.
+# Used by: .\start.ps1 -Production   or   ./start.sh --production
+
+services:
+  proxy:
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  dnsmasq:
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  ctfd:
+    environment:
+      - WORKERS=${WORKERS:-3}
+      - REVERSE_PROXY=true
+      - PRODUCTION=${PRODUCTION:-1}
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/plugins/ctfd-target/health')"]
+      start_period: 45s
+      interval: 20s
+      timeout: 10s
+      retries: 8
+
+  db:
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --wait_timeout=28800
+      - --log-warnings=0
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=200
+
+  cache:
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+
+  vbank-ctf:
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  vbank-analytics:
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

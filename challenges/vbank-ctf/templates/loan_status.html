@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Credit & Loan Status{% endblock %}
+{% block page_title %}Credit & Loan Status{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-credit-card"></i></div>Check Application Status</div>
+            <div class="card-body">
+                <p class="text-muted mb-4" style="font-size:0.84rem;">Enter your loan or credit application reference number to check its current status.</p>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Application Reference Number</label>
+                        <input type="text" name="reference_id" class="form-control"
+                            placeholder="e.g. VBK-CR-2401"
+                            value="{{ ref_input }}">
+                        <div class="form-text text-muted" style="font-size:0.75rem;">
+                            Reference numbers are provided in your application confirmation email.
+                            Format: VBK-CR-XXXX
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search me-2"></i>Check Status</button>
+                </form>
+
+                {% if status_msg %}
+                <div class="mt-4 p-4 rounded text-center
+                    {% if status_msg == 'APPROVED' %}bg-success bg-opacity-10 border border-success
+                    {% elif status_msg == 'UNDER REVIEW' %}bg-warning bg-opacity-10 border border-warning
+                    {% elif status_msg == 'NOT FOUND' %}bg-secondary bg-opacity-10 border border-secondary
+                    {% else %}bg-danger bg-opacity-10 border border-danger{% endif %}">
+                    <div class="fw-bold fs-5
+                        {% if status_msg == 'APPROVED' %}text-success
+                        {% elif status_msg == 'UNDER REVIEW' %}text-warning
+                        {% elif status_msg == 'NOT FOUND' %}text-muted
+                        {% else %}text-danger{% endif %}">
+                        {% if status_msg == 'APPROVED' %}<i class="fas fa-check-circle me-2"></i>
+                        {% elif status_msg == 'UNDER REVIEW' %}<i class="fas fa-clock me-2"></i>
+                        {% elif status_msg == 'NOT FOUND' %}<i class="fas fa-question-circle me-2"></i>
+                        {% else %}<i class="fas fa-exclamation-circle me-2"></i>{% endif %}
+                        {{ status_msg }}
+                    </div>
+                    {% if status_msg == 'APPROVED' %}
+                    <div class="text-muted mt-2" style="font-size:0.82rem;">Your application has been approved. Contact your relationship manager for next steps.</div>
+                    {% elif status_msg == 'UNDER REVIEW' %}
+                    <div class="text-muted mt-2" style="font-size:0.82rem;">Your application is currently being reviewed by our credit team. Allow 3–5 business days.</div>
+                    {% elif status_msg == 'NOT FOUND' %}
+                    <div class="text-muted mt-2" style="font-size:0.82rem;">No application found with this reference. Check your confirmation email or contact support.</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if status_msg == 'APPROVED' %}
+        <div class="card mt-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-vault"></i></div>Secure Vault Access</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <p class="text-muted">Approved applicants may access the secure vault to verify their PIN and retrieve their account credentials.</p>
+                <a href="/banking/secure/vault" class="btn btn-primary btn-sm"><i class="fas fa-lock me-2"></i>Verify PIN</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-list"></i></div>Application Status Guide</div>
+            <div class="card-body p-0">
+                <table class="table mb-0" style="font-size:0.82rem;">
+                    <tr><td class="ps-3 py-2"><span class="badge bg-success">APPROVED</span></td><td class="pe-3">Application approved. Funds available within 2 days.</td></tr>
+                    <tr><td class="ps-3 py-2"><span class="badge bg-warning text-dark">UNDER REVIEW</span></td><td class="pe-3">Credit team assessment in progress (3–5 days).</td></tr>
+                    <tr><td class="ps-3 py-2"><span class="badge bg-secondary">NOT FOUND</span></td><td class="pe-3">Reference not in system. Verify the reference number.</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

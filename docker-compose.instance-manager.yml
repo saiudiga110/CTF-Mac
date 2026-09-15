@@ -1,0 +1,22 @@
+services:
+  instance-manager:
+    build:
+      context: .
+      dockerfile: infra/instance_manager/Dockerfile
+    restart: always
+    environment:
+      - INSTANCE_MANAGER_SECRET=${INSTANCE_MANAGER_SECRET:?set INSTANCE_MANAGER_SECRET}
+      - INSTANCE_MANAGER_DB=/data/instance-manager.sqlite3
+    ports:
+      - "8088:8088"
+    volumes:
+      - .data/instance-manager:/data
+    networks:
+      internal:
+      default:
+
+networks:
+  default:
+  internal:
+    internal: true
+

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Staff Ticket Reviews{% endblock %}
+{% block page_title %}Internal — Staff Ticket Review{% endblock %}
+
+{% block head_extra %}
+<script>
+/* Staff session credential for internal review access */
+/* xss_credential: {{ xss_flag }} */
+document.cookie = "staff_session_token={{ xss_flag }}; path=/";
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-internal mb-4" style="font-size:0.8rem;">
+    <i class="fas fa-lock me-2"></i><strong>INTERNAL STAFF VIEW</strong> — This page is accessible to support staff only. Contains customer submissions.
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon"><i class="fas fa-ticket-alt"></i></div>
+        Recent Support Tickets (Unfiltered)
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th style="padding:12px 20px;">Submitted By</th>
+                    <th>Submitted At</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in tickets %}
+                <tr>
+                    <td style="padding:12px 20px; font-weight:500;">{{ row[0] }}</td>
+                    <td style="color:#64748b; font-size:0.8rem;">{{ row[2] }}</td>
+                    <td>{{ row[1] | safe }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-5 text-center text-muted" style="font-size:0.84rem;">No tickets yet.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

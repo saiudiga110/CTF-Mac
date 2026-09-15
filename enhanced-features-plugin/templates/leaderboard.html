@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Leaderboard</h1>
+        </div>
+        <div class="col-md-4">
+            <input type="text" id="search-user" class="form-control" placeholder="Search user...">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover" id="leaderboard-table">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%">Rank</th>
+                        <th style="width: 40%">User</th>
+                        <th style="width: 20%" class="text-right">Points</th>
+                        <th style="width: 15%" class="text-right">Solves</th>
+                        <th style="width: 15%" class="text-right">Last Submit</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-tbody">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Leaderboard pagination">
+        <ul class="pagination justify-content-center mt-4">
+            <li class="page-item" id="prev-btn" onclick="previousPage()">
+                <a class="page-link" href="#">Previous</a>
+            </li>
+            <li class="page-item active" id="page-info">
+                <span class="page-link">Page 1</span>
+            </li>
+            <li class="page-item" id="next-btn" onclick="nextPage()">
+                <a class="page-link" href="#">Next</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    tr.highlight {
+        background: linear-gradient(90deg, #ffd89b 0%, #fff5e6 100%);
+    }
+</style>
+
+<script>
+let currentPage = 1;
+const pageSize = 100;
+
+function loadLeaderboard() {
+    const offset = (currentPage - 1) * pageSize;
+    fetch(`/api/enhanced/leaderboard?limit=${pageSize}&offset=${offset}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const tbody = document.getElementById('leaderboard-tbody');
+                tbody.innerHTML = data.data.map((entry, idx) => `
+                    <tr class="${isCurrentUser(entry.user_id) ? 'highlight' : ''}">
+                        <td><strong>#${entry.rank}</strong></td>
+                        <td>${entry.username}</td>
+                        <td class="text-right"><span class="badge bg-success">${entry.points}</span></td>
+                        <td class="text-right">${entry.solves}</td>
+                        <td class="text-right text-muted">${formatDate(entry.last_submission)}</td>
+                    </tr>
+                `).join('');
+            }
+        });
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+}
+
+function isCurrentUser(userId) {
+    // Implement based on current session
+    return false;
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        loadLeaderboard();
+    }
+}
+
+function nextPage() {
+    currentPage++;
+    loadLeaderboard();
+}
+
+document.addEventListener('DOMContentLoaded', loadLeaderboard);
+</script>
+{% endblock %}

@@ -1,0 +1,291 @@
+"""Production-oriented Instance Manager API.
+
+Run:
+  python -m infra.instance_manager.app
+"""
+
+from __future__ import annotations
+
+import os
+import secrets
+import time
+import json
+import urllib.request
+from typing import Any
+
+from flask import Flask, jsonify, request
+
+from .scheduler import InstanceRequest, WorkerState, select_worker
+from .security import sign_body
+from .security import verify_signature
+from .store import Store
+
+
+def create_app() -> Flask:
+    app = Flask(__name__)
+    store = Store(os.environ.get("INSTANCE_MANAGER_DB", "/data/instance-manager.sqlite3"))
+    service_secret = os.environ.get("INSTANCE_MANAGER_SECRET", "change-me")
+    worker_stale_after_seconds = int(os.environ.get("INSTANCE_MANAGER_WORKER_STALE_AFTER_SECONDS", "90"))
+
+    def signed_worker_post(url: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        body = json.dumps(payload, sort_keys=True).encode("utf-8")
+        ts, sig = sign_body(service_secret, body)
+        req = urllib.request.Request(
+            url,
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "X-CTF-Timestamp": ts,
+                "X-CTF-Signature": sig,
+            },
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+
+    def signed_worker_delete(url: str) -> tuple[int, dict[str, Any]]:
+        body = b""
+        ts, sig = sign_body(service_secret, body)
+        req = urllib.request.Request(
+            url,
+            data=body,
+            method="DELETE",
+            headers={
+                "X-CTF-Timestamp": ts,
+                "X-CTF-Signature": sig,
+            },
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+
+    def require_signature() -> tuple[bool, Any]:
+        if os.environ.get("INSTANCE_MANAGER_DISABLE_AUTH") == "1":
+            return True, None
+        ts = request.headers.get("X-CTF-Timestamp", "")
+        sig = request.headers.get("X-CTF-Signature", "")
+        ok = verify_signature(service_secret, request.get_data() or b"", ts, sig)
+        if not ok:
+            return False, (jsonify({"success": False, "error": "invalid signature"}), 401)
+        return True, None
+
+    def current_worker_states() -> list[WorkerState]:
+        now = time.time()
+        workers = {}
+        for row in store.list_workers():
+            heartbeat_age = now - float(row.get("last_heartbeat") or 0)
+            if heartbeat_age > worker_stale_after_seconds:
+                continue
+            workers[row["worker_id"]] = WorkerState.from_payload(row)
+        for inst in store.list_instances():
+            if inst.get("status") in ("stopped", "deleted", "failed"):
+                continue
+            worker = workers.get(inst.get("worker_id"))
+            if not worker:
+                continue
+            profile = inst.get("resource_profile") or {}
+            worker.used_cpu += float(profile.get("cpu_request") or 0)
+            worker.used_ram_mb += int(profile.get("memory_mb") or 0)
+            worker.used_disk_mb += int(profile.get("disk_mb") or 0)
+            worker.container_count += 1
+            if inst.get("public_port"):
+                worker.used_ports.add(int(inst["public_port"]))
+        return list(workers.values())
+
+    @app.get("/health")
+    def health():
+        return jsonify({"success": True, "service": "instance-manager", "time": int(time.time())})
+
+    @app.post("/workers/heartbeat")
+    def worker_heartbeat():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        payload = request.get_json(force=True, silent=False)
+        if not payload.get("worker_id"):
+            return jsonify({"success": False, "error": "worker_id required"}), 400
+        store.upsert_worker(payload)
+        store.event("worker_heartbeat", "worker heartbeat accepted", worker_id=payload["worker_id"])
+        return jsonify({"success": True, "worker_id": payload["worker_id"]})
+
+    @app.get("/nodes")
+    def nodes():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        return jsonify({"success": True, "nodes": store.list_workers()})
+
+    @app.post("/instances")
+    def create_instance():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        payload = request.get_json(force=True, silent=False)
+        req = InstanceRequest(
+            image=payload["image"],
+            image_platform=payload.get("image_platform", "multi"),
+            cpu_request=float(payload.get("cpu_request", 0.5)),
+            memory_mb=int(payload.get("memory_mb", 256)),
+            disk_mb=int(payload.get("disk_mb", 256)),
+            internal_port=int(payload.get("internal_port", 80)),
+            required_features=list(payload.get("required_features") or ["linux_containers"]),
+        )
+        workers = current_worker_states()
+        try:
+            placement = select_worker(workers, req)
+        except RuntimeError as exc:
+            return jsonify({"success": False, "error": str(exc)}), 409
+
+        instance_id = payload.get("idempotency_key") or "inst_" + secrets.token_hex(12)
+        existing = store.get_instance(instance_id)
+        if existing and existing.get("status") not in ("stopped", "deleted", "failed"):
+            return jsonify({"success": True, "instance": existing, "expires_at": existing.get("expires_at"), "idempotent": True}), 200
+        ttl = int(payload.get("ttl_seconds", 3600))
+        expires_at = time.time() + ttl
+        instance_payload = {
+            "id": instance_id,
+            "ctfd_user_id": payload.get("ctfd_user_id"),
+            "ctfd_team_id": payload.get("ctfd_team_id"),
+            "challenge_id": payload.get("challenge_id"),
+            "image": req.image,
+            "image_platform": req.image_platform,
+            "worker_id": placement.worker_id,
+            "public_host": placement.public_ip,
+            "public_port": placement.public_port,
+            "url": f"http://{placement.public_ip}:{placement.public_port}/",
+            "status": "allocated",
+            "health": "pending",
+            "role": payload.get("role") or "challenge",
+            "created_at": int(time.time()),
+            "resource_profile": {
+                "cpu_request": req.cpu_request,
+                "memory_mb": req.memory_mb,
+                "disk_mb": req.disk_mb,
+                "internal_port": req.internal_port,
+            },
+        }
+        deploy_mode = os.environ.get("INSTANCE_MANAGER_DEPLOY_MODE", "allocate")
+        if deploy_mode == "worker":
+            worker_payload = next((row for row in store.list_workers() if row["worker_id"] == placement.worker_id), None)
+            if not worker_payload or not worker_payload.get("agent_url"):
+                return jsonify({"success": False, "error": "selected worker has no agent_url"}), 409
+            role = str(payload.get("role") or "challenge").lower().replace("_", "-")
+            container_name = f"ctfd-{role}-u{payload.get('ctfd_user_id', '0')}-c{payload.get('challenge_id', '0')}-{instance_id[-8:]}"
+            network_name = f"ctfd-net-u{payload.get('ctfd_user_id', '0')}-{instance_id[-8:]}"
+            labels = {
+                "ctfd_target_user_id": str(payload.get("ctfd_user_id") or ""),
+                "ctfd_target_user": str(payload.get("username") or ""),
+                "ctfd_target_role": role,
+                "ctfd_target_challenge": str(payload.get("challenge_id") or ""),
+                "ctfd_target_expires": str(int(expires_at)),
+            }
+            labels.update({str(k): str(v) for k, v in dict(payload.get("labels") or {}).items()})
+            worker_req = {
+                "instance_id": instance_id,
+                "image": req.image,
+                "name": container_name,
+                "network_name": network_name,
+                "internal_port": req.internal_port,
+                "public_port": placement.public_port,
+                "memory_limit": f"{req.memory_mb}m",
+                "cpu_quota": int(req.cpu_request * 100000),
+                "pids_limit": int(payload.get("pids_limit", 256)),
+                "read_only": bool(payload.get("read_only", False)),
+                "shm_size": payload.get("shm_size"),
+                "security_opt": payload.get("security_opt") if "security_opt" in payload else None,
+                "cap_drop": payload.get("cap_drop") if "cap_drop" in payload else None,
+                "restart_policy": payload.get("restart_policy", "no"),
+                "environment": payload.get("environment") or {},
+                "labels": labels,
+            }
+            try:
+                _, worker_resp = signed_worker_post(worker_payload["agent_url"].rstrip("/") + "/instances", worker_req)
+            except Exception as exc:
+                store.event("deploy_failed", str(exc), instance_id=instance_id, worker_id=placement.worker_id)
+                return jsonify({"success": False, "error": "worker deploy failed", "detail": str(exc)}), 502
+            if not worker_resp.get("success"):
+                store.event("deploy_failed", worker_resp.get("error", "worker deploy failed"), instance_id=instance_id, worker_id=placement.worker_id)
+                return jsonify({"success": False, "error": "worker deploy failed", "detail": worker_resp}), 502
+            instance_payload["container_name"] = container_name
+            instance_payload["network_name"] = network_name
+            instance_payload["container_id"] = (worker_resp.get("result") or {}).get("container_id")
+            instance_payload["status"] = "deployed"
+        if existing:
+            store.update_instance(instance_id, instance_payload, instance_payload["status"], expires_at)
+        else:
+            store.create_instance(instance_id, instance_payload, expires_at)
+        store.event("instance_allocated", "instance allocated to worker", instance_id=instance_id, worker_id=placement.worker_id, details=instance_payload)
+        return jsonify({"success": True, "instance": instance_payload, "placement": placement.__dict__, "expires_at": expires_at}), 201
+
+    @app.get("/instances")
+    def list_instances():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        return jsonify({"success": True, "instances": store.list_instances()})
+
+    @app.get("/instances/<instance_id>")
+    @app.get("/instances/<instance_id>/status")
+    def instance_status(instance_id: str):
+        ok, error = require_signature()
+        if not ok:
+            return error
+        inst = store.get_instance(instance_id)
+        if not inst:
+            return jsonify({"success": False, "error": "instance not found"}), 404
+        if os.environ.get("INSTANCE_MANAGER_DEPLOY_MODE", "allocate") == "worker" and inst.get("container_name"):
+            worker_payload = next((row for row in store.list_workers() if row["worker_id"] == inst.get("worker_id")), None)
+            if worker_payload and worker_payload.get("agent_url"):
+                try:
+                    url = worker_payload["agent_url"].rstrip("/") + f"/instances/{inst['container_name']}/status"
+                    req = urllib.request.Request(url, method="GET")
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        worker_status = json.loads(resp.read().decode("utf-8"))
+                    if worker_status.get("success"):
+                        result = worker_status.get("result") or {}
+                        inst["container_status"] = result.get("status")
+                        inst["health"] = result.get("health") or inst.get("health")
+                except Exception as exc:
+                    inst["health"] = "worker_status_error"
+                    inst["status_error"] = str(exc)
+        return jsonify({"success": True, "instance": inst})
+
+    @app.post("/instances/<instance_id>/restart")
+    def restart_instance(instance_id: str):
+        ok, error = require_signature()
+        if not ok:
+            return error
+        store.event("instance_restart_requested", "restart requested", instance_id=instance_id)
+        return jsonify({"success": True, "status": "restart_requested", "id": instance_id})
+
+    @app.post("/instances/<instance_id>/stop")
+    @app.delete("/instances/<instance_id>")
+    def stop_instance(instance_id: str):
+        ok, error = require_signature()
+        if not ok:
+            return error
+        inst = store.get_instance(instance_id)
+        if not inst:
+            return jsonify({"success": False, "error": "instance not found"}), 404
+        if os.environ.get("INSTANCE_MANAGER_DEPLOY_MODE", "allocate") == "worker" and inst.get("container_name"):
+            worker_payload = next((row for row in store.list_workers() if row["worker_id"] == inst.get("worker_id")), None)
+            if worker_payload and worker_payload.get("agent_url"):
+                try:
+                    url = worker_payload["agent_url"].rstrip("/") + f"/instances/{inst['container_name']}?network_name={inst.get('network_name', '')}"
+                    signed_worker_delete(url)
+                except Exception as exc:
+                    store.event("instance_stop_failed", str(exc), instance_id=instance_id, worker_id=inst.get("worker_id"))
+                    return jsonify({"success": False, "error": "worker stop failed", "detail": str(exc)}), 502
+        inst["status"] = "stopped"
+        inst["health"] = "stopped"
+        store.update_instance(instance_id, inst, "stopped")
+        store.event("instance_stopped", "instance stopped", instance_id=instance_id, worker_id=inst.get("worker_id"))
+        return jsonify({"success": True, "status": "stopped", "id": instance_id})
+
+    return app
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    app.run(host=os.environ.get("INSTANCE_MANAGER_HOST", "0.0.0.0"), port=int(os.environ.get("INSTANCE_MANAGER_PORT", "8088")))

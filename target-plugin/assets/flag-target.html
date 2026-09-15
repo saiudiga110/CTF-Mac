@@ -1,0 +1,8 @@
+<div class="alert alert-info" style="background:#0d2b0d;border:1px solid #00ff41;color:#a0d0a0;border-radius:4px;padding:12px 16px;font-size:.87rem;">
+    <strong style="color:#00ff41;">vBank Target Flag (per-user)</strong><br>
+    This flag is validated automatically using each player's username and the Flag Secret
+    configured in <strong>Admin → Target Machine → Settings</strong>.<br>
+    Formula: <code style="color:#00ff41;">CTF{md5("vbank:{secret}:{username}")[:16]}</code><br>
+    No flag value needed — leave the field below as-is.
+</div>
+<input type="hidden" name="content" value="target_flag_dynamic">

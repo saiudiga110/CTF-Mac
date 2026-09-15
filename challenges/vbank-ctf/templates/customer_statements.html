@@ -1,0 +1,82 @@
+{% extends "customer_base.html" %}
+{% block title %}Account Statements{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                Account Statements
+                <span class="ms-auto account-badge">Account ID: {{ acct_uid }}</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2 mb-3 align-items-center">
+                    <label class="form-label mb-0" style="font-size:0.8rem;">Account ID:</label>
+                    <input type="number" id="acct-id-input" class="form-control form-control-sm" style="width:120px; font-family:monospace;" value="{{ acct_uid }}">
+                    <button class="btn btn-primary btn-sm" onclick="loadStatements()"><i class="fas fa-search me-1"></i>Load</button>
+                </div>
+                <div id="stmt-loading" class="text-center py-4" style="color:#94a3b8; font-size:0.84rem;">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Loading transactions...
+                </div>
+                <div id="stmt-result" style="display:none;">
+                    <div id="stmt-account-name" class="fw-semibold mb-2" style="font-size:0.84rem;"></div>
+                    <table class="table mb-0" id="stmt-table">
+                        <thead>
+                            <tr>
+                                <th style="padding:10px 16px;">Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Memo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stmt-body"></tbody>
+                    </table>
+                </div>
+                <div id="stmt-error" style="display:none;" class="alert alert-danger mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadStatements() {
+    var uid = document.getElementById('acct-id-input').value || '{{ acct_uid }}';
+    document.getElementById('stmt-loading').style.display = 'block';
+    document.getElementById('stmt-result').style.display = 'none';
+    document.getElementById('stmt-error').style.display = 'none';
+
+    fetch('/api/v1/accounts/' + uid + '/transactions')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('stmt-loading').style.display = 'none';
+            if (data.error) {
+                document.getElementById('stmt-error').textContent = data.error;
+                document.getElementById('stmt-error').style.display = 'block';
+                return;
+            }
+            document.getElementById('stmt-account-name').textContent = 'Account: ' + (data.account_name || 'Unknown');
+            var tbody = document.getElementById('stmt-body');
+            tbody.innerHTML = '';
+            (data.transactions || []).forEach(function(t) {
+                var row = '<tr>' +
+                    '<td style="padding:10px 16px; color:#64748b; font-size:0.8rem;">' + t.date + '</td>' +
+                    '<td>' + t.description + '</td>' +
+                    '<td class="' + (t.amount && t.amount.startsWith('+') ? 'text-success' : 'text-danger') + ' fw-semibold">' + t.amount + '</td>' +
+                    '<td style="font-size:0.78rem; color:#94a3b8;">' + (t.memo || '') + '</td>' +
+                    '</tr>';
+                tbody.innerHTML += row;
+            });
+            document.getElementById('stmt-result').style.display = 'block';
+        })
+        .catch(function(e) {
+            document.getElementById('stmt-loading').style.display = 'none';
+            document.getElementById('stmt-error').textContent = 'Request failed: ' + e.message;
+            document.getElementById('stmt-error').style.display = 'block';
+        });
+}
+document.addEventListener('DOMContentLoaded', loadStatements);
+</script>
+{% endblock %}

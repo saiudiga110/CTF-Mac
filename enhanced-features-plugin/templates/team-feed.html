@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+{% block title %}Team Feed — {{ Configs.ctf_name }}{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --tf-green:  #39FF14;
+  --tf-green2: #006341;
+  --tf-blue:   #64b4ff;
+  --tf-yellow: #ffaa00;
+  --tf-red:    #ff6b6b;
+  --tf-purple: #c084fc;
+  --tf-card:   rgba(13,18,15,0.88);
+  --tf-border: rgba(0,99,65,0.28);
+  --tf-dim:    #8a9e94;
+  --tf-muted:  #3a4e42;
+  --mono:      'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+
+.tf-page { padding: 0; }
+
+.tf-header {
+  background: linear-gradient(135deg, rgba(0,99,65,0.12), rgba(100,180,255,0.04));
+  border-bottom: 1px solid var(--tf-border);
+  padding: 24px 32px 18px;
+  margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.tf-header h1 { font-family: var(--mono); font-size: 1.35rem; color: var(--tf-blue); margin: 0; letter-spacing: 2px; }
+.tf-header h1::after { display: none !important; }
+.tf-header p  { color: var(--tf-dim); font-size: .82rem; margin: 4px 0 0; }
+
+.tf-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+  padding: 0 32px 32px;
+  align-items: start;
+}
+@media (max-width: 900px) { .tf-layout { grid-template-columns: 1fr; padding: 0 16px 24px; } }
+
+/* ── Feed column ─────────────────────────────────────────────────── */
+.feed-col {}
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 16px;
+}
+.filter-btn {
+  font-family: var(--mono); font-size: .65rem; padding: 4px 12px;
+  border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--tf-border); background: transparent;
+  color: var(--tf-dim); transition: all .2s;
+}
+.filter-btn.active, .filter-btn:hover {
+  background: rgba(0,99,65,0.18); color: var(--tf-green);
+  border-color: rgba(57,255,20,0.35);
+}
+
+.feed-list { }
+.feed-item {
+  display: flex; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid rgba(0,99,65,0.1);
+}
+.feed-item:last-child { border-bottom: none; }
+
+.feed-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; flex-shrink: 0; margin-top: 1px;
+}
+.fi-solve  { background: rgba(57,255,20,0.12); color: var(--tf-green); }
+.fi-hint   { background: rgba(255,170,0,0.12); color: var(--tf-yellow); }
+.fi-note   { background: rgba(100,180,255,0.12); color: var(--tf-blue); }
+.fi-note.pinned { background: rgba(192,132,252,0.12); color: var(--tf-purple); }
+
+.feed-body { flex: 1; min-width: 0; }
+.feed-header-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; flex-wrap: wrap;
+}
+.feed-who { font-weight: 600; color: #c9d1d9; font-size: .82rem; }
+.feed-who.me { color: var(--tf-green); }
+.feed-ts { font-family: var(--mono); font-size: .63rem; color: var(--tf-muted); flex-shrink: 0; }
+.feed-main { font-size: .82rem; color: #c9d1d9; margin-top: 3px; }
+.feed-main strong { color: var(--tf-green); }
+.feed-sub { font-size: .72rem; color: var(--tf-dim); margin-top: 3px; }
+.feed-note-body {
+  margin-top: 6px; font-size: .8rem; color: #b8c8be;
+  background: rgba(0,99,65,0.07); border-left: 2px solid rgba(0,99,65,0.35);
+  padding: 8px 12px; border-radius: 0 4px 4px 0; white-space: pre-wrap; word-break: break-word;
+}
+.feed-note-body.pinned-note {
+  border-left-color: var(--tf-purple);
+  background: rgba(192,132,252,0.05);
+}
+
+.del-btn {
+  background: none; border: none; color: var(--tf-muted); cursor: pointer;
+  font-size: .68rem; padding: 2px 6px; border-radius: 3px;
+  transition: all .2s; font-family: var(--mono);
+}
+.del-btn:hover { color: var(--tf-red); background: rgba(255,107,107,0.1); }
+
+.badge-cat {
+  display: inline-block; font-family: var(--mono); font-size: .6rem; padding: 1px 6px;
+  border-radius: 3px; background: rgba(0,99,65,0.12); color: var(--tf-dim);
+  border: 1px solid rgba(0,99,65,0.2); margin-left: 6px;
+}
+.badge-pts { color: var(--tf-yellow) !important; background: rgba(255,170,0,0.1) !important; border-color: rgba(255,170,0,0.2) !important; }
+.badge-pin { color: var(--tf-purple) !important; background: rgba(192,132,252,0.1) !important; border-color: rgba(192,132,252,0.2) !important; }
+.badge-me-tag { color: var(--tf-green) !important; background: rgba(57,255,20,0.1) !important; border-color: rgba(57,255,20,0.25) !important; }
+
+.empty-feed { text-align: center; padding: 48px 0; color: var(--tf-muted); font-size: .85rem; }
+.loading-feed { text-align: center; padding: 48px 0; color: var(--tf-dim); font-family: var(--mono); font-size: .82rem; }
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.tf-sidebar {}
+.tf-card {
+  background: var(--tf-card); border: 1px solid var(--tf-border);
+  border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+}
+.tf-card-header {
+  background: rgba(0,99,65,0.1); border-bottom: 1px solid var(--tf-border);
+  padding: 10px 14px; font-family: var(--mono); font-size: .72rem; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: #b0c8bc;
+}
+.tf-card-header i { color: var(--tf-green2); margin-right: 7px; }
+.tf-card-body { padding: 14px; }
+
+/* Note composer */
+.note-compose textarea {
+  width: 100%; min-height: 80px; resize: vertical;
+  background: rgba(0,0,0,0.5); border: 1px solid rgba(0,99,65,0.35);
+  color: #c9d1d9; border-radius: 4px; padding: 9px 12px;
+  font-family: var(--mono); font-size: .78rem; line-height: 1.5;
+  transition: border-color .2s;
+}
+.note-compose textarea:focus {
+  border-color: var(--tf-green2); outline: none;
+  box-shadow: 0 0 0 2px rgba(0,99,65,0.15);
+}
+.note-compose textarea::placeholder { color: var(--tf-muted); }
+.note-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; gap: 8px;
+}
+.pin-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.pin-toggle input[type=checkbox] { accent-color: var(--tf-purple); cursor: pointer; }
+.pin-toggle label { font-size: .72rem; color: var(--tf-dim); cursor: pointer; font-family: var(--mono); }
+.char-count { font-family: var(--mono); font-size: .65rem; color: var(--tf-muted); }
+.btn-post {
+  background: var(--tf-green2); color: #fff; border: none; border-radius: 4px;
+  padding: 7px 16px; cursor: pointer; font-family: var(--mono); font-size: .72rem;
+  font-weight: 700; letter-spacing: .8px; text-transform: uppercase; transition: all .22s;
+}
+.btn-post:hover { background: #008a59; box-shadow: 0 0 10px rgba(0,99,65,0.4); }
+.btn-post:disabled { opacity: .5; cursor: not-allowed; }
+.post-feedback { font-family: var(--mono); font-size: .72rem; margin-top: 6px; }
+
+/* Stats */
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(0,99,65,0.1); font-size: .78rem; }
+.stat-row:last-child { border-bottom: none; }
+.stat-lbl { color: var(--tf-dim); }
+.stat-val { font-family: var(--mono); font-weight: 700; color: #c9d1d9; }
+
+/* Top contributors */
+.contrib-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(0,99,65,0.08); font-size: .78rem; }
+.contrib-row:last-child { border-bottom: none; }
+.contrib-rank { font-family: var(--mono); font-size: .65rem; color: var(--tf-muted); min-width: 20px; }
+.contrib-name { flex: 1; color: #c9d1d9; }
+.contrib-cnt  { font-family: var(--mono); font-size: .72rem; color: var(--tf-green); font-weight: 700; }
+
+/* Refresh strip */
+.refresh-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.refresh-strip button {
+  background: none; border: 1px solid var(--tf-border); color: var(--tf-dim);
+  border-radius: 4px; padding: 4px 12px; cursor: pointer; font-family: var(--mono);
+  font-size: .68rem; transition: all .2s;
+}
+.refresh-strip button:hover { border-color: var(--tf-green); color: var(--tf-green); }
+.refresh-ts { font-family: var(--mono); font-size: .65rem; color: var(--tf-muted); }
+
+.no-team-msg {
+  text-align: center; padding: 60px 20px; color: var(--tf-dim); font-size: .85rem;
+}
+.no-team-msg a { color: var(--tf-blue) !important; }
+
+/* Live badge */
+.live-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--tf-green); margin-right: 6px;
+  animation: ip-pulse 2s infinite;
+}
+@keyframes ip-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(57,255,20,.5)} 70%{box-shadow:0 0 0 5px rgba(57,255,20,0)} }
+</style>
+
+<div class="tf-page">
+  <div class="tf-header">
+    <div>
+      <h1><span class="live-dot"></span>Team Feed</h1>
+      <p>Real-time timeline of team solves, hints, and shared notes.</p>
+    </div>
+    <a href="/api/mission/dashboard" style="font-family:var(--mono);font-size:.72rem;color:var(--tf-dim);text-decoration:none;">
+      ← Mission Dashboard
+    </a>
+  </div>
+
+  <div id="no-team-msg" class="no-team-msg" style="display:none">
+    <i class="fas fa-users" style="font-size:2rem;margin-bottom:12px;display:block;color:var(--tf-muted)"></i>
+    You are not on a team yet.<br>
+    <a href="/teams">Join or create a team</a> to use the team feed.
+  </div>
+
+  <div class="tf-layout" id="tf-layout">
+
+    <!-- ── Feed ──────────────────────────────────────────────────────────── -->
+    <div class="feed-col">
+      <div class="refresh-strip">
+        <div class="filter-bar" id="filter-bar">
+          <button class="filter-btn active" data-type="all"   onclick="setFilter('all',this)">All</button>
+          <button class="filter-btn" data-type="solve"  onclick="setFilter('solve',this)"><i class="fas fa-flag"></i> Solves</button>
+          <button class="filter-btn" data-type="hint"   onclick="setFilter('hint',this)"><i class="fas fa-lightbulb"></i> Hints</button>
+          <button class="filter-btn" data-type="note"   onclick="setFilter('note',this)"><i class="fas fa-sticky-note"></i> Notes</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="refresh-ts" id="refresh-ts"></span>
+          <button onclick="load()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+      </div>
+
+      <div id="feed-container">
+        <div class="loading-feed"><i class="fas fa-circle-notch fa-spin"></i> Loading team feed…</div>
+      </div>
+    </div>
+
+    <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
+    <div class="tf-sidebar">
+
+      <!-- Note composer -->
+      <div class="tf-card note-compose">
+        <div class="tf-card-header"><i class="fas fa-pencil-alt"></i>Post a Note</div>
+        <div class="tf-card-body">
+          <textarea id="note-input" placeholder="Share a tip, progress update, or anything useful for your team…" maxlength="2000"></textarea>
+          <div class="note-actions">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <label class="pin-toggle">
+                <input type="checkbox" id="note-pin"> <span style="font-size:.72rem;color:var(--tf-dim);font-family:var(--mono)">📌 Pin</span>
+              </label>
+              <span class="char-count" id="char-count">0 / 2000</span>
+            </div>
+            <button class="btn-post" id="post-btn" onclick="postNote()">Post</button>
+          </div>
+          <div class="post-feedback" id="post-feedback"></div>
+        </div>
+      </div>
+
+      <!-- Team stats -->
+      <div class="tf-card">
+        <div class="tf-card-header"><i class="fas fa-chart-bar"></i>Team Stats</div>
+        <div class="tf-card-body" id="stats-body">
+          <div style="color:var(--tf-muted);font-size:.78rem;text-align:center">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Top contributors -->
+      <div class="tf-card">
+        <div class="tf-card-header"><i class="fas fa-trophy"></i>Top Solvers</div>
+        <div class="tf-card-body" id="contrib-body">
+          <div style="color:var(--tf-muted);font-size:.78rem;text-align:center">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var state      = { feed: [], has_team: true, team_id: null };
+  var activeType = 'all';
+  var myId       = (window.init && window.init.userId) || 0;
+
+  // ── fetch ──────────────────────────────────────────────────────────────────
+  function load() {
+    document.getElementById('refresh-ts').textContent = 'Loading…';
+    fetch('/api/mission/team/feed?limit=100', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        state = d;
+        if (!d.has_team) {
+          document.getElementById('no-team-msg').style.display = 'block';
+          document.getElementById('tf-layout').style.display   = 'none';
+          return;
+        }
+        renderFeed(d.feed);
+        renderStats(d.feed);
+        renderContribs(d.feed);
+        document.getElementById('refresh-ts').textContent =
+          new Date().toLocaleTimeString();
+      })
+      .catch(function (e) {
+        document.getElementById('refresh-ts').textContent = 'Error';
+        document.getElementById('feed-container').innerHTML =
+          '<div class="empty-feed">Failed to load feed: ' + esc(e.message) + '</div>';
+      });
+  }
+
+  // ── render feed ───────────────────────────────────────────────────────────
+  function renderFeed(feed) {
+    var filtered = activeType === 'all'
+      ? feed
+      : feed.filter(function (f) { return f.type === activeType; });
+
+    if (!filtered.length) {
+      document.getElementById('feed-container').innerHTML =
+        '<div class="empty-feed">No ' + activeType + ' events yet for your team.</div>';
+      return;
+    }
+
+    var sorted = filtered.slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    var html = '';
+    sorted.forEach(function (item) {
+      html += renderItem(item);
+    });
+    document.getElementById('feed-container').innerHTML = html;
+
+    // wire delete buttons
+    document.querySelectorAll('[data-del-note]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        deleteNote(parseInt(this.dataset.delNote), this);
+      });
+    });
+  }
+
+  function renderItem(item) {
+    var isMe = item.by_me || (item.user_id === myId);
+    var whoClass = isMe ? 'feed-who me' : 'feed-who';
+    var ts = relTime(item.ts);
+
+    if (item.type === 'solve') {
+      return '<div class="feed-item">' +
+        '<div class="feed-icon fi-solve"><i class="fas fa-flag"></i></div>' +
+        '<div class="feed-body">' +
+          '<div class="feed-header-row">' +
+            '<span class="' + whoClass + '">' + esc(item.username) + '</span>' +
+            '<span class="feed-ts">' + ts + '</span>' +
+          '</div>' +
+          '<div class="feed-main">Solved <strong>' + esc(item.challenge) + '</strong>' +
+            '<span class="badge-cat">' + esc(item.category) + '</span>' +
+            '<span class="badge-cat badge-pts">+' + item.value + 'pts</span>' +
+            (isMe ? '<span class="badge-cat badge-me-tag">you</span>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    if (item.type === 'hint') {
+      return '<div class="feed-item">' +
+        '<div class="feed-icon fi-hint"><i class="fas fa-lightbulb"></i></div>' +
+        '<div class="feed-body">' +
+          '<div class="feed-header-row">' +
+            '<span class="' + whoClass + '">' + esc(item.username) + '</span>' +
+            '<span class="feed-ts">' + ts + '</span>' +
+          '</div>' +
+          '<div class="feed-main">Used a hint on <strong>' + esc(item.challenge) + '</strong>' +
+            '<span class="badge-cat" style="color:var(--tf-yellow);background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.2)">-' + item.cost + 'pts</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    if (item.type === 'note') {
+      var isPinned = item.pinned;
+      return '<div class="feed-item" id="note-' + item.id + '">' +
+        '<div class="feed-icon fi-note' + (isPinned ? ' pinned' : '') + '">' +
+          '<i class="fas ' + (isPinned ? 'fa-thumbtack' : 'fa-sticky-note') + '"></i>' +
+        '</div>' +
+        '<div class="feed-body">' +
+          '<div class="feed-header-row">' +
+            '<div>' +
+              '<span class="' + whoClass + '">' + esc(item.username) + '</span>' +
+              (isPinned ? '<span class="badge-cat badge-pin" style="margin-left:6px">📌 pinned</span>' : '') +
+            '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;">' +
+              '<span class="feed-ts">' + ts + '</span>' +
+              (isMe || item.is_admin ? '<button class="del-btn" data-del-note="' + item.id + '" title="Delete note">✕</button>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="feed-note-body' + (isPinned ? ' pinned-note' : '') + '">' + esc(item.content) + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    return '';
+  }
+
+  // ── stats ─────────────────────────────────────────────────────────────────
+  function renderStats(feed) {
+    var solves = feed.filter(function (f) { return f.type === 'solve'; });
+    var hints  = feed.filter(function (f) { return f.type === 'hint'; });
+    var notes  = feed.filter(function (f) { return f.type === 'note'; });
+    var mySolves = solves.filter(function (f) { return f.by_me; });
+
+    document.getElementById('stats-body').innerHTML =
+      stat('Team Solves',  solves.length) +
+      stat('Hints Used',   hints.length) +
+      stat('Notes Posted', notes.length) +
+      stat('My Solves',    mySolves.length);
+  }
+
+  function stat(lbl, val) {
+    return '<div class="stat-row"><span class="stat-lbl">' + lbl + '</span>' +
+      '<span class="stat-val">' + val + '</span></div>';
+  }
+
+  function renderContribs(feed) {
+    var counts = {};
+    feed.filter(function (f) { return f.type === 'solve'; }).forEach(function (f) {
+      counts[f.username] = (counts[f.username] || 0) + 1;
+    });
+    var sorted = Object.keys(counts).map(function (k) {
+      return { name: k, cnt: counts[k] };
+    }).sort(function (a, b) { return b.cnt - a.cnt; }).slice(0, 8);
+
+    if (!sorted.length) {
+      document.getElementById('contrib-body').innerHTML =
+        '<div style="color:var(--tf-muted);font-size:.78rem;text-align:center">No solves yet.</div>';
+      return;
+    }
+    document.getElementById('contrib-body').innerHTML = sorted.map(function (r, i) {
+      return '<div class="contrib-row">' +
+        '<span class="contrib-rank">#' + (i + 1) + '</span>' +
+        '<span class="contrib-name">' + esc(r.name) + '</span>' +
+        '<span class="contrib-cnt">' + r.cnt + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── post note ─────────────────────────────────────────────────────────────
+  window.postNote = function () {
+    var content = document.getElementById('note-input').value.trim();
+    var pinned  = document.getElementById('note-pin').checked;
+    var fb      = document.getElementById('post-feedback');
+    var btn     = document.getElementById('post-btn');
+    if (!content) { fb.textContent = 'Note cannot be empty.'; fb.style.color = 'var(--tf-red)'; return; }
+    btn.disabled = true; btn.textContent = 'Posting…';
+    fetch('/api/mission/team/note', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json',
+                 'CSRF-Token': (window.init && window.init.csrfNonce) || '' },
+      body: JSON.stringify({ content: content, pinned: pinned }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) {
+          fb.textContent = '✓ Posted!'; fb.style.color = 'var(--tf-green)';
+          document.getElementById('note-input').value = '';
+          document.getElementById('note-pin').checked = false;
+          document.getElementById('char-count').textContent = '0 / 2000';
+          setTimeout(function () { fb.textContent = ''; load(); }, 800);
+        } else {
+          fb.textContent = d.error || 'Failed'; fb.style.color = 'var(--tf-red)';
+        }
+      })
+      .catch(function (e) { fb.textContent = e.message; fb.style.color = 'var(--tf-red)'; })
+      .finally(function () { btn.disabled = false; btn.textContent = 'Post'; });
+  };
+
+  // ── delete note ───────────────────────────────────────────────────────────
+  function deleteNote(id, btn) {
+    btn.textContent = '…'; btn.disabled = true;
+    fetch('/api/mission/team/note/' + id, {
+      method: 'DELETE', credentials: 'same-origin',
+      headers: { 'CSRF-Token': (window.init && window.init.csrfNonce) || '' },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) {
+          var el = document.getElementById('note-' + id);
+          if (el) { el.style.opacity = '0'; setTimeout(function () { el.remove(); }, 300); }
+        } else {
+          btn.textContent = '✕'; btn.disabled = false;
+        }
+      })
+      .catch(function () { btn.textContent = '✕'; btn.disabled = false; });
+  }
+
+  // ── filter ────────────────────────────────────────────────────────────────
+  window.setFilter = function (type, btn) {
+    activeType = type;
+    document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    if (state.feed) renderFeed(state.feed);
+  };
+
+  // ── char counter ──────────────────────────────────────────────────────────
+  document.getElementById('note-input').addEventListener('input', function () {
+    document.getElementById('char-count').textContent = this.value.length + ' / 2000';
+  });
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function relTime(ts) {
+    if (!ts) return '—';
+    var diff = Math.floor(Date.now() / 1000 - ts);
+    if (diff < 60)    return diff + 's ago';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  // ── init ──────────────────────────────────────────────────────────────────
+  load();
+  setInterval(load, 20000);
+
+}());
+</script>
+{% endblock %}

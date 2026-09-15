@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Help & Tools{% endblock %}
+{% block page_title %}Help & Support Tools{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-globe"></i></div>Document Fetcher</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">
+                    Retrieve external documents, policies, or regulatory filings by URL.
+                    Used by the compliance team to import third-party documents into the portal.
+                </p>
+                <form id="fetch-form">
+                    <div class="mb-3">
+                        <label class="form-label">Document URL</label>
+                        <input type="url" id="doc-url" class="form-control" placeholder="https://example.com/document.pdf">
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="fetchDoc()"><i class="fas fa-download me-1"></i>Fetch Document</button>
+                </form>
+                <div id="fetch-result" class="mt-3" style="display:none;">
+                    <div class="terminal" id="fetch-output" style="min-height:80px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-file-import"></i></div>Configuration Import</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">
+                    Import a serialised configuration blob exported from another vBank portal instance.
+                    Format: Base64-encoded Python pickle.
+                </p>
+                <form id="import-form">
+                    <div class="mb-3">
+                        <label class="form-label">Config Blob (Base64)</label>
+                        <textarea id="config-data" class="form-control" rows="3" style="font-family:monospace; font-size:0.78rem;" placeholder="Paste base64-encoded config here"></textarea>
+                    </div>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="importConfig()"><i class="fas fa-cog me-1"></i>Import Config</button>
+                </form>
+                <div id="import-result" class="mt-3" style="display:none;">
+                    <div class="terminal" id="import-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-phone"></i></div>Contact IT Support</div>
+            <div class="card-body" style="font-size:0.84rem; line-height:1.8; color:#475569;">
+                <div><i class="fas fa-phone-alt me-2 text-primary"></i>Internal: <strong>ext. 4400</strong></div>
+                <div><i class="fas fa-envelope me-2 text-primary"></i><strong>itsupport@vbank.internal</strong></div>
+                <div><i class="fas fa-clock me-2 text-primary"></i>Mon–Fri, 08:00–18:00 GMT</div>
+                <div class="mt-2"><i class="fas fa-ticket-alt me-2 text-primary"></i><a href="/support/ticket">Submit a support ticket</a></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-book"></i></div>Useful Resources</div>
+            <div class="card-body" style="font-size:0.84rem;">
+                <ul class="list-unstyled mb-0" style="line-height:2;">
+                    <li><i class="fas fa-file-pdf me-2 text-danger"></i><a href="/owasp.pdf">Security Policy (PDF)</a></li>
+                    <li><i class="fas fa-code me-2 text-primary"></i><a href="/developer/api-docs">API Documentation</a></li>
+                    <li><i class="fas fa-users-cog me-2 text-success"></i><a href="/hr/payroll/import">Payroll Import Guide</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fetchDoc() {
+    var url = document.getElementById('doc-url').value;
+    var fd = new FormData();
+    fd.append('url', url);
+    fetch('/support/document-fetch', {method:'POST', body:fd})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('fetch-result').style.display='block';
+            document.getElementById('fetch-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+function importConfig() {
+    var cfg = document.getElementById('config-data').value;
+    var fd = new FormData();
+    fd.append('config_data', cfg);
+    fetch('/api/internal/config-import', {method:'POST', body:fd})
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('import-result').style.display='block';
+            document.getElementById('import-output').textContent = JSON.stringify(d, null, 2);
+        });
+}
+</script>
+{% endblock %}

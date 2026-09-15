@@ -1,0 +1,5 @@
+# Force LF line endings for all shell scripts and Linux-targeted files
+*.sh        text eol=lf
+*.py        text eol=lf
+Dockerfile* text eol=lf
+nginx.conf  text eol=lf

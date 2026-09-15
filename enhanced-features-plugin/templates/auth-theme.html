@@ -1,0 +1,479 @@
+<style>
+/* ============================================================
+   LLOYDS CTF — CYBER AUTH THEME  |  Login / Register / Forgot
+   "Welcome to Lloyds CTF"
+   ============================================================ */
+
+:root {
+  --auth-bg:       #080f1e;
+  --auth-card:     rgba(15, 23, 42, 0.88);
+  --auth-green:    #059669;
+  --auth-green-l:  #10b981;
+  --auth-neon:     #10b981;
+  --auth-cyber:    #60a5fa;
+  --auth-text:     #f1f5f9;
+  --auth-dim:      #94a3b8;
+  --auth-muted:    #64748b;
+  --auth-border:   rgba(16, 185, 129, 0.28);
+  --auth-trans:    0.22s ease;
+  --font-mono:     'JetBrains Mono', 'Courier New', monospace;
+  --font-ui:       'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* --- Keyframes ------------------------------------------ */
+@keyframes auth-grid-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 52px 52px; }
+}
+@keyframes auth-scan-line {
+  0%   { transform: translateY(-100vh); opacity: 0.6; }
+  100% { transform: translateY(100vh);  opacity: 0; }
+}
+@keyframes auth-glow-pulse {
+  0%,100% { box-shadow: 0 0 10px rgba(0,99,65,0.3), 0 0 30px rgba(0,99,65,0.1); }
+  50%      { box-shadow: 0 0 25px rgba(0,99,65,0.6), 0 0 60px rgba(0,99,65,0.2); }
+}
+@keyframes auth-neon-cursor {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+@keyframes auth-fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes auth-tab-indicate {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes btn-sweep {
+  0%   { left: -100%; }
+  100% { left: 120%; }
+}
+@keyframes auth-border-glow {
+  0%,100% { border-color: rgba(0,99,65,0.35); }
+  50%      { border-color: rgba(0,99,65,0.7); }
+}
+
+/* --- Full page reset for auth ----------------------------- */
+html, body {
+  margin: 0; padding: 0;
+  min-height: 100vh;
+  background: var(--auth-bg) !important;
+  color: var(--auth-text) !important;
+  font-family: var(--font-ui) !important;
+  overflow-x: hidden;
+}
+
+/* Animated cyber-grid background */
+body {
+  background-color: var(--auth-bg) !important;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 18% 40%, rgba(16,185,129,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 82% 15%, rgba(96,165,250,0.06) 0%, transparent 55%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+body::before { display: none !important; }
+
+/* Corner decoration */
+body::after {
+  content: '' !important;
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0 !important;
+  background:
+    radial-gradient(ellipse at top left, rgba(0,99,65,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(57,255,20,0.04) 0%, transparent 50%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* Hide the CTFd sidebar/navbar on auth pages */
+nav.navbar { display: none !important; }
+.sidebar, #main-sidebar, .sidebar-overlay { display: none !important; }
+#lloyds-hamburger, #lloyds-theme-btn { display: none !important; }
+
+/* Remove margin-left pushed by sidebar theme */
+main, [role="main"] {
+  margin-left: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+footer, .footer { display: none !important; }
+
+/* Container centering */
+main .container,
+main .container-fluid {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  padding: 40px 16px !important;
+  background: transparent !important;
+  max-width: 100% !important;
+}
+main .row {
+  width: 100% !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+/* ── Auth wrapper: the glassmorphism card ─────────────────── */
+#login-form, #register-form, #reset-form,
+#forgot-form, #change-form,
+.auth-wrapper {
+  background: var(--auth-card) !important;
+  border: 1px solid var(--auth-border) !important;
+  border-radius: 8px !important;
+  padding: 40px 44px !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  position: relative !important;
+  backdrop-filter: blur(16px) !important;
+  animation: auth-fade-up 0.5s ease both !important;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  border-radius: 18px !important;
+}
+
+#login-form::before, #register-form::before, #reset-form::before, .auth-wrapper::before,
+#login-form::after, #register-form::after, #reset-form::after, .auth-wrapper::after {
+  display: none !important;
+}
+
+/* ── Welcome heading (injected by JS) ───────────────────── */
+.lloyds-welcome-block {
+  text-align: center !important;
+  margin-bottom: 32px !important;
+  animation: auth-fade-up 0.4s ease both !important;
+}
+.lloyds-welcome-title {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 4px !important;
+  text-transform: uppercase !important;
+  color: var(--auth-green) !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+.lloyds-welcome-heading {
+  font-family: var(--font-ui) !important;
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  color: var(--auth-text) !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+.lloyds-welcome-heading .accent {
+  color: var(--auth-neon) !important;
+}
+.lloyds-welcome-cursor {
+  display: inline-block !important;
+  width: 2px !important;
+  height: 1em !important;
+  background: var(--auth-neon) !important;
+  margin-left: 2px !important;
+  vertical-align: middle !important;
+  animation: auth-neon-cursor 1s step-end infinite !important;
+}
+.lloyds-welcome-sub {
+  font-size: 12px !important;
+  color: var(--auth-dim) !important;
+  font-family: var(--font-mono) !important;
+  margin-top: 6px !important;
+}
+
+/* ── Auth tabs (injected by JS) ─────────────────────────── */
+.lloyds-auth-tabs {
+  display: flex !important;
+  gap: 0 !important;
+  margin-bottom: 28px !important;
+  border-bottom: 1px solid var(--auth-border) !important;
+}
+.lloyds-auth-tab {
+  flex: 1 !important;
+  padding: 10px 8px !important;
+  background: none !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--auth-dim) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  text-decoration: none !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: all var(--auth-trans) !important;
+  margin-bottom: -1px !important;
+  display: block !important;
+}
+.lloyds-auth-tab:hover {
+  color: var(--auth-text) !important;
+  background: rgba(0,99,65,0.05) !important;
+}
+.lloyds-auth-tab.active {
+  color: var(--auth-neon) !important;
+  border-bottom-color: var(--auth-neon) !important;
+}
+
+/* ── Hide original CTFd h1 (replaced by JS) ─────────────── */
+#login-form h1,
+#register-form h1,
+#reset-form h1,
+#forgot-form h1,
+#change-form h1 {
+  display: none !important;
+}
+
+/* ── Form elements ──────────────────────────────────────── */
+.form-group {
+  margin-bottom: 18px !important;
+  position: relative !important;
+}
+.form-group label, label {
+  display: block !important;
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  color: var(--auth-dim) !important;
+  margin-bottom: 7px !important;
+}
+
+.form-control, input[type="text"],
+input[type="password"], input[type="email"],
+input[type="search"] {
+  width: 100% !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(0, 99, 65, 0.4) !important;
+  border-radius: 4px !important;
+  color: var(--auth-text) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  padding: 11px 14px !important;
+  transition: all var(--auth-trans) !important;
+  outline: none !important;
+}
+.form-control:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-color: var(--auth-green) !important;
+  box-shadow: 0 0 0 3px rgba(0,99,65,0.18), 0 0 15px rgba(0,99,65,0.3) !important;
+  color: var(--auth-text) !important;
+}
+.form-control::placeholder { color: var(--auth-muted) !important; }
+
+/* Submit button */
+.btn-primary, button[type="submit"], input[type="submit"] {
+  width: 100% !important;
+  background: var(--auth-green) !important;
+  border: 1px solid var(--auth-green) !important;
+  color: #fff !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+  padding: 13px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all var(--auth-trans) !important;
+  margin-top: 8px !important;
+  float: none !important;
+}
+.btn-primary::before, button[type="submit"]::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0; left: -100% !important;
+  width: 40%; height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+}
+.btn-primary:hover::before, button[type="submit"]:hover::before {
+  animation: btn-sweep 0.55s ease !important;
+}
+.btn-primary:hover, button[type="submit"]:hover {
+  background: var(--auth-green-l) !important;
+  border-color: var(--auth-green-l) !important;
+  box-shadow: 0 0 25px rgba(0,99,65,0.6), 0 4px 16px rgba(0,0,0,0.4) !important;
+  transform: translateY(-1px) !important;
+}
+.btn-primary:active, button[type="submit"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 0 10px rgba(0,99,65,0.4) !important;
+}
+
+/* float-right on submit btn */
+.float-right { float: none !important; display: block !important; }
+
+/* Links */
+a { color: var(--auth-green-l) !important; transition: color var(--auth-trans) !important; }
+a:hover { color: var(--auth-neon) !important; }
+
+/* Error / flash messages */
+.alert { border-radius: 4px !important; font-size: 13px !important; margin-bottom: 16px !important; border: 1px solid !important; }
+.alert-danger  { background: rgba(139,26,26,0.15) !important; border-color: rgba(139,26,26,0.4) !important; color: #ff8888 !important; }
+.alert-warning { background: rgba(180,120,0,0.15) !important; border-color: rgba(180,120,0,0.4) !important; color: #ffcc55 !important; }
+.alert-success { background: rgba(0,99,65,0.15) !important; border-color: rgba(0,99,65,0.4) !important; color: var(--auth-neon) !important; }
+.alert-info    { background: rgba(0,180,220,0.1) !important; border-color: rgba(0,180,220,0.3) !important; color: var(--auth-cyber) !important; }
+
+/* Additional CTFd specific classes */
+.invalid-feedback { color: #ff6b6b !important; font-size: 11px !important; font-family: var(--font-mono) !important; }
+.small { color: var(--auth-dim) !important; font-size: 12px !important; }
+
+/* reCaptcha */
+#captcha { margin: 12px 0 !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--auth-bg); }
+::-webkit-scrollbar-thumb { background: var(--auth-green); border-radius: 3px; }
+
+/* selection */
+::selection { background: rgba(0,99,65,0.4); color: #fff; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 576px) {
+  #login-form, #register-form, #reset-form, .auth-wrapper {
+    padding: 28px 22px !important;
+    max-width: 100% !important;
+    margin: 0 8px !important;
+  }
+  .lloyds-welcome-heading { font-size: 20px !important; }
+  .lloyds-auth-tab { font-size: 10px !important; padding: 8px 4px !important; }
+}
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+
+  ready(function () {
+
+    // ── Determine current auth page ──────────────────────────────────────────
+    var path = window.location.pathname;
+    var isLogin    = path.includes('/auth/login')    || path === '/login';
+    var isRegister = path.includes('/auth/register') || path === '/register';
+    var isReset    = path.includes('/auth/reset')    || path.includes('/auth/forgot') || path === '/forgot';
+    var isConfirm  = path.includes('/auth/confirm');
+
+    // ── Find the form wrapper ────────────────────────────────────────────────
+    var formWrap = (
+      document.getElementById('login-form')    ||
+      document.getElementById('register-form') ||
+      document.getElementById('reset-form')    ||
+      document.getElementById('forgot-form')   ||
+      document.getElementById('change-form')   ||
+      document.querySelector('main form')      ||
+      null
+    );
+
+    // If found, work on its parent to get layout right
+    var card = formWrap;
+
+    if (!card) return;
+
+    // Center the card
+    card.style.margin = '0 auto';
+
+    // ── Build "Welcome to Lloyds CTF" block ─────────────────────────────────
+    var welcomeBlock = document.createElement('div');
+    welcomeBlock.className = 'lloyds-welcome-block';
+    welcomeBlock.innerHTML =
+      '<span class="lloyds-welcome-title">[ Lloyds Bank CTF ]</span>' +
+      '<h1 class="lloyds-welcome-heading">Welcome to <span class="accent">Lloyds CTF</span><span class="lloyds-welcome-cursor"></span></h1>' +
+      '<p class="lloyds-welcome-sub">// Capture The Flag Competition Platform</p>';
+
+    card.insertBefore(welcomeBlock, card.firstChild);
+
+    // ── Build auth tabs ──────────────────────────────────────────────────────
+    // Only show tabs if registration is available (check for register link in DOM)
+    var showTabs = true; // always show; CTFd will 404 if registration is disabled
+
+    if (showTabs && !isConfirm) {
+      var tabs = document.createElement('div');
+      tabs.className = 'lloyds-auth-tabs';
+
+      var loginHref    = '/auth/login';
+      var registerHref = '/auth/register';
+      var resetHref    = '/auth/reset';
+
+      var loginTab  = '<a href="' + loginHref    + '" class="lloyds-auth-tab' + (isLogin    ? ' active' : '') + '">Login</a>';
+      var regTab    = '<a href="' + registerHref  + '" class="lloyds-auth-tab' + (isRegister ? ' active' : '') + '">Register</a>';
+      var resetTab  = '<a href="' + resetHref     + '" class="lloyds-auth-tab' + (isReset    ? ' active' : '') + '">Forgot&nbsp;Password</a>';
+
+      tabs.innerHTML = loginTab + regTab + resetTab;
+      card.insertBefore(tabs, card.children[1]); // after welcome block
+    }
+
+    // ── Terminal-style loading on form submit ────────────────────────────────
+    var form = card.querySelector('form') || document.querySelector('main form');
+    var submitBtn = form ? form.querySelector('[type="submit"], .btn-primary') : null;
+
+    if (form && submitBtn) {
+      var originalText = submitBtn.value || submitBtn.textContent;
+
+      form.addEventListener('submit', function () {
+        submitBtn.disabled = true;
+        var dots = 0;
+        var originalContent = submitBtn.textContent || submitBtn.value;
+        var text = isLogin ? 'AUTHENTICATING' : isRegister ? 'REGISTERING' : 'PROCESSING';
+        var interval = setInterval(function () {
+          dots = (dots + 1) % 4;
+          var dotStr = Array(dots + 1).join('.');
+          if (submitBtn.value !== undefined && submitBtn.tagName === 'INPUT') {
+            submitBtn.value = text + dotStr;
+          } else {
+            submitBtn.textContent = text + dotStr;
+          }
+        }, 300);
+
+        // Failsafe: re-enable after 8s
+        setTimeout(function () {
+          clearInterval(interval);
+          submitBtn.disabled = false;
+          if (submitBtn.tagName === 'INPUT') submitBtn.value = originalText;
+          else submitBtn.textContent = originalText;
+        }, 8000);
+      });
+    }
+
+    // ── Add neon glow effect on input focus ──────────────────────────────────
+    document.querySelectorAll('.form-control, input[type="text"], input[type="password"], input[type="email"]')
+      .forEach(function (inp) {
+        inp.addEventListener('focus', function () {
+          this.style.boxShadow = '0 0 0 3px rgba(0,99,65,0.18), 0 0 15px rgba(0,99,65,0.3)';
+        });
+        inp.addEventListener('blur', function () {
+          this.style.boxShadow = '';
+        });
+      });
+
+  }); // end ready
+
+}());
+</script>

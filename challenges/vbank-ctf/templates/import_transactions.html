@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Payroll Import{% endblock %}
+{% block page_title %}HR Payroll Import{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-users-cog"></i></div>Bulk Payroll Import — XML Format</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">
+                    Import employee payroll data from your HR system via XML. Supports legacy XML feeds from SAP HR and Oracle HCM.
+                </p>
+
+
+                <p class="text-muted mb-2" style="font-size:0.8rem;"><strong>Expected XML format:</strong></p>
+                <div class="terminal mb-3" style="min-height:auto; font-size:0.75rem;">&lt;payroll&gt;
+  &lt;employee&gt;
+    &lt;id&gt;EMP001&lt;/id&gt;
+    &lt;name&gt;Alice Thornton&lt;/name&gt;
+    &lt;department&gt;Finance&lt;/department&gt;
+    &lt;salary&gt;£4,200.00&lt;/salary&gt;
+    &lt;note&gt;Monthly salary — Jan 2024&lt;/note&gt;
+  &lt;/employee&gt;
+&lt;/payroll&gt;</div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">XML Data (paste or upload)</label>
+                        <textarea name="xml_data" class="form-control" rows="8"
+                            style="font-family:monospace; font-size:0.8rem;"
+                            placeholder="Paste XML payroll data here..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Or upload XML file</label>
+                        <input type="file" name="xml_file" class="form-control" accept=".xml">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-2"></i>Import Payroll Data</button>
+                </form>
+
+                {% if result %}
+                <div class="mt-4">
+                    {% if result.error %}
+                    <div class="alert alert-danger">{{ result.error }}</div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <strong>Import successful.</strong> {{ result.count }} employee record(s) processed.
+                    </div>
+                    {% if result.records %}
+                    <table class="table table-sm">
+                        <thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Salary</th><th>Note</th></tr></thead>
+                        <tbody>
+                        {% for r in result.records %}
+                        <tr><td>{{ r.id }}</td><td>{{ r.name }}</td><td>{{ r.department }}</td><td>{{ r.salary }}</td><td>{{ r.note }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>Import Guide</div>
+            <div class="card-body" style="font-size:0.82rem; color:#475569; line-height:1.7;">
+                <p><strong>Supported systems:</strong> SAP HR, Oracle HCM, BambooHR (legacy XML export)</p>
+                <p><strong>Max file size:</strong> 10MB per import</p>
+                <p><strong>Frequency:</strong> Monthly payroll runs (1st of month)</p>
+                <p class="mb-0"><strong>Support:</strong> Contact HR Systems team (ext. 4421) for format queries</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

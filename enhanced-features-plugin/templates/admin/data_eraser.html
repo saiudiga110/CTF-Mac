@@ -1,0 +1,576 @@
+{% extends "admin/base.html" %}
+{% block title %}Data Eraser{% endblock %}
+{% block content %}
+<style>
+body { background:#0d1117 !important; color:#c9d1d9 !important; }
+.er-header { background:linear-gradient(135deg,#0d1117,#1a0000,#0d1117);
+  border-bottom:2px solid #ff4444; padding:22px 0 16px; margin-bottom:0; }
+.er-header h1 { font-family:'Courier New',monospace; color:#ff4444; font-size:1.55rem;
+  letter-spacing:2px; text-shadow:0 0 14px rgba(255,68,68,.45); margin:0 0 4px; }
+.er-header p { color:#8b949e; font-size:.83rem; margin:0; }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs { display:flex; gap:0; border-bottom:1px solid #30363d;
+  background:#0d1117; overflow-x:auto; }
+.tab-btn { background:none; border:none; border-bottom:2px solid transparent;
+  color:#8b949e; padding:12px 20px; cursor:pointer; font-size:.83rem;
+  font-family:'Courier New',monospace; white-space:nowrap; transition:all .15s; }
+.tab-btn:hover { color:#c9d1d9; }
+.tab-btn.active { color:#ff4444; border-bottom-color:#ff4444; }
+.tab-pane { display:none; padding:24px 0; }
+.tab-pane.active { display:block; }
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+.panel { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:20px; margin-bottom:18px; }
+.panel-title { font-family:'Courier New',monospace; font-size:.95rem; margin:0 0 14px; }
+.panel-title.red    { color:#ff4444; }
+.panel-title.amber  { color:#ffd700; }
+.panel-title.blue   { color:#64b4ff; }
+.panel-title.green  { color:#00ff41; }
+.panel-title.purple { color:#bf5fff; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn { border:none; border-radius:6px; padding:7px 16px; font-weight:600;
+  cursor:pointer; font-size:.81rem; transition:all .15s; }
+.btn-red    { background:rgba(255,68,68,.14); color:#ff4444; border:1px solid rgba(255,68,68,.3); }
+.btn-red:hover { background:rgba(255,68,68,.28); }
+.btn-amber  { background:rgba(255,215,0,.1); color:#ffd700; border:1px solid rgba(255,215,0,.25); }
+.btn-amber:hover { background:rgba(255,215,0,.22); }
+.btn-blue   { background:rgba(100,180,255,.1); color:#64b4ff; border:1px solid rgba(100,180,255,.25); }
+.btn-blue:hover { background:rgba(100,180,255,.22); }
+.btn-green  { background:rgba(0,255,65,.08); color:#00ff41; border:1px solid rgba(0,255,65,.2); }
+.btn-green:hover { background:rgba(0,255,65,.16); }
+.btn-sm { padding:3px 10px; font-size:.74rem; }
+.btn-xs { padding:2px 7px; font-size:.7rem; }
+
+/* ── Bulk grid ───────────────────────────────────────────────────────────── */
+.bulk-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.bulk-card { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:14px 16px; }
+.bulk-card h5 { font-family:'Courier New',monospace; font-size:.8rem; color:#c9d1d9; margin:0 0 4px; }
+.bulk-card p  { font-size:.73rem; color:#8b949e; margin:0 0 12px; line-height:1.4; }
+
+/* ── Warning banner ──────────────────────────────────────────────────────── */
+.warn { background:rgba(255,68,68,.06); border:1px solid rgba(255,68,68,.2);
+  border-radius:8px; padding:10px 14px; font-size:.8rem; color:#ff8888; margin-bottom:16px; }
+
+/* ── Alert ───────────────────────────────────────────────────────────────── */
+.alert { border-radius:6px; padding:9px 14px; font-size:.83rem; display:none; margin-bottom:14px; }
+.alert-ok  { background:rgba(0,255,65,.08); border:1px solid rgba(0,255,65,.25); color:#00ff41; }
+.alert-err { background:rgba(255,68,68,.08); border:1px solid rgba(255,68,68,.25); color:#ff4444; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:1px;
+  color:#8b949e; border-bottom:1px solid #30363d; padding:7px 10px; }
+td { padding:8px 10px; border-bottom:1px solid rgba(48,54,61,.5); font-size:.81rem; vertical-align:middle; }
+tr:hover td { background:rgba(255,255,255,.018); }
+.mono { font-family:'Courier New',monospace; font-size:.79rem; }
+.badge { display:inline-block; border-radius:8px; padding:2px 7px; font-size:.67rem; font-weight:600; }
+.badge-b { background:rgba(0,200,83,.1); color:#00c853; }
+.badge-i { background:rgba(255,215,0,.1); color:#ffd700; }
+.badge-a { background:rgba(255,68,68,.1); color:#ff4444; }
+.badge-u { background:rgba(100,180,255,.1); color:#64b4ff; }
+.pts { background:rgba(100,180,255,.07); color:#64b4ff; border-radius:6px;
+  padding:1px 7px; font-size:.69rem; font-family:monospace; }
+.btn-row { display:flex; gap:4px; flex-wrap:wrap; }
+.search-ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px;
+  color:#c9d1d9; padding:5px 11px; font-size:.82rem; width:230px; box-sizing:border-box; }
+.search-ctrl:focus { outline:none; border-color:#ff4444; }
+</style>
+
+<!-- Header -->
+<div class="er-header">
+  <div class="container">
+    <h1>&#x26A0;&#xFE0F; Data Eraser</h1>
+    <p>Admin-only. Every action is permanent and cannot be undone. Confirm prompts before proceeding.</p>
+  </div>
+</div>
+
+<!-- Alert -->
+<div class="container" style="padding-top:16px">
+  <div id="alert-box" class="alert"></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('challenges')">&#x1F3AF; Challenges</button>
+  <button class="tab-btn" onclick="switchTab('scoreboard')">&#x1F3C6; Scoreboard</button>
+  <button class="tab-btn" onclick="switchTab('users')">&#x1F464; Users</button>
+  <button class="tab-btn" onclick="switchTab('content')">&#x1F4E2; Content</button>
+  <button class="tab-btn" onclick="switchTab('logs')">&#x1F4DC; Logs</button>
+  <button class="tab-btn" onclick="switchTab('system')">&#x2699;&#xFE0F; System</button>
+  <button class="tab-btn" onclick="switchTab('nuclear')" style="color:#ff2222">&#x2622;&#xFE0F; Full Reset</button>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 1: CHALLENGES
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane active" id="tab-challenges">
+  <div class="panel">
+    <div class="panel-title amber">&#x1F4CB; Per-Challenge Eraser</div>
+    <p style="color:#8b949e;font-size:.8rem;margin:0 0 14px">Erase specific data for each challenge without touching other challenges.</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <input class="search-ctrl" id="chal-search" placeholder="&#x1F50D; Search challenges..." oninput="renderChals()">
+      <button class="btn btn-blue btn-sm" onclick="loadChals()">&#x21BB; Refresh</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Challenge</th><th>Category</th><th>Pts</th><th>Solves</th><th>First Blood</th>
+        <th style="min-width:320px">Actions</th>
+      </tr></thead>
+      <tbody id="chal-tbody"><tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">Loading...</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 2: SCOREBOARD
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-scoreboard">
+  <div class="warn">&#x26A0; These operations change the live scoreboard visible to all players.</div>
+  <div class="bulk-grid">
+    <div class="bulk-card">
+      <h5>Erase All Solves</h5>
+      <p>Removes every player's solved challenge records. Scoreboards go to zero.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-solves','Wipe ALL solve records?','Every player score returns to zero.')">Erase All Solves</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All First Bloods</h5>
+      <p>Clears every first-blood trophy across all challenges.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-first-bloods','Wipe ALL first-blood records?','All first-blood badges will be removed.')">Erase All First Bloods</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All Wrong Keys</h5>
+      <p>Removes the full wrong-submission history stored by CTFd core.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-wrong-keys','Wipe all wrong-key records?','CTFd wrong-submission log will be cleared.')">Erase Wrong Keys</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Clear Rate-Limit Cache</h5>
+      <p>Resets all submission rate-limit and brute-force counters (DB + Redis).</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-rate-limits','Clear all rate-limit records?','Players can immediately attempt flags again.')">Clear Rate Limits</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All Difficulty Votes</h5>
+      <p>Removes all 1–5 star difficulty ratings players have submitted.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-votes','Wipe ALL difficulty votes?','Star ratings will be cleared for all challenges.')">Erase All Votes</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Reset Skill Scores</h5>
+      <p>Clears scoring_config (skill ratings/handicaps) and dynamic_scores tables.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-scoring','Reset all skill scores?','Skill ratings and dynamic scores will be zeroed.')">Reset Skill Scores</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Reset Player Progress</h5>
+      <p>Clears player streaks, achievements, leaderboard snapshots, and onboarding records.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-player-progress','Wipe player progress data?','Streaks, achievements and leaderboard snapshots removed.')">Reset Player Progress</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 3: USERS
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-users">
+  <div class="panel">
+    <div class="panel-title blue">&#x1F464; User Accounts</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <input class="search-ctrl" id="user-search" placeholder="&#x1F50D; Search users..." oninput="renderUsers()">
+      <button class="btn btn-blue btn-sm" onclick="loadUsers()">&#x21BB; Refresh</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Username</th><th>Email</th><th>Solves</th><th>Role</th><th>Status</th><th>Action</th>
+      </tr></thead>
+      <tbody id="user-tbody"><tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">Loading...</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title blue">&#x1F465; Team & Collaboration Data</div>
+    <div class="bulk-grid">
+      <div class="bulk-card">
+        <h5>Erase All Chat Messages</h5>
+        <p>Removes every message from all team and global chats.</p>
+        <button class="btn btn-red" onclick="bulkAction('reset-all-chat','Wipe all team chat messages?','All chat history across all teams will be deleted.')">Erase Chat</button>
+      </div>
+      <div class="bulk-card">
+        <h5>Reset Team Analytics Data</h5>
+        <p>Clears team_analytics, team_contribution, team_collaboration and mission feed notes.</p>
+        <button class="btn btn-amber" onclick="bulkAction('reset-team-data','Reset team data?','Team analytics and collaboration records will be removed.')">Reset Team Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 4: CONTENT
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-content">
+  <div class="bulk-grid">
+    <div class="bulk-card">
+      <h5>Erase All Write-ups</h5>
+      <p>Deletes every post-solve write-up submitted by players.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-writeups','Wipe ALL write-ups?','All player write-ups will be permanently removed.')">Erase Write-ups</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All Announcements</h5>
+      <p>Removes every admin announcement (pinned and unpinned).</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-announcements','Wipe all announcements?','All CTFd announcements will be deleted.')">Erase Announcements</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All Contest Events</h5>
+      <p>Removes all countdown timer events from the events table.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-events','Wipe all contest events?','All timers and events will be removed.')">Erase Events</button>
+    </div>
+  </div>
+
+  <!-- Per-challenge write-ups table -->
+  <div class="panel" style="margin-top:8px">
+    <div class="panel-title amber">&#x270F;&#xFE0F; Per-Challenge Write-up &amp; Vote Eraser</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>#</th><th>Challenge</th><th>Write-ups</th><th>Votes</th><th>Actions</th></tr></thead>
+      <tbody id="content-tbody"><tr><td colspan="5" style="text-align:center;color:#8b949e;padding:20px">Loading...</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 5: LOGS
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-logs">
+  <div class="bulk-grid">
+    <div class="bulk-card">
+      <h5>Erase All Flag Attempts</h5>
+      <p>Clears the full flag submission log (correct + wrong).</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-attempts','Wipe ALL flag attempt logs?','The complete submission history will be deleted.')">Erase Attempt Log</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase All Hint Logs</h5>
+      <p>Removes every hint-unlock event from the hint usage log.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-hint-logs','Wipe ALL hint usage logs?','All hint unlock events will be removed.')">Erase Hint Logs</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase Suspicious Activity</h5>
+      <p>Clears all alerts where a player solved without an active container.</p>
+      <button class="btn btn-red" onclick="bulkAction('reset-all-suspicious','Wipe suspicious activity log?','All flagged solve-without-container alerts will be removed.')">Erase Alerts</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase Notifications</h5>
+      <p>Clears the notification_log table (in-app player notifications).</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-notifications','Wipe all notifications?','All stored in-app notifications will be deleted.')">Erase Notifications</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase Analytics Data</h5>
+      <p>Clears analytics_data, solve_timeline and resource_metrics tables.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-analytics','Wipe analytics data?','analytics_data, solve_timeline and resource_metrics will be cleared.')">Erase Analytics</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Erase Audit Logs</h5>
+      <p>Clears audit_logs_impl and audit_log tables.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-audit-logs','Wipe all audit logs?','All audit log entries will be permanently removed.')">Erase Audit Logs</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 6: SYSTEM
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-system">
+  <div class="bulk-grid">
+    <div class="bulk-card">
+      <h5>Clear Persistent Sessions</h5>
+      <p>Removes all stored persistent_sessions records (forces re-login).</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-all-sessions','Clear all persistent sessions?','Players will need to log in again on next visit.')">Clear Sessions</button>
+    </div>
+    <div class="bulk-card">
+      <h5>Clear Dynamic Data</h5>
+      <p>Clears dynamic_environment, container_snapshot and health_check tables.</p>
+      <button class="btn btn-amber" onclick="bulkAction('reset-dynamic-data','Clear dynamic environment data?','Container state records and snapshots will be removed.')">Clear Dynamic Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB 7: FULL RESET
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-nuclear">
+  <div style="background:rgba(255,0,0,.06);border:2px solid rgba(255,0,0,.35);border-radius:10px;padding:22px;margin-bottom:22px">
+    <p style="color:#ff4444;font-family:'Courier New',monospace;font-size:1rem;margin:0 0 8px">&#x2622;&#xFE0F; FULL SCOREBOARD RESET</p>
+    <p style="color:#ff8888;font-size:.84rem;margin:0 0 16px">
+      Wipes solves, first bloods, wrong keys, dynamic scores, player streaks and leaderboard snapshots in one operation.
+      Scoreboard will be empty. Players keep their accounts. A compressed MariaDB backup is created first;
+      if backup creation fails, the reset is cancelled.
+    </p>
+    <button class="btn btn-blue" style="font-size:.9rem;padding:9px 18px;margin-right:8px"
+      onclick="createBackup()">&#x1F4BE; Create Backup Only</button>
+    <button class="btn btn-red" style="font-size:.95rem;padding:10px 28px"
+      onclick="bulkAction('scoreboard-full-reset','FULL SCOREBOARD RESET?','This will wipe all solve records, first bloods, wrong keys and score caches. The scoreboard will be completely empty.')">
+      &#x2622;&#xFE0F; Run Full Scoreboard Reset
+    </button>
+  </div>
+
+  <div class="warn" style="margin-bottom:18px">
+    The individual bulk actions below let you chain a complete reset step-by-step.
+    Run them top-to-bottom to leave the platform in a clean state for the next round.
+  </div>
+
+  <div class="bulk-grid">
+    <div class="bulk-card"><h5>1. Erase All Solves</h5><p>Zero all scoreboards.</p>
+      <button class="btn btn-red btn-sm" onclick="bulkAction('reset-all-solves','Wipe ALL solve records?','Every player score returns to zero.')">Run</button></div>
+    <div class="bulk-card"><h5>2. Erase First Bloods</h5><p>Clear all first-blood records.</p>
+      <button class="btn btn-red btn-sm" onclick="bulkAction('reset-all-first-bloods','Wipe ALL first-blood records?','All first-blood badges will be removed.')">Run</button></div>
+    <div class="bulk-card"><h5>3. Erase Wrong Keys</h5><p>Clear wrong-submission log.</p>
+      <button class="btn btn-red btn-sm" onclick="bulkAction('reset-all-wrong-keys','Wipe wrong-key records?','Wrong submission history cleared.')">Run</button></div>
+    <div class="bulk-card"><h5>4. Erase Flag Attempts</h5><p>Clear full attempt log.</p>
+      <button class="btn btn-red btn-sm" onclick="bulkAction('reset-all-attempts','Wipe flag attempt log?','All submission records deleted.')">Run</button></div>
+    <div class="bulk-card"><h5>5. Erase Chat</h5><p>Clear all team chat messages.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-chat','Wipe all chat?','All chat messages deleted.')">Run</button></div>
+    <div class="bulk-card"><h5>6. Erase Write-ups</h5><p>Remove all player write-ups.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-writeups','Wipe write-ups?','All write-ups deleted.')">Run</button></div>
+    <div class="bulk-card"><h5>7. Erase Difficulty Votes</h5><p>Reset all star ratings.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-votes','Wipe difficulty votes?','All star ratings removed.')">Run</button></div>
+    <div class="bulk-card"><h5>8. Erase Hint Logs</h5><p>Clear hint usage history.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-hint-logs','Wipe hint logs?','Hint usage log cleared.')">Run</button></div>
+    <div class="bulk-card"><h5>9. Erase Suspicious Alerts</h5><p>Clear suspicious activity log.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-suspicious','Wipe suspicious activity?','All alerts removed.')">Run</button></div>
+    <div class="bulk-card"><h5>10. Clear Rate Limits</h5><p>Unblock all players.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-rate-limits','Clear rate limits?','All rate-limit counters reset.')">Run</button></div>
+    <div class="bulk-card"><h5>11. Reset Player Progress</h5><p>Clear streaks, achievements.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-player-progress','Reset player progress?','Streaks and achievements removed.')">Run</button></div>
+    <div class="bulk-card"><h5>12. Reset Scoring</h5><p>Clear skill ratings.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-scoring','Reset skill scores?','Scoring configs cleared.')">Run</button></div>
+    <div class="bulk-card"><h5>13. Erase Analytics</h5><p>Clear all analytics tables.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-analytics','Wipe analytics?','Analytics data cleared.')">Run</button></div>
+    <div class="bulk-card"><h5>14. Erase Audit Logs</h5><p>Clear audit log tables.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-audit-logs','Wipe audit logs?','All audit log entries removed.')">Run</button></div>
+    <div class="bulk-card"><h5>15. Clear Sessions</h5><p>Force all players to re-login.</p>
+      <button class="btn btn-amber btn-sm" onclick="bulkAction('reset-all-sessions','Clear sessions?','Persistent sessions removed.')">Run</button></div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ── Confirm Modal ─────────────────────────────────────────────────────────── -->
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:2px solid #ff4444;border-radius:12px;padding:26px 28px;max-width:440px;width:calc(100% - 32px)">
+    <h4 id="modal-title" style="color:#ff4444;margin:0 0 10px;font-family:'Courier New',monospace;font-size:1rem"></h4>
+    <p id="modal-body" style="color:#8b949e;font-size:.84rem;margin:0 0 8px"></p>
+    <p style="color:#ff6666;font-size:.77rem;margin:0 0 20px">&#x26A0; This cannot be undone.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-blue" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" id="modal-confirm">Confirm Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  if (m && m.getAttribute('content')) return m.getAttribute('content');
+  if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+  return '';
+}
+var _chals=[], _users=[];
+
+/* ── Alerts ─────────────────────────────────────────────────────────────── */
+function showAlert(msg,ok){
+  var b=document.getElementById('alert-box');
+  b.className='alert '+(ok?'alert-ok':'alert-err');
+  b.textContent=msg; b.style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(function(){b.style.display='none';},7000);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='challenges'||name==='nuclear') loadChals();
+  if(name==='users') loadUsers();
+  if(name==='content') loadContentTab();
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+function openModal(title,body,onConfirm){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').textContent=body;
+  document.getElementById('modal-confirm').onclick=function(){closeModal();onConfirm();};
+  document.getElementById('modal').style.display='flex';
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+
+/* ── Generic bulk DELETE ─────────────────────────────────────────────────── */
+function bulkAction(action,title,body){
+  openModal(title,body,function(){
+    fetch('/api/ctf/admin/data/'+action,{
+      method:'DELETE',credentials:'same-origin',
+      headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'}
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.success){showAlert('Done — '+d.deleted+' record(s) erased.'+(d.backup?' Backup: '+d.backup:''),true);loadChals();}
+      else{showAlert(d.message||'Failed',false);}
+    }).catch(function(e){showAlert('Network error: '+e,false);});
+  });
+}
+
+function createBackup(){
+  fetch('/api/ctf/admin/backups',{
+    method:'POST',credentials:'same-origin',
+    headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'},
+    body:JSON.stringify({reason:'manual-before-admin-cleanup'})
+  }).then(function(r){return r.json();}).then(function(d){
+    showAlert(d.success?'Backup created: '+d.backup:(d.message||'Backup failed'),!!d.success);
+  }).catch(function(e){showAlert('Backup failed: '+e,false);});
+}
+
+/* ── Per-challenge erase ─────────────────────────────────────────────────── */
+function eraseField(chalId,chalName,field){
+  var labels={solves:'solve records','first-blood':'first-blood record',
+    attempts:'flag attempt log',writeups:'write-ups',votes:'difficulty votes'};
+  openModal('Erase '+labels[field]+'?',
+    'Remove all '+labels[field]+' for "'+chalName+'".',
+    function(){
+      fetch('/api/ctf/admin/challenges/'+chalId+'/'+field,{
+        method:'DELETE',credentials:'same-origin',
+        headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'}
+      }).then(function(r){return r.json();}).then(function(d){
+        if(d.success){showAlert(labels[field]+' erased ('+d.deleted+' row'+(d.deleted!==1?'s':'')+').',true);loadChals();}
+        else{showAlert(d.message||'Failed',false);}
+      }).catch(function(e){showAlert('Network error: '+e,false);});
+    });
+}
+
+/* ── Delete full challenge ───────────────────────────────────────────────── */
+function deleteChallenge(id,name){
+  openModal('Delete challenge?',
+    'Permanently delete "'+name+'" including its flags, hints, and all solve records.',
+    function(){
+      fetch('/api/ctf/admin/challenges/'+id,{
+        method:'DELETE',credentials:'same-origin',
+        headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'}
+      }).then(function(r){return r.json();}).then(function(d){
+        if(d.success){showAlert('Challenge "'+name+'" deleted.',true);loadChals();}
+        else{showAlert(d.message||'Failed',false);}
+      }).catch(function(e){showAlert('Network error: '+e,false);});
+    });
+}
+
+/* ── Load / render challenges ────────────────────────────────────────────── */
+function loadChals(){
+  fetch('/api/ctf/admin/challenges',{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){_chals=d;renderChals();renderContentTab();})
+  .catch(function(){
+    document.getElementById('chal-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#ff4444">Failed to load.</td></tr>';
+  });
+}
+
+function renderChals(){
+  var search=(document.getElementById('chal-search')||{value:''}).value.toLowerCase();
+  var list=search?_chals.filter(function(c){return c.name.toLowerCase().includes(search)||c.category.toLowerCase().includes(search);}):_chals;
+  if(!list.length){
+    document.getElementById('chal-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:18px">No challenges.</td></tr>';
+    return;
+  }
+  fetch('/api/ctf/first-blood/map',{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(fbMap){buildChalTable(list,fbMap);})
+  .catch(function(){buildChalTable(list,{});});
+}
+
+function buildChalTable(list,fbMap){
+  var html='';
+  list.forEach(function(c,i){
+    var diff=c.category.includes('Beginner')?'b':c.category.includes('Advanced')?'a':'i';
+    var fb=fbMap[String(c.id)];
+    var fbTxt=fb?('<span style="color:#ffd700;font-size:.74rem">'+esc(fb.username)+'</span>'):'<span style="color:#30363d">—</span>';
+    var n=esc(c.name).replace(/'/g,"\\'");
+    html+='<tr>';
+    html+='<td style="color:#8b949e;font-size:.7rem">'+(i+1)+'</td>';
+    html+='<td class="mono">'+esc(c.name)+'</td>';
+    html+='<td><span class="badge badge-'+diff+'">'+esc(c.category)+'</span></td>';
+    html+='<td><span class="pts">'+c.value+'</span></td>';
+    html+='<td>'+c.solves+'</td>';
+    html+='<td>'+fbTxt+'</td>';
+    html+='<td><div class="btn-row">';
+    if(c.solves>0)    html+='<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'solves\')">Solves</button>';
+    if(fb)            html+='<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'first-blood\')">1st Blood</button>';
+    html+=            '<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'attempts\')">Attempts</button>';
+    html+=            '<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'writeups\')">Write-ups</button>';
+    html+=            '<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'votes\')">Votes</button>';
+    html+=            '<button class="btn btn-red btn-xs" onclick="deleteChallenge('+c.id+',\''+n+'\')">Delete</button>';
+    html+='</div></td></tr>';
+  });
+  document.getElementById('chal-tbody').innerHTML=html;
+}
+
+/* ── Content tab (per-challenge writeups/votes) ──────────────────────────── */
+function loadContentTab(){if(!_chals.length)loadChals(); else renderContentTab();}
+function renderContentTab(){
+  if(!document.getElementById('content-tbody'))return;
+  var html='';
+  _chals.forEach(function(c,i){
+    var n=esc(c.name).replace(/'/g,"\\'");
+    html+='<tr>';
+    html+='<td style="color:#8b949e;font-size:.7rem">'+(i+1)+'</td>';
+    html+='<td class="mono">'+esc(c.name)+'</td>';
+    html+='<td style="color:#8b949e">—</td>';
+    html+='<td style="color:#8b949e">—</td>';
+    html+='<td><div class="btn-row">';
+    html+=  '<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'writeups\')">Erase Write-ups</button>';
+    html+=  '<button class="btn btn-amber btn-xs" onclick="eraseField('+c.id+',\''+n+'\',\'votes\')">Erase Votes</button>';
+    html+='</div></td></tr>';
+  });
+  if(!html)html='<tr><td colspan="5" style="text-align:center;color:#8b949e;padding:18px">No challenges.</td></tr>';
+  document.getElementById('content-tbody').innerHTML=html;
+}
+
+/* ── Users ───────────────────────────────────────────────────────────────── */
+function loadUsers(){
+  fetch('/api/ctf/admin/users',{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(d){_users=d;renderUsers();})
+  .catch(function(){document.getElementById('user-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#ff4444">Failed to load.</td></tr>';});
+}
+function renderUsers(){
+  var search=(document.getElementById('user-search')||{value:''}).value.toLowerCase();
+  var list=search?_users.filter(function(u){return u.name.toLowerCase().includes(search)||u.email.toLowerCase().includes(search);}):_users;
+  if(!list.length){document.getElementById('user-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:18px">No users.</td></tr>';return;}
+  var html='';
+  list.forEach(function(u,i){
+    var role=u.admin?'<span class="badge badge-u">admin</span>':'<span style="color:#8b949e;font-size:.75rem">player</span>';
+    var status=u.banned?'<span style="color:#ff4444">banned</span>':u.hidden?'<span style="color:#8b949e">hidden</span>':'<span style="color:#00ff41">active</span>';
+    var action=u.admin?'<span style="color:#30363d;font-size:.74rem">protected</span>':
+      '<button class="btn btn-red btn-xs" onclick="deleteUser('+u.id+',\''+esc(u.name).replace(/'/g,"\\'")+'\')">Delete</button>';
+    html+='<tr><td style="color:#8b949e;font-size:.7rem">'+(i+1)+'</td>';
+    html+='<td class="mono">'+esc(u.name)+'</td>';
+    html+='<td style="color:#8b949e;font-size:.78rem">'+esc(u.email)+'</td>';
+    html+='<td>'+u.solves+'</td><td>'+role+'</td><td>'+status+'</td><td>'+action+'</td></tr>';
+  });
+  document.getElementById('user-tbody').innerHTML=html;
+}
+function deleteUser(id,name){
+  openModal('Delete user?','Permanently delete "'+name+'" and all their data.',function(){
+    fetch('/api/ctf/admin/users/'+id,{method:'DELETE',credentials:'same-origin',
+      headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'}})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.success){showAlert('User "'+name+'" deleted.',true);loadUsers();loadChals();}
+      else{showAlert(d.message||'Failed',false);}
+    }).catch(function(e){showAlert('Network error: '+e,false);});
+  });
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+loadChals();
+</script>
+{% endblock %}

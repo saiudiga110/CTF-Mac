@@ -1,0 +1,193 @@
+<form method="POST" action="{{ script_root }}/admin/chal/new" enctype="multipart/form-data">
+	<div class="form-group">
+		<div class="alert alert-info" role="alert">
+			<strong>🐳 Dynamic Docker Challenge</strong> — Creates an isolated Docker container per player with a unique
+			flag.
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="name">Name<br>
+			<small class="form-text text-muted">The name of your challenge</small>
+		</label>
+		<input type="text" class="form-control" name="name" placeholder="Enter challenge name">
+	</div>
+
+	<div class="form-group">
+		<label for="category">Category<br>
+			<small class="form-text text-muted">The category of your challenge</small>
+		</label>
+		<input type="text" class="form-control" name="category" placeholder="Enter challenge category">
+	</div>
+
+	<ul class="nav nav-tabs" role="tablist" id="new-desc-edit">
+		<li class="nav-item">
+			<a class="nav-link active" href="#new-desc-write" aria-controls="home" role="tab"
+				data-toggle="tab">Write</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" href="#new-desc-preview" aria-controls="home" role="tab" data-toggle="tab">Preview</a>
+		</li>
+	</ul>
+
+	<div class="tab-content">
+		<div role="tabpanel" class="tab-pane active" id="new-desc-write">
+			<div class="form-group">
+				<label for="message-text" class="control-label">Description
+					<small class="form-text text-muted">
+						Give a brief introduction to your challenge. Supports HTML and Markdown.
+					</small>
+				</label>
+				<textarea id="new-desc-editor" class="form-control" name="description" rows="10"></textarea>
+			</div>
+		</div>
+		<div role="tabpanel" class="tab-pane content" id="new-desc-preview" style="height:234px; overflow-y: scroll;">
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label>Initial Value<br>
+			<small class="form-text text-muted">How many points the challenge is worth initially</small>
+		</label>
+		<input type="number" class="form-control" name="value" placeholder="Enter value" required>
+	</div>
+
+	<div class="form-group">
+		<label>Decay Limit<br>
+			<small class="form-text text-muted">Number of solves before the challenge reaches its minimum value</small>
+		</label>
+		<input type="number" class="form-control" name="decay" placeholder="Enter decay limit" required>
+	</div>
+
+	<div class="form-group">
+		<label>Required Flags<br>
+			<small class="form-text text-muted">Number of unique flags required to solve the challenge</small>
+		</label>
+		<input type="number" class="form-control" name="flags_required" placeholder="Enter number of flags (default 1)"
+			value="1" min="1" required>
+	</div>
+
+	<div class="form-group">
+		<label>Minimum Value<br>
+			<small class="form-text text-muted">The lowest the challenge can be worth</small>
+		</label>
+		<input type="number" class="form-control" name="minimum" placeholder="Enter minimum value" required>
+	</div>
+
+	<div class="form-group">
+		<label>🐳 Docker Image<br>
+			<small class="form-text text-muted">
+				Select an existing image or type a custom image name
+			</small>
+		</label>
+		<select class="form-control" name="docker_image" id="docker-image-select" required>
+			<option value="">Loading images...</option>
+		</select>
+		<input type="text" class="form-control mt-2" id="docker-image-custom" placeholder="Or type a custom image name"
+			style="display:none;">
+		<small class="form-text">
+			<a href="#" id="toggle-custom-image" style="color: #007bff;">Switch to custom input</a>
+		</small>
+	</div>
+
+	<div class="form-group">
+		<label>Redirect Type<br>
+			<small class="form-text text-muted">How traffic is routed to the container</small>
+		</label>
+		<select class="form-control" name="redirect_type">
+			<option value="direct" selected>Direct (Port Mapping)</option>
+			<option value="http">HTTP</option>
+		</select>
+	</div>
+
+	<div class="form-group">
+		<label>Redirect Port<br>
+			<small class="form-text text-muted">The port inside the container to expose (e.g. 80, 8080)</small>
+		</label>
+		<input type="number" class="form-control" name="redirect_port" placeholder="Enter container port" required>
+	</div>
+
+	<div class="form-group">
+		<label>Memory Limit<br>
+			<small class="form-text text-muted">Container memory limit (e.g. 128m, 256m, 1g)</small>
+		</label>
+		<input type="text" class="form-control" name="memory_limit" placeholder="Enter memory limit" value="128m"
+			required>
+	</div>
+
+	<div class="form-group">
+		<label>CPU Limit<br>
+			<small class="form-text text-muted">CPU cores allocated (e.g. 0.5 = half a core)</small>
+		</label>
+		<input type="number" class="form-control" name="cpu_limit" placeholder="Enter CPU limit" value="0.5" step="0.1"
+			required>
+	</div>
+
+	<input type="hidden" name="state" value="hidden">
+	<input type="hidden" value="dynamic_docker" name="type" id="chaltype">
+
+	<div class="form-group">
+		<label>Score Type<br>
+			<small class="form-text text-muted">Dynamic score decreases as more players solve it</small>
+		</label>
+		<select class="form-control" name="dynamic_score">
+			<option value="0" selected>Static Score</option>
+			<option value="1">Dynamic Score</option>
+		</select>
+	</div>
+
+	<div class="form-group">
+		<button class="btn btn-primary float-right create-challenge-submit" type="submit">Create</button>
+	</div>
+</form>
+
+<script>
+	(function () {
+		// Fetch Docker images from the host
+		var select = document.getElementById('docker-image-select');
+		var customInput = document.getElementById('docker-image-custom');
+		var toggleLink = document.getElementById('toggle-custom-image');
+		var usingCustom = false;
+
+		if (typeof CTFd !== 'undefined' && CTFd.fetch) {
+			CTFd.fetch('/plugins/ctfd-whale/admin/images', {
+				method: 'GET',
+				credentials: 'same-origin',
+				headers: { 'Accept': 'application/json' }
+			}).then(function (r) { return r.json(); })
+				.then(function (data) {
+					if (data.success && data.data.length > 0) {
+						select.innerHTML = '<option value="">-- Select Docker Image --</option>';
+						data.data.forEach(function (img) {
+							var opt = document.createElement('option');
+							opt.value = img.tag;
+							opt.textContent = img.tag + ' (' + img.size + ' MB)';
+							select.appendChild(opt);
+						});
+					} else {
+						select.innerHTML = '<option value="">No images found — use custom input</option>';
+					}
+				}).catch(function () {
+					select.innerHTML = '<option value="">Error loading images — use custom input</option>';
+				});
+		}
+
+		toggleLink.addEventListener('click', function (e) {
+			e.preventDefault();
+			usingCustom = !usingCustom;
+			if (usingCustom) {
+				select.style.display = 'none';
+				select.removeAttribute('name');
+				customInput.style.display = 'block';
+				customInput.setAttribute('name', 'docker_image');
+				toggleLink.textContent = 'Switch to dropdown';
+			} else {
+				select.style.display = 'block';
+				select.setAttribute('name', 'docker_image');
+				customInput.style.display = 'none';
+				customInput.removeAttribute('name');
+				toggleLink.textContent = 'Switch to custom input';
+			}
+		});
+	})();
+</script>

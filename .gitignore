@@ -1,0 +1,37 @@
+# Secrets — never commit
+.env
+nginx/ca.key
+nginx/certs/default.key
+nginx/certs/*.key
+nginx/certs/*.crt
+nginx/certs/*.srl
+DockerDesktopInstaller.exe
+
+# Runtime data
+.data/
+challenges/vbank-ctf/database.db
+challenges/vbank/vbank.db
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+# Local backups and generated release scratch files
+*.bak
+*.bak-*
+*.bak_*
+*.orig
+*.tmp
+# Generated local test/log output
+host-agent/agent.log
+output*.txt
+web_output*.txt
+xss_output.txt

@@ -1,0 +1,270 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<style>
+:root {
+  --cg-green: #00ff41; --cg-card: #0b1a0b; --cg-card2: #112011;
+  --cg-border: rgba(0,255,65,0.12); --cg-muted: #507050; --cg-text: #ccffcc;
+  --cg-warn: #ffcc00; --cg-danger: #ff3333;
+  --cg-font-head: "Orbitron","Share Tech Mono",monospace;
+  --cg-font-mono: "Share Tech Mono",monospace;
+}
+
+.an-page { padding: 28px 32px; }
+.an-page h1 {
+  font-family: var(--cg-font-head); font-size: 1.3rem; color: var(--cg-green);
+  letter-spacing: 3px; text-transform: uppercase; margin-bottom: 24px;
+  border-bottom: 1px solid var(--cg-border); padding-bottom: 14px;
+}
+
+/* Summary cards */
+.an-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+.an-card {
+  background: var(--cg-card); border: 1px solid var(--cg-border);
+  border-radius: 8px; padding: 20px 22px; text-align: center;
+}
+.an-card-val {
+  font-family: var(--cg-font-head); font-size: 2.2rem; font-weight: 700;
+  color: var(--cg-green); text-shadow: 0 0 16px rgba(0,255,65,0.3); line-height: 1;
+}
+.an-card-label {
+  font-family: var(--cg-font-mono); font-size: 0.68rem; color: var(--cg-muted);
+  text-transform: uppercase; letter-spacing: 2px; margin-top: 6px;
+}
+
+/* Section layout */
+.an-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.an-section {
+  background: var(--cg-card); border: 1px solid var(--cg-border);
+  border-radius: 8px; overflow: hidden;
+}
+.an-section.full { grid-column: 1 / -1; }
+.an-section-head {
+  background: var(--cg-card2); padding: 12px 18px;
+  border-bottom: 1px solid var(--cg-border);
+  font-family: var(--cg-font-head); font-size: 0.78rem; color: var(--cg-green);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* Tables */
+.an-table { width: 100%; border-collapse: collapse; font-family: var(--cg-font-mono); font-size: 0.8rem; }
+.an-table th {
+  background: var(--cg-card2); color: var(--cg-muted); text-transform: uppercase;
+  letter-spacing: 1.5px; font-size: 0.66rem; padding: 10px 14px;
+  border-bottom: 1px solid var(--cg-border); text-align: left;
+}
+.an-table td { padding: 10px 14px; border-bottom: 1px solid rgba(0,255,65,0.05); color: var(--cg-text); vertical-align: middle; }
+.an-table tr:hover td { background: rgba(0,255,65,0.03); }
+.an-table tr:last-child td { border-bottom: none; }
+
+/* Solve bar */
+.solve-bar-bg { background: rgba(0,255,65,0.08); border-radius: 3px; height: 6px; min-width: 60px; }
+.solve-bar    { background: linear-gradient(90deg,#00cc33,#00ff41); border-radius: 3px; height: 100%; transition: width 0.5s; }
+
+/* Difficulty stars */
+.diff-stars { color: #ffcc00; letter-spacing: 1px; }
+
+/* First blood badge */
+.fb-badge {
+  display: inline-block; background: rgba(255,51,51,0.15); border: 1px solid rgba(255,51,51,0.3);
+  color: #ff6666; border-radius: 12px; padding: 2px 9px; font-size: 0.64rem;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* Timeline chart area */
+#timeline-chart { padding: 16px 18px; }
+.timeline-bars { display: flex; align-items: flex-end; gap: 4px; height: 80px; }
+.tl-bar { flex: 1; background: rgba(0,255,65,0.2); border-radius: 2px 2px 0 0; min-height: 2px; position: relative; cursor: default; }
+.tl-bar:hover { background: rgba(0,255,65,0.4); }
+.tl-bar-label { font-family: var(--cg-font-mono); font-size: 0.58rem; color: var(--cg-muted); text-align: center; margin-top: 4px; }
+
+/* Top solvers */
+.solver-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid rgba(0,255,65,0.05); }
+.solver-rank { font-family: var(--cg-font-head); font-size: 0.72rem; color: var(--cg-muted); width: 24px; flex-shrink: 0; }
+.solver-rank.gold   { color: #ffd700; }
+.solver-rank.silver { color: #c0c0c0; }
+.solver-rank.bronze { color: #cd7f32; }
+.solver-name { flex: 1; color: var(--cg-text); font-family: var(--cg-font-mono); font-size: 0.82rem; }
+.solver-count { font-family: var(--cg-font-head); font-size: 0.82rem; color: var(--cg-green); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .an-summary { grid-template-columns: repeat(2,1fr); }
+  .an-row     { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="an-page">
+  <h1>⚡ CTF Analytics Dashboard</h1>
+
+  <!-- Summary Cards -->
+  <div class="an-summary" id="an-summary">
+    <div class="an-card"><div class="an-card-val" id="s-solves">—</div><div class="an-card-label">Total Solves</div></div>
+    <div class="an-card"><div class="an-card-val" id="s-users">—</div><div class="an-card-label">Active Users</div></div>
+    <div class="an-card"><div class="an-card-val" id="s-writeups">—</div><div class="an-card-label">Write-ups</div></div>
+    <div class="an-card"><div class="an-card-val" id="s-first-bloods">—</div><div class="an-card-label">First Bloods</div></div>
+  </div>
+
+  <div class="an-row">
+    <!-- Solve Timeline -->
+    <div class="an-section">
+      <div class="an-section-head">📈 Solve Activity (Last 24h)</div>
+      <div id="timeline-chart"><div class="timeline-bars" id="tl-bars"></div></div>
+    </div>
+
+    <!-- Top Solvers -->
+    <div class="an-section">
+      <div class="an-section-head">🏆 Top Solvers</div>
+      <div id="top-solvers-list"></div>
+    </div>
+  </div>
+
+  <!-- Challenge Table -->
+  <div class="an-section full">
+    <div class="an-section-head">
+      🎯 Challenges
+      <input id="chal-search" placeholder="Filter challenges…" style="float:right;background:rgba(0,0,0,0.3);border:1px solid rgba(0,255,65,0.2);border-radius:4px;color:#ccffcc;font-family:'Share Tech Mono',monospace;font-size:0.75rem;padding:3px 10px;outline:none;margin-top:-2px;">
+    </div>
+    <table class="an-table" id="chal-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Challenge</th>
+          <th>Category</th>
+          <th>Pts</th>
+          <th>Solves</th>
+          <th>Solve Rate</th>
+          <th>First Blood</th>
+          <th>Difficulty</th>
+          <th>Votes</th>
+        </tr>
+      </thead>
+      <tbody id="chal-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  var totalUsers = 0;
+
+  fetch('/api/ctf/analytics', { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      totalUsers = d.total_users || 1;
+
+      // Summary
+      document.getElementById('s-solves').textContent   = d.total_solves;
+      document.getElementById('s-users').textContent    = d.total_users;
+      document.getElementById('s-writeups').textContent = d.writeup_count;
+      document.getElementById('s-first-bloods').textContent =
+        d.challenges.filter(function(c) { return c.first_blood; }).length;
+
+      // Timeline
+      buildTimeline(d.solve_timeline);
+
+      // Top Solvers
+      buildSolvers(d.top_solvers);
+
+      // Challenge table
+      buildChallengeTable(d.challenges);
+
+      // Search
+      document.getElementById('chal-search').addEventListener('input', function() {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('#chal-tbody tr').forEach(function(tr) {
+          tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    }).catch(function(e) { console.error('Analytics fetch failed', e); });
+
+  function buildTimeline(data) {
+    var keys = Object.keys(data).sort();
+    if (!keys.length) return;
+    var maxVal = Math.max.apply(null, keys.map(function(k) { return data[k]; }));
+    var container = document.getElementById('tl-bars');
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;width:100%;';
+    var barsDiv = document.createElement('div');
+    barsDiv.className = 'timeline-bars';
+
+    keys.forEach(function(k) {
+      var val = data[k];
+      var pct = maxVal ? Math.max(4, Math.round((val / maxVal) * 80)) : 4;
+      var bar = document.createElement('div');
+      bar.className = 'tl-bar';
+      bar.style.height = pct + 'px';
+      bar.title = k.split('T')[1] + ' — ' + val + ' solves';
+      barsDiv.appendChild(bar);
+    });
+
+    var labelsDiv = document.createElement('div');
+    labelsDiv.style.cssText = 'display:flex;gap:4px;margin-top:4px;';
+    // Only show a few labels
+    var step = Math.max(1, Math.floor(keys.length / 6));
+    keys.forEach(function(k, i) {
+      var lbl = document.createElement('div');
+      lbl.className = 'tl-bar-label';
+      lbl.style.flex = '1';
+      lbl.textContent = i % step === 0 ? k.split('T')[1].slice(0,5) : '';
+      labelsDiv.appendChild(lbl);
+    });
+
+    container.appendChild(barsDiv);
+    container.appendChild(labelsDiv);
+  }
+
+  function buildSolvers(solvers) {
+    var list = document.getElementById('top-solvers-list');
+    var ranks = ['gold','silver','bronze'];
+    solvers.forEach(function(s, i) {
+      var row = document.createElement('div');
+      row.className = 'solver-row';
+      row.innerHTML =
+        '<div class="solver-rank ' + (ranks[i] || '') + '">' + (i + 1) + '</div>' +
+        '<div class="solver-name">' + esc(s.username) + '</div>' +
+        '<div class="solver-count">' + s.solves + ' solved</div>';
+      list.appendChild(row);
+    });
+  }
+
+  function buildChallengeTable(chals) {
+    var tbody = document.getElementById('chal-tbody');
+    var maxSolves = Math.max.apply(null, chals.map(function(c) { return c.solves; })) || 1;
+
+    chals.forEach(function(c, i) {
+      var pct = totalUsers ? Math.round((c.solves / totalUsers) * 100) : 0;
+      var barW = Math.round((c.solves / maxSolves) * 100);
+      var diff = c.difficulty;
+      var stars = '';
+      if (diff.avg) {
+        for (var j = 1; j <= 5; j++) {
+          stars += j <= Math.round(diff.avg) ? '★' : '☆';
+        }
+      }
+      var row = document.createElement('tr');
+      row.innerHTML =
+        '<td style="color:rgba(0,255,65,0.3);font-size:0.72rem;">' + (i+1) + '</td>' +
+        '<td style="font-weight:600;">' + esc(c.name) + '</td>' +
+        '<td style="color:rgba(0,255,65,0.5);font-size:0.75rem;">' + esc(c.category || '—') + '</td>' +
+        '<td style="color:#00ff41;font-weight:700;">' + c.points + '</td>' +
+        '<td>' + c.solves + '</td>' +
+        '<td>' +
+          '<div class="solve-bar-bg" style="width:80px;">' +
+            '<div class="solve-bar" style="width:' + barW + '%;"></div>' +
+          '</div>' +
+          '<span style="font-size:0.68rem;color:rgba(0,255,65,0.4);margin-left:6px;">' + pct + '%</span>' +
+        '</td>' +
+        '<td>' + (c.first_blood
+          ? '<span class="fb-badge">🩸 ' + esc(c.first_blood) + '</span>'
+          : '<span style="color:rgba(80,112,80,0.5);">—</span>') + '</td>' +
+        '<td><span class="diff-stars">' + (stars || '—') + '</span></td>' +
+        '<td style="color:rgba(0,255,65,0.4);font-size:0.75rem;">' + diff.votes + '</td>';
+      tbody.appendChild(row);
+    });
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "name": "vbank-analytics",
+  "version": "1.0.0",
+  "description": "Intentionally vulnerable analytics microservice for the VBank CTF",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

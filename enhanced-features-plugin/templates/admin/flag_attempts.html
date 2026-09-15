@@ -1,0 +1,188 @@
+{% extends "admin/base.html" %}
+{% block title %}Flag Attempt Log{% endblock %}
+{% block content %}
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--green:#00ff41;--red:#ff4444;--yellow:#ffd700;--blue:#64b4ff;--text:#c9d1d9;--muted:#8b949e;}
+body{background:var(--bg)!important;color:var(--text)!important;}
+.fa-hdr{background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid var(--border);padding:22px 0 16px;margin-bottom:24px;}
+.fa-hdr h1{font-family:'Courier New',monospace;color:var(--green);font-size:1.5rem;letter-spacing:2px;margin:0;}
+.fa-hdr p{color:var(--muted);font-size:.85rem;margin:4px 0 0;}
+.summary-row{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap;}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 20px;min-width:110px;text-align:center;}
+.s-card .val{font-family:'Courier New',monospace;font-size:1.5rem;}
+.s-card .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.mini-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 16px;}
+.mini-table-wrap h4{font-family:'Courier New',monospace;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:0 0 10px;}
+.mini-table{width:100%;border-collapse:collapse;}
+.mini-table td,.mini-table th{padding:5px 8px;font-size:.79rem;border-bottom:1px solid rgba(48,54,61,.35);}
+.mini-table th{font-family:'Courier New',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.mini-table tr:last-child td{border-bottom:none;}
+.bar-wrap{width:80px;height:5px;background:rgba(255,255,255,.07);border-radius:2px;display:inline-block;vertical-align:middle;}
+.bar-fill{height:100%;border-radius:2px;background:var(--red);}
+.controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.inp{background:rgba(0,0,0,.4);border:1px solid rgba(0,255,65,.15);border-radius:5px;color:var(--text);font-family:'Courier New',monospace;font-size:.82rem;padding:6px 10px;outline:none;width:180px;}
+.inp:focus{border-color:rgba(0,255,65,.35);}
+.f-btn{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:5px 12px;cursor:pointer;font-size:.75rem;font-family:'Courier New',monospace;}
+.f-btn.active{background:rgba(0,255,65,.08);color:var(--green);border-color:rgba(0,255,65,.25);}
+.f-btn.active-red{background:rgba(255,68,68,.1);color:var(--red);border-color:rgba(255,68,68,.3);}
+table{width:100%;border-collapse:collapse;}
+th{font-family:'Courier New',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;}
+td{padding:9px 12px;border-bottom:1px solid rgba(48,54,61,.4);font-size:.82rem;vertical-align:middle;}
+tr:hover td{background:rgba(0,255,65,.02);}
+.ok{color:var(--green);}
+.fail{color:var(--red);}
+.flag-mono{font-family:'Courier New',monospace;font-size:.76rem;color:var(--yellow);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ip-mono{font-family:'Courier New',monospace;font-size:.75rem;color:var(--muted);}
+.pager{display:flex;gap:8px;margin-top:14px;justify-content:center;}
+.pager button{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:5px 14px;cursor:pointer;font-family:'Courier New',monospace;font-size:.78rem;}
+.pager button.active{background:rgba(0,255,65,.1);color:var(--green);border-color:rgba(0,255,65,.25);}
+.pager button:disabled{opacity:.3;cursor:not-allowed;}
+.empty{text-align:center;padding:40px;color:var(--muted);}
+</style>
+
+<div class="fa-hdr">
+  <div class="container">
+    <h1>&#128221; Flag Attempt Log</h1>
+    <p>Every flag submission — correct and incorrect — with user, challenge, and submitted string.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="summary-row" id="stat-row">
+    <div class="s-card"><div class="val" style="color:var(--blue)" id="s-total">—</div><div class="lbl">Total Attempts</div></div>
+    <div class="s-card"><div class="val ok" id="s-correct">—</div><div class="lbl">Correct</div></div>
+    <div class="s-card"><div class="val fail" id="s-wrong">—</div><div class="lbl">Wrong</div></div>
+    <div class="s-card"><div class="val" style="color:var(--yellow)" id="s-rate">—</div><div class="lbl">Success Rate</div></div>
+  </div>
+
+  <div class="two-col" id="top-row">
+    <div class="mini-table-wrap">
+      <h4>&#128680; Most Wrong Attempts — Users</h4>
+      <table class="mini-table"><thead><tr><th>User</th><th>Wrong</th><th></th></tr></thead>
+      <tbody id="tb-users"><tr><td colspan="3" style="color:var(--muted)">Loading…</td></tr></tbody></table>
+    </div>
+    <div class="mini-table-wrap">
+      <h4>&#128683; Most Wrong Attempts — Challenges</h4>
+      <table class="mini-table"><thead><tr><th>Challenge</th><th>Wrong</th><th></th></tr></thead>
+      <tbody id="tb-chals"><tr><td colspan="3" style="color:var(--muted)">Loading…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input class="inp" id="q-user" placeholder="Filter user…" oninput="applyFilter()">
+    <input class="inp" id="q-chal" placeholder="Filter challenge…" oninput="applyFilter()">
+    <button class="f-btn active" id="f-all" onclick="setCorrect('',this)">All</button>
+    <button class="f-btn" id="f-ok" onclick="setCorrect('1',this)">&#9989; Correct</button>
+    <button class="f-btn" id="f-fail" onclick="setCorrect('0',this)">&#10060; Wrong</button>
+    <button class="f-btn" onclick="loadPage(curPage)" style="margin-left:auto">&#8635; Refresh</button>
+  </div>
+
+  <div id="table-wrap"><div class="empty">Loading…</div></div>
+  <div class="pager" id="pager"></div>
+</div>
+
+<script>
+var curPage = 1;
+var correctFilter = '';
+var totalPages = 1;
+
+function loadStats() {
+  fetch('/api/ctf/admin/flag-attempts/stats', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      document.getElementById('s-total').textContent   = d.total;
+      document.getElementById('s-correct').textContent = d.correct;
+      document.getElementById('s-wrong').textContent   = d.wrong;
+      var rate = d.total ? Math.round(d.correct/d.total*100) : 0;
+      document.getElementById('s-rate').textContent = rate + '%';
+
+      var maxU = d.wrong_users.length ? d.wrong_users[0].count : 1;
+      document.getElementById('tb-users').innerHTML = d.wrong_users.map(function(u){
+        var pct = Math.round(u.count/maxU*100);
+        return '<tr><td style="font-family:monospace">'+esc(u.username)+'</td><td style="color:var(--red)">'+u.count+'</td>' +
+          '<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+      }).join('') || '<tr><td colspan="3" style="color:var(--muted)">No data</td></tr>';
+
+      var maxC = d.wrong_chals.length ? d.wrong_chals[0].count : 1;
+      document.getElementById('tb-chals').innerHTML = d.wrong_chals.map(function(c){
+        var pct = Math.round(c.count/maxC*100);
+        return '<tr><td>'+esc(c.challenge)+'</td><td style="color:var(--red)">'+c.count+'</td>' +
+          '<td><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+      }).join('') || '<tr><td colspan="3" style="color:var(--muted)">No data</td></tr>';
+    }).catch(function(){});
+}
+
+function loadPage(page) {
+  curPage = page;
+  var user = document.getElementById('q-user').value.trim();
+  var chal = document.getElementById('q-chal').value.trim();
+  var url  = '/api/ctf/admin/flag-attempts?page='+page+'&per_page=50';
+  if (user) url += '&user='+encodeURIComponent(user);
+  if (chal) url += '&challenge='+encodeURIComponent(chal);
+  if (correctFilter) url += '&correct='+correctFilter;
+
+  fetch(url, {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      totalPages = Math.max(1, Math.ceil(d.total / 50));
+      renderTable(d.entries);
+      renderPager(d.total);
+    }).catch(function(e){ document.getElementById('table-wrap').innerHTML = '<div class="empty">Error: '+e+'</div>'; });
+}
+
+function renderTable(entries) {
+  if (!entries.length) {
+    document.getElementById('table-wrap').innerHTML = '<div class="empty">No entries for this filter.</div>';
+    return;
+  }
+  var html = '<table><thead><tr><th>User</th><th>Challenge</th><th>Flag Submitted</th><th>Result</th><th>IP</th><th>Time</th></tr></thead><tbody>';
+  entries.forEach(function(e){
+    var ts = new Date(e.created_at).toLocaleString();
+    var res = e.correct
+      ? '<span class="ok">&#9989; Correct</span>'
+      : '<span class="fail">&#10060; Wrong</span>';
+    html += '<tr>' +
+      '<td style="font-family:monospace">'+esc(e.username)+'</td>' +
+      '<td>'+esc(e.challenge_name)+'</td>' +
+      '<td class="flag-mono" title="'+esc(e.flag_submitted)+'">'+esc(e.flag_submitted)+'</td>' +
+      '<td>'+res+'</td>' +
+      '<td class="ip-mono">'+esc(e.ip_address||'—')+'</td>' +
+      '<td style="font-family:monospace;font-size:.75rem">'+esc(ts)+'</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('table-wrap').innerHTML = html;
+}
+
+function renderPager(total) {
+  var html = '';
+  html += '<button onclick="loadPage(curPage-1)" '+(curPage<=1?'disabled':'')+'>&#8592; Prev</button>';
+  var start = Math.max(1, curPage-2), end = Math.min(totalPages, curPage+2);
+  for (var p = start; p <= end; p++) {
+    html += '<button class="'+(p===curPage?'active':'')+'" onclick="loadPage('+p+')">'+p+'</button>';
+  }
+  html += '<button onclick="loadPage(curPage+1)" '+(curPage>=totalPages?'disabled':'')+'>Next &#8594;</button>';
+  html += '<span style="font-family:monospace;font-size:.75rem;color:var(--muted);margin-left:8px">'+total+' total</span>';
+  document.getElementById('pager').innerHTML = html;
+}
+
+var _filterTimer = null;
+function applyFilter() {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(function(){ loadPage(1); }, 400);
+}
+
+function setCorrect(val, btn) {
+  correctFilter = val;
+  document.querySelectorAll('.f-btn').forEach(function(b){ b.classList.remove('active','active-red'); });
+  btn.classList.add(val===''?'active':val==='1'?'active':'active-red');
+  loadPage(1);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+loadStats();
+loadPage(1);
+</script>
+{% endblock %}

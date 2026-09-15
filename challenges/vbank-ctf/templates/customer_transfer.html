@@ -1,0 +1,68 @@
+{% extends "customer_base.html" %}
+{% block title %}Wire Transfer{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-paper-plane"></i></div>New Wire Transfer</div>
+            <div class="card-body">
+                <div class="alert alert-system mb-4" style="font-size:0.8rem; background:#eff6ff; border:1px solid #93c5fd; color:#1e3a8a; border-left:4px solid #3b82f6; border-radius:8px;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Wire transfers processed within 1–3 business days. Same-day available for pre-approved beneficiaries. All transactions monitored for AML compliance.
+                </div>
+                <form method="GET" action="/account/transfer/confirm">
+                    <div class="mb-3">
+                        <label class="form-label">Beneficiary Account</label>
+                        <select name="acct" class="form-select" required>
+                            <option value="">— Select beneficiary —</option>
+                            <optgroup label="Pre-approved Beneficiaries">
+                                <option value="TVRnMU5EVTJNVFk0TVRJPQ==">vBank Treasury Account (MT95452194I2)</option>
+                                <option value="TVRnMU9ESXhNakU0TVRVPQ==">vBank Operations Fund (MT95821214U5)</option>
+                                <option value="TVRNMk9EVTNPRGs0TVRnPQ==">vBank Risk Reserve (TM36875984T8)</option>
+                                <option value="TVRjNE5URTFOalE0TnpjPQ==">vBank Pension Scheme (TC84E51NJ4N7)</option>
+                            </optgroup>
+                        </select>
+                        <div class="form-text text-muted" style="font-size:0.75rem;">
+                            Account IDs use double-encoded reference format for legacy system compat.
+                        </div>
+                        <div class="alert mt-2 p-2" style="font-size:0.74rem; background:#fff4e5; border:1px solid #f59e0b; color:#92400e; border-left:3px solid #f59e0b; border-radius:6px;">
+                            <i class="fas fa-ban me-1"></i>
+                            <strong>Compliance Notice:</strong> One external beneficiary account has been <strong>suspended</strong> pending AML investigation and removed from the approved list. Transfers to suspended accounts are blocked at the frontend. The account reference is on file with the compliance team.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transfer Amount (GBP)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">£</span>
+                            <input type="number" name="amount" class="form-control" placeholder="0.00" min="1" step="0.01">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Reference (optional)</label>
+                        <input type="text" name="ref" class="form-control" placeholder="e.g. Invoice INV-2024-001">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Submit Transfer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>Transfer Limits</div>
+            <div class="card-body" style="font-size:0.84rem; color:#475569; line-height:1.8;">
+                <div><strong>Daily limit:</strong> £50,000</div>
+                <div><strong>Single transfer:</strong> £25,000</div>
+                <div><strong>FPS cut-off:</strong> 17:00 GMT Mon–Fri</div>
+                <div><strong>CHAPS same-day:</strong> £100+ (£25 fee)</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-shield-alt"></i></div>AML Notice</div>
+            <div class="card-body" style="font-size:0.78rem; color:#64748b; line-height:1.7;">
+                All transfers are screened against sanctions lists and monitored for suspicious activity. Transfers to flagged accounts may be delayed pending review.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Dashboard</h1>
+            <p class="text-muted">Your progress and achievements</p>
+        </div>
+        <div class="col-md-4 text-right">
+            <button class="btn btn-primary" onclick="refreshDashboard()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Challenges Solved</h5>
+                    <h2 id="solved-count" class="text-primary">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Total Points</h5>
+                    <h2 id="total-points" class="text-success">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Leaderboard Rank</h5>
+                    <h2 id="rank" class="text-info">#0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Achievements</h5>
+                    <h2 id="achievements-count" class="text-warning">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-trophy"></i> Achievements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="achievements-list" class="row"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Solves -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-flag-checkered"></i> Recent Solves
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped" id="solves-table">
+                        <thead>
+                            <tr>
+                                <th>Challenge</th>
+                                <th>Time Spent</th>
+                                <th>Hints Used</th>
+                                <th>Solved At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solves-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .achievement-badge {
+        text-align: center;
+        padding: 20px;
+        margin: 10px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+</style>
+
+<script>
+function refreshDashboard() {
+    fetch('/api/enhanced/dashboard')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.data;
+                document.getElementById('solved-count').textContent = stats.total_solves;
+                document.getElementById('total-points').textContent = stats.total_points;
+                document.getElementById('rank').textContent = '#' + stats.rank;
+                document.getElementById('achievements-count').textContent = stats.achievements_count;
+                
+                // Load achievements
+                loadAchievements();
+                
+                // Load solves
+                loadSolves(stats.challenges_list);
+            }
+        });
+}
+
+function loadAchievements() {
+    const userId = getCurrentUserId(); // Implement this
+    fetch(`/api/enhanced/achievements/${userId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const container = document.getElementById('achievements-list');
+                container.innerHTML = data.data.map(a => `
+                    <div class="col-md-3">
+                        <div class="achievement-badge">
+                            <div style="font-size: 32px; margin-bottom: 10px;">🏆</div>
+                            <h6>${a.title}</h6>
+                            <small>${a.description}</small>
+                            <div style="margin-top: 10px;">+${a.points_bonus} points</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+}
+
+function loadSolves(challenges) {
+    const tbody = document.getElementById('solves-tbody');
+    tbody.innerHTML = challenges.map(c => `
+        <tr>
+            <td>Challenge #${c.id}</td>
+            <td>${formatTime(c.time_spent)}</td>
+            <td>${c.hints_used}</td>
+            <td>${new Date(c.solved_at).toLocaleString()}</td>
+        </tr>
+    `).join('');
+}
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+}
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', refreshDashboard);
+</script>
+{% endblock %}

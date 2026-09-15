@@ -1,0 +1,28 @@
+{% extends "customer_base.html" %}
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-search"></i></div>Search</div>
+            <div class="card-body">
+                <div class="text-muted mb-3" style="font-size:0.84rem;">
+                    Find help articles, branch locations, and support topics.
+                </div>
+                <form method="GET" action="/search">
+                    <div class="input-group mb-3">
+                        <input type="text" name="q" class="form-control" placeholder="e.g. lost card, branch opening hours" value="{{ q }}">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
+                    </div>
+                </form>
+                {% if q %}
+                <div class="alert" style="font-size:0.88rem; background:#f8fafc; border:1px solid #e1e8ef; color:#334155; border-radius:8px;">
+                    No results found for &quot;{{ q | safe }}&quot;.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

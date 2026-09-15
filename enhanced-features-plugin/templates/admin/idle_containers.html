@@ -1,0 +1,221 @@
+{% extends "admin/base.html" %}
+{% block title %}Auto-Pause Containers{% endblock %}
+{% block content %}
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--green:#00ff41;--red:#ff4444;--yellow:#ffd700;--blue:#64b4ff;--text:#c9d1d9;--muted:#8b949e;}
+body{background:var(--bg)!important;color:var(--text)!important;}
+.ic-hdr{background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid var(--border);padding:22px 0 16px;margin-bottom:24px;}
+.ic-hdr h1{font-family:'Courier New',monospace;color:var(--blue);font-size:1.5rem;letter-spacing:2px;margin:0;}
+.ic-hdr p{color:var(--muted);font-size:.85rem;margin:4px 0 0;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.btn-refresh{background:rgba(0,255,65,.1);color:var(--green);border:1px solid rgba(0,255,65,.3);border-radius:6px;padding:7px 16px;cursor:pointer;font-family:'Courier New',monospace;font-size:.82rem;}
+.btn-refresh:hover{background:rgba(0,255,65,.2);}
+.config-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;flex-wrap:wrap;}
+.config-row label{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);}
+.config-inp{background:rgba(0,0,0,.4);border:1px solid rgba(100,180,255,.25);border-radius:5px;color:var(--blue);font-family:'Courier New',monospace;font-size:.88rem;padding:5px 10px;width:80px;outline:none;}
+.config-inp:focus{border-color:rgba(100,180,255,.5);}
+.btn-save{background:rgba(100,180,255,.1);color:var(--blue);border:1px solid rgba(100,180,255,.3);border-radius:5px;padding:5px 14px;cursor:pointer;font-family:'Courier New',monospace;font-size:.78rem;}
+.btn-save:hover{background:rgba(100,180,255,.2);}
+.summary-row{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.s-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 20px;min-width:110px;text-align:center;}
+.s-card .val{font-family:'Courier New',monospace;font-size:1.5rem;}
+.s-card .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+table{width:100%;border-collapse:collapse;}
+th{font-family:'Courier New',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;}
+td{padding:10px 12px;border-bottom:1px solid rgba(48,54,61,.4);font-size:.83rem;vertical-align:middle;}
+tr:hover td{background:rgba(100,180,255,.02);}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.dot-running{background:#00ff41;box-shadow:0 0 5px #00ff41;}
+.dot-paused{background:#ffd700;}
+.dot-exited{background:#ff4444;}
+.idle-bar{width:90px;height:5px;background:rgba(255,255,255,.07);border-radius:2px;display:inline-block;vertical-align:middle;}
+.idle-fill{height:100%;border-radius:2px;transition:width .4s;}
+.idle-ok{background:#00ff41;}
+.idle-warn{background:#ffd700;}
+.idle-crit{background:#ff4444;}
+.idle-pct{font-family:'Courier New',monospace;font-size:.74rem;margin-left:6px;}
+.btn-act{border-radius:5px;padding:3px 10px;cursor:pointer;font-size:.72rem;font-family:'Courier New',monospace;border-width:1px;border-style:solid;}
+.btn-resume{background:rgba(0,255,65,.1);color:var(--green);border-color:rgba(0,255,65,.25);}
+.btn-resume:hover{background:rgba(0,255,65,.2);}
+.btn-pause{background:rgba(255,215,0,.1);color:var(--yellow);border-color:rgba(255,215,0,.25);}
+.btn-pause:hover{background:rgba(255,215,0,.2);}
+.btn-act:disabled{opacity:.35;cursor:not-allowed;}
+.empty{text-align:center;padding:50px;color:var(--muted);}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid rgba(0,255,65,.3);border-radius:8px;padding:10px 18px;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);z-index:9999;display:none;}
+.auto-lbl{font-size:.72rem;color:var(--muted);font-family:'Courier New',monospace;}
+</style>
+
+<div class="ic-hdr">
+  <div class="container">
+    <h1>&#9208; Auto-Pause Containers</h1>
+    <p>Containers idle beyond the threshold are automatically paused to free CPU/RAM. They resume instantly when participants reconnect.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="config-row">
+    <label>Idle threshold:</label>
+    <input class="config-inp" id="threshold-inp" type="number" min="60" max="86400" value="1800">
+    <label>seconds</label>
+    <span style="font-family:monospace;font-size:.78rem;color:var(--blue)" id="threshold-human">(30 min)</span>
+    <button class="btn-save" onclick="saveThreshold()">&#128190; Save</button>
+    <span class="auto-lbl" id="next-refresh" style="margin-left:auto">Auto-refresh in 15s</span>
+  </div>
+
+  <div class="summary-row">
+    <div class="s-card"><div class="val" style="color:var(--blue)" id="s-total">—</div><div class="lbl">Managed</div></div>
+    <div class="s-card"><div class="val" style="color:var(--green)" id="s-running">—</div><div class="lbl">Running</div></div>
+    <div class="s-card"><div class="val" style="color:var(--yellow)" id="s-paused">—</div><div class="lbl">Paused</div></div>
+    <div class="s-card"><div class="val" style="color:var(--red)" id="s-idle">—</div><div class="lbl">Near Threshold</div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn-refresh" onclick="load()">&#8635; Refresh</button>
+  </div>
+
+  <div id="table-wrap"><div class="empty">Loading…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var countdown = 15;
+var thresholdSec = 1800;
+
+function fmtDur(sec) {
+  if (sec === null || sec === undefined) return '—';
+  if (sec < 60)   return sec + 's';
+  if (sec < 3600) return Math.floor(sec/60) + 'm ' + (sec%60) + 's';
+  return Math.floor(sec/3600) + 'h ' + Math.floor((sec%3600)/60) + 'm';
+}
+
+function loadConfig() {
+  fetch('/api/ctf/admin/idle-containers/config', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      thresholdSec = d.threshold_sec;
+      document.getElementById('threshold-inp').value = thresholdSec;
+      document.getElementById('threshold-human').textContent = '('+fmtDur(thresholdSec)+')';
+    }).catch(function(){});
+}
+
+function saveThreshold() {
+  var v = parseInt(document.getElementById('threshold-inp').value);
+  if (!v || v < 60 || v > 86400) { toast('Must be 60–86400 seconds','#ff4444'); return; }
+  fetch('/api/ctf/admin/idle-containers/config', {
+    method:'POST', credentials:'same-origin',
+    headers:{'Content-Type':'application/json','CSRF-Token':getCsrf()},
+    body:JSON.stringify({threshold_sec:v})
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) {
+        thresholdSec = v;
+        document.getElementById('threshold-human').textContent = '('+fmtDur(v)+')';
+        toast('Threshold saved','#00ff41');
+        load();
+      } else {
+        toast(d.error||'Error','#ff4444');
+      }
+    }).catch(function(e){toast(''+e,'#ff4444');});
+}
+
+document.getElementById('threshold-inp').addEventListener('input', function(){
+  var v = parseInt(this.value);
+  document.getElementById('threshold-human').textContent = v > 0 ? '('+fmtDur(v)+')' : '';
+});
+
+function load() {
+  countdown = 15;
+  fetch('/api/ctf/admin/idle-containers', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if (!Array.isArray(rows)) {
+        document.getElementById('table-wrap').innerHTML = '<div class="empty">Error: '+esc(JSON.stringify(rows))+'</div>';
+        return;
+      }
+      document.getElementById('s-total').textContent   = rows.length;
+      document.getElementById('s-running').textContent = rows.filter(function(r){return r.status==='running'&&!r.paused;}).length;
+      document.getElementById('s-paused').textContent  = rows.filter(function(r){return r.paused||r.status==='paused';}).length;
+      document.getElementById('s-idle').textContent    = rows.filter(function(r){return r.idle_sec&&r.idle_sec>thresholdSec*0.8&&!r.paused;}).length;
+
+      if (!rows.length) {
+        document.getElementById('table-wrap').innerHTML = '<div class="empty">No managed containers.</div>';
+        return;
+      }
+
+      var html = '<table><thead><tr><th>Container</th><th>Status</th><th>Idle Time</th><th>Progress</th><th>Last Seen</th><th>Actions</th></tr></thead><tbody>';
+      rows.forEach(function(r) {
+        var isPaused = r.paused || r.status === 'paused';
+        var dotCls = isPaused ? 'dot-paused' : r.status === 'running' ? 'dot-running' : 'dot-exited';
+        var statusText = isPaused ? 'Paused' : r.status;
+
+        var idlePct = r.idle_sec ? Math.min(100, Math.round(r.idle_sec / thresholdSec * 100)) : 0;
+        var fillCls = idlePct >= 100 ? 'idle-crit' : idlePct >= 75 ? 'idle-warn' : 'idle-ok';
+        var idleText = r.idle_sec !== null ? fmtDur(r.idle_sec) : '—';
+        var lastSeen = r.last_seen ? new Date(r.last_seen).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+
+        var actionBtns = '';
+        if (isPaused) {
+          actionBtns = '<button class="btn-act btn-resume" onclick="resume(this,\''+esc(r.name)+'\')">&#9654; Resume</button>';
+        } else if (r.status === 'running') {
+          actionBtns = '<button class="btn-act btn-pause" onclick="pause(this,\''+esc(r.name)+'\')">&#9646;&#9646; Pause</button>';
+        }
+
+        html += '<tr>' +
+          '<td style="font-family:monospace;font-size:.8rem">'+esc(r.name)+'</td>' +
+          '<td><span class="status-dot '+dotCls+'"></span>'+esc(statusText)+'</td>' +
+          '<td style="font-family:monospace;color:'+(idlePct>=100?'var(--red)':idlePct>=75?'var(--yellow)':'var(--muted)')+'">'+idleText+'</td>' +
+          '<td><div class="idle-bar"><div class="idle-fill '+fillCls+'" style="width:'+idlePct+'%"></div></div><span class="idle-pct">'+idlePct+'%</span></td>' +
+          '<td style="font-family:monospace;font-size:.75rem">'+lastSeen+'</td>' +
+          '<td>'+actionBtns+'</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('table-wrap').innerHTML = html;
+    }).catch(function(e){ document.getElementById('table-wrap').innerHTML='<div class="empty">Error: '+esc(''+e)+'</div>'; });
+}
+
+function resume(btn, name) {
+  btn.disabled = true; btn.textContent = '…';
+  fetch('/api/ctf/admin/idle-containers/'+encodeURIComponent(name)+'/resume', {
+    method:'POST', credentials:'same-origin', headers:{'CSRF-Token':getCsrf()}
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) { toast('Resumed '+name,'#00ff41'); load(); }
+      else { toast(d.error||'Error','#ff4444'); btn.disabled=false; btn.innerHTML='&#9654; Resume'; }
+    }).catch(function(e){ toast(''+e,'#ff4444'); btn.disabled=false; });
+}
+
+function pause(btn, name) {
+  btn.disabled = true; btn.textContent = '…';
+  fetch('/api/ctf/admin/idle-containers/'+encodeURIComponent(name)+'/pause', {
+    method:'POST', credentials:'same-origin', headers:{'CSRF-Token':getCsrf()}
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) { toast('Paused '+name,'#ffd700'); load(); }
+      else { toast(d.error||'Error','#ff4444'); btn.disabled=false; btn.innerHTML='&#9646;&#9646; Pause'; }
+    }).catch(function(e){ toast(''+e,'#ff4444'); btn.disabled=false; });
+}
+
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : '';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function toast(msg, col) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.color = col||'var(--green)'; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(function(){t.style.display='none';}, 3000);
+}
+
+function tick() {
+  countdown--;
+  document.getElementById('next-refresh').textContent = 'Auto-refresh in '+countdown+'s';
+  if (countdown <= 0) load();
+}
+
+loadConfig();
+load();
+setInterval(tick, 1000);
+</script>
+{% endblock %}

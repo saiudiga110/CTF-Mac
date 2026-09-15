@@ -1,0 +1,146 @@
+{% extends "customer_base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="alert alert-dev mb-4" style="font-size:0.8rem;">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>[STAGING]</strong> Session auth token: <code>{{ flag2 }}</code>
+    &nbsp;— <em>Jake: remove this before UAT freeze (ticket #DEV-882)</em>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#dbeafe;">
+                <i class="fas fa-pound-sign" style="color:#1565c0;"></i>
+            </div>
+            <div>
+                <div class="stat-label">Available Balance</div>
+                <div class="stat-value">£{{ "%.2f"|format(customer.balance) }}</div>
+                <div class="stat-sub" style="color:#16a34a;"><i class="fas fa-check-circle me-1"></i>Account active</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#dcfce7;">
+                <i class="fas fa-id-card" style="color:#16a34a;"></i>
+            </div>
+            <div>
+                <div class="stat-label">Account Number</div>
+                <div class="stat-value" style="font-size:1rem; margin-top:4px;">{{ customer.account }}</div>
+                <div class="stat-sub">Account ID: {{ customer.acct_uid }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fef9c3;">
+                <i class="fas fa-bolt" style="color:#ca8a04;"></i>
+            </div>
+            <div>
+                <div class="stat-label">Express Balance</div>
+                <div class="stat-value">£1,000.00</div>
+                <div class="stat-sub">Express transfer pool</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#f3e8ff;">
+                <i class="fas fa-credit-card" style="color:#7c3aed;"></i>
+            </div>
+            <div>
+                <div class="stat-label">Credit Limit</div>
+                <div class="stat-value">£10,000</div>
+                <div class="stat-sub">£8,400 available</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-history"></i></div>
+                Recent Transactions
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="padding:12px 20px;">Date</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th class="text-end" style="padding-right:20px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding:12px 20px; color:#64748b; font-size:0.8rem;">01 Feb 2024</td>
+                            <td>Monthly Salary — vBank Operations</td>
+                            <td><span class="badge bg-light text-muted">JAN-SAL-2024</span></td>
+                            <td class="text-end text-success fw-semibold" style="padding-right:20px;">+£4,200.00</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:12px 20px; color:#64748b; font-size:0.8rem;">28 Jan 2024</td>
+                            <td>Office Supplies Reimbursement</td>
+                            <td><span class="badge bg-light text-muted">EXP-0182</span></td>
+                            <td class="text-end text-success fw-semibold" style="padding-right:20px;">+£85.50</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:12px 20px; color:#64748b; font-size:0.8rem;">22 Jan 2024</td>
+                            <td>Travel — Manchester Office Visit</td>
+                            <td><span class="badge bg-light text-muted">TRV-0041</span></td>
+                            <td class="text-end text-danger fw-semibold" style="padding-right:20px;">-£312.00</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:12px 20px; color:#64748b; font-size:0.8rem;">15 Jan 2024</td>
+                            <td>Corporate Amex Settlement</td>
+                            <td><span class="badge bg-light text-muted">AMEX-JAN</span></td>
+                            <td class="text-end text-danger fw-semibold" style="padding-right:20px;">-£1,240.00</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:12px 20px; color:#64748b; font-size:0.8rem;">10 Jan 2024</td>
+                            <td>Training Course — Cloud Security</td>
+                            <td><span class="badge bg-light text-muted">TRN-0019</span></td>
+                            <td class="text-end text-success fw-semibold" style="padding-right:20px;">+£450.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-rocket"></i></div>Quick Actions</div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/account/transfer"         class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-2"></i>New Wire Transfer</a>
+                    <a href="/account/statements"        class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-invoice-dollar me-2"></i>View Statements</a>
+                    <a href="/account/express-transfer"  class="btn btn-outline-secondary btn-sm"><i class="fas fa-bolt me-2"></i>Express Transfer</a>
+                    <a href="/account/support"           class="btn btn-outline-secondary btn-sm"><i class="fas fa-headset me-2"></i>Raise Support Ticket</a>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-bell"></i></div>Notifications</div>
+            <div class="card-body" style="font-size:0.82rem;">
+                <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
+                    <div style="width:8px;height:8px;background:#16a34a;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+                    <div><div class="fw-semibold">Salary credited</div><div class="text-muted" style="font-size:0.75rem;">£4,200.00 received &nbsp;·&nbsp; 01 Feb</div></div>
+                </div>
+                <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
+                    <div style="width:8px;height:8px;background:#f59e0b;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+                    <div><div class="fw-semibold">Loan review pending</div><div class="text-muted" style="font-size:0.75rem;">Application VBK-CR-2403 under review</div></div>
+                </div>
+                <div class="d-flex gap-3">
+                    <div style="width:8px;height:8px;background:#3b82f6;border-radius:50%;margin-top:5px;flex-shrink:0;"></div>
+                    <div><div class="fw-semibold">New feature available</div><div class="text-muted" style="font-size:0.75rem;">Express transfers now live — try it today</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

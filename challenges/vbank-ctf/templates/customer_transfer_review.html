@@ -1,0 +1,72 @@
+{% extends "customer_base.html" %}
+{% block title %}Review Payment{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-clipboard-check"></i></div>Review Your Payment</div>
+            <div class="card-body">
+                <table class="table" style="font-size:0.9rem;">
+                    <tr>
+                        <td class="text-muted" style="width:180px;">Recipient</td>
+                        <td style="font-weight:600;">{{ recipient }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Sort Code</td>
+                        <td>{{ sort_code }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Account Number</td>
+                        <td>{{ account_number }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Amount</td>
+                        <td style="font-weight:600;">£{{ amount }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Reference</td>
+                        <td>{{ reference if reference else '—' }}</td>
+                    </tr>
+                </table>
+
+                {% if compliance_status == 'blocked' %}
+                <div class="alert mb-3" style="font-size:0.8rem; background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; border-left:4px solid #dc2626; border-radius:8px;">
+                    <i class="fas fa-ban me-2"></i>
+                    <strong>Compliance Hold:</strong> this beneficiary has been screened and is currently
+                    <strong>suspended pending AML investigation</strong>. This payment will be declined if submitted as-is.
+                </div>
+                {% else %}
+                <div class="alert alert-system mb-3" style="font-size:0.78rem; background:#eff6ff; border:1px solid #93c5fd; color:#1e3a8a; border-left:4px solid #3b82f6; border-radius:8px;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Double-check the sort code and account number. Once sent, this payment cannot be recalled — the recipient name is a label only and does not stop the payment from being processed.
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/account/transfer/confirm" class="d-flex gap-2">
+                    <input type="hidden" name="recipient" value="{{ recipient }}">
+                    <input type="hidden" name="sort_code" value="{{ sort_code }}">
+                    <input type="hidden" name="account_number" value="{{ account_number }}">
+                    <input type="hidden" name="amount" value="{{ amount }}">
+                    <input type="hidden" name="reference" value="{{ reference }}">
+                    <input type="hidden" name="compliance_status" value="{{ compliance_status }}">
+                    <a href="/account/transfer" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Edit</a>
+                    {% if compliance_status == 'blocked' %}
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-ban me-2"></i>Submit Anyway (Payment Will Be Declined)</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Confirm &amp; Send</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-shield-alt"></i></div>Before You Confirm</div>
+            <div class="card-body" style="font-size:0.78rem; color:#64748b; line-height:1.7;">
+                We run a Confirmation of Payee check where the receiving bank supports it, but ultimately your payment is routed by sort code and account number alone — the same way UK Faster Payments works everywhere else.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

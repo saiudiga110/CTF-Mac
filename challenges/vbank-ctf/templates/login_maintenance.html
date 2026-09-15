@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Under Maintenance — vBank Online Banking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!--
+        vBank Customer Portal v2.4.2-staging
+        Ops note (Jake): sign-in temporarily pulled from /customer/login while we
+        patch the auth form. Don't link the new path anywhere public yet — it's
+        still at /new-login until QA signs off. Revert before GA.
+    -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(160deg, #0d2137 0%, #1565c0 100%);
+            padding: 24px;
+        }
+        .card {
+            width: 100%; max-width: 460px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 44px 40px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        }
+        .brand-logo { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom: 28px; }
+        .brand-logo .icon { width:44px; height:44px; background:#eaf2fd; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#1565c0; font-size:1.2rem; }
+        .brand-logo .name { color:#0d2137; font-size:1.15rem; font-weight:800; }
+        .icon-wrap {
+            width: 72px; height: 72px; margin: 0 auto 22px;
+            border-radius: 50%; background: #fef3e2;
+            display: flex; align-items: center; justify-content: center;
+            color: #b9711f; font-size: 1.8rem;
+        }
+        h1 { font-size: 1.35rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
+        p.msg { font-size: 0.9rem; color: #64748b; line-height: 1.65; margin-bottom: 22px; }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #fef3e2; color: #b9711f;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 7px 14px; border-radius: 999px; margin-bottom: 26px;
+        }
+        .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #b9711f; }
+        .divider { border-top: 1px solid #f1f5f9; margin: 22px 0 18px; }
+        .contact { font-size: 0.78rem; color: #94a3b8; }
+        .contact a { color: #1565c0; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand-logo">
+            <div class="icon"><i class="fas fa-university"></i></div>
+            <div class="name">vBank</div>
+        </div>
+        <div class="icon-wrap"><i class="fas fa-tools"></i></div>
+        <div class="status-pill"><span class="dot"></span>Scheduled Maintenance</div>
+        <h1>Online Banking sign-in is temporarily unavailable</h1>
+        <p class="msg">
+            We're carrying out scheduled maintenance on the Online Banking sign-in
+            service. Existing sessions are unaffected. Please check back shortly —
+            we apologise for the inconvenience.
+        </p>
+        <div class="divider"></div>
+        <p class="contact">
+            Need urgent help? Call <a href="#">0800 123 4567</a>, available 24/7.
+        </p>
+    </div>
+</body>
+</html>

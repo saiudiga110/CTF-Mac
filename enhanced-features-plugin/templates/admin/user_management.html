@@ -1,0 +1,251 @@
+{% extends "admin/base.html" %}
+{% block title %}User Management{% endblock %}
+{% block content %}
+<style>
+body { background:#0d1117 !important; color:#c9d1d9 !important; }
+.um-header { background:linear-gradient(135deg,#0d1117,#161b22,#0d1117);
+  border-bottom:1px solid #30363d; padding:24px 0 18px; margin-bottom:24px; }
+.um-header h1 { font-family:'Courier New',monospace; color:#00ff41; font-size:1.6rem;
+  letter-spacing:2px; text-shadow:0 0 12px rgba(0,255,65,.4); }
+.um-card { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:20px; margin-bottom:20px; }
+.um-card h4 { color:#c9d1d9; font-family:'Courier New',monospace; margin:0 0 16px; }
+.form-ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px;
+  color:#c9d1d9; padding:8px 12px; width:100%; font-size:.9rem; box-sizing:border-box; }
+.form-ctrl:focus { outline:none; border-color:#00ff41; }
+.btn-green  { background:linear-gradient(135deg,#00ff41,#00cc33); color:#000; border:none;
+  border-radius:6px; padding:9px 22px; font-weight:700; cursor:pointer; font-size:.85rem; }
+.btn-green:hover { opacity:.9; }
+.btn-sm { border:none; border-radius:5px; padding:4px 10px; font-size:.75rem; cursor:pointer; font-weight:600; }
+.btn-ban  { background:rgba(255,68,68,.15); color:#ff4444; border:1px solid rgba(255,68,68,.3); }
+.btn-edit { background:rgba(100,180,255,.15); color:#64b4ff; border:1px solid rgba(100,180,255,.3); }
+.btn-del  { background:rgba(255,68,68,.12); color:#ff6666; border:1px solid rgba(255,68,68,.25); }
+label { font-size:.8rem; color:#8b949e; display:block; margin-bottom:4px; }
+.form-row { margin-bottom:12px; }
+.form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.alert-box { border-radius:7px; padding:10px 16px; margin-bottom:14px; font-size:.85rem; display:none; }
+.alert-ok  { background:rgba(0,255,65,.1); border:1px solid rgba(0,255,65,.3); color:#00ff41; }
+.alert-err { background:rgba(255,68,68,.1); border:1px solid rgba(255,68,68,.3); color:#ff4444; }
+.um-table  { width:100%; border-collapse:collapse; }
+.um-table th { background:#0d1117; color:#8b949e; font-size:.78rem; letter-spacing:1px;
+  text-transform:uppercase; padding:10px 12px; text-align:left; border-bottom:1px solid #30363d; }
+.um-table td { padding:10px 12px; border-bottom:1px solid rgba(48,54,61,.5); font-size:.85rem; }
+.um-table tr:hover td { background:rgba(0,255,65,.02); }
+.badge-admin    { background:rgba(255,215,0,.15); color:#ffd700; border:1px solid rgba(255,215,0,.3);
+  border-radius:4px; padding:1px 8px; font-size:.7rem; }
+.badge-banned   { background:rgba(255,68,68,.15); color:#ff4444; border:1px solid rgba(255,68,68,.3);
+  border-radius:4px; padding:1px 8px; font-size:.7rem; }
+.badge-pending  { background:rgba(255,165,0,.15); color:#ffa500; border:1px solid rgba(255,165,0,.3);
+  border-radius:4px; padding:1px 8px; font-size:.7rem; }
+.badge-approved { background:rgba(0,255,65,.1); color:#00ff41; border:1px solid rgba(0,255,65,.25);
+  border-radius:4px; padding:1px 8px; font-size:.7rem; }
+.badge-rejected { background:rgba(255,68,68,.1); color:#ff4444; border:1px solid rgba(255,68,68,.25);
+  border-radius:4px; padding:1px 8px; font-size:.7rem; }
+.search-box { display:flex; gap:10px; margin-bottom:14px; }
+.search-box input { flex:1; }
+.bulk-area { background:#0d1117; border:1px solid #30363d; border-radius:6px;
+  color:#c9d1d9; padding:10px 12px; width:100%; font-family:'Courier New',monospace;
+  font-size:.82rem; min-height:120px; box-sizing:border-box; }
+.bulk-area:focus { outline:none; border-color:#00ff41; }
+</style>
+
+<div class="um-header">
+  <div class="container">
+    <h1>&#128101; User Management</h1>
+    <p style="color:#8b949e;font-size:.9rem">Create and manage CTF participants. Bulk import from CSV.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="alert-box" class="alert-box"></div>
+
+  <!-- Create single user -->
+  <div class="um-card" style="border-color:rgba(0,255,65,.2)">
+    <h4 style="color:#00ff41">&#43; Create Single User</h4>
+    <div class="form-grid-3">
+      <div class="form-row"><label>Username</label><input class="form-ctrl" id="cu-name" placeholder="e.g. player01"></div>
+      <div class="form-row"><label>Email</label><input class="form-ctrl" id="cu-email" placeholder="player@example.com"></div>
+      <div class="form-row"><label>Password</label><input class="form-ctrl" id="cu-pwd" type="password" placeholder="Set a password"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#8b949e;font-size:.85rem">
+        <input type="checkbox" id="cu-admin" style="accent-color:#00ff41"> Make admin
+      </label>
+      <button class="btn-green" onclick="createSingleUser()">Create User</button>
+    </div>
+  </div>
+
+  <!-- Bulk create -->
+  <div class="um-card">
+    <h4 style="color:#64b4ff">&#128196; Bulk Create (CSV)</h4>
+    <p style="font-size:.82rem;color:#8b949e;margin:0 0 10px">
+      One user per line: <code style="color:#00ff41">username,email,password</code>
+    </p>
+    <textarea class="bulk-area" id="bulk-csv" placeholder="alice,alice@example.com,p@ssw0rd1&#10;bob,bob@example.com,p@ssw0rd2&#10;charlie,charlie@example.com,p@ssw0rd3"></textarea>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+      <button class="btn-green" onclick="bulkCreate()">Import Users</button>
+      <span id="bulk-status" style="font-size:.82rem;color:#8b949e"></span>
+    </div>
+  </div>
+
+  <!-- User list -->
+  <div class="um-card">
+    <h4>&#128100; All Users</h4>
+    <div class="search-box">
+      <input class="form-ctrl" id="user-search" placeholder="Search by name or email..." oninput="filterUsers()">
+      <button class="btn-sm btn-edit" style="padding:8px 16px" onclick="loadUsers()">Refresh</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="um-table" id="users-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Username</th><th>Email</th><th>Solves</th>
+            <th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="6" style="text-align:center;color:#8b949e;padding:24px">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  if (m && m.getAttribute('content')) return m.getAttribute('content');
+  if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+  return '';
+}
+var _allUsers = [];
+
+function showAlert(msg, ok) {
+  var b = document.getElementById('alert-box');
+  b.className = 'alert-box ' + (ok ? 'alert-ok' : 'alert-err');
+  b.textContent = msg; b.style.display = 'block';
+  setTimeout(function(){ b.style.display='none'; }, 5000);
+}
+
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function loadUsers() {
+  fetch('/api/ctf/admin/users', { credentials: 'same-origin' })
+    .then(function(r){ return r.json(); })
+    .then(function(users){
+      _allUsers = users;
+      renderUsers(users);
+    }).catch(function(){ showAlert('Failed to load users', false); });
+}
+
+function filterUsers() {
+  var q = document.getElementById('user-search').value.toLowerCase();
+  renderUsers(_allUsers.filter(function(u){
+    return u.name.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q);
+  }));
+}
+
+function renderUsers(users) {
+  var tbody = document.getElementById('users-tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8b949e;padding:24px">No users found.</td></tr>';
+    return;
+  }
+  var html = '';
+  users.forEach(function(u) {
+    var statusBadge = u.admin ? '<span class="badge-admin">Admin</span>' :
+                     u.banned ? '<span class="badge-banned">Banned</span>' : '<span style="color:#8b949e;font-size:.75rem">User</span>';
+    html += '<tr id="ur-' + u.id + '">';
+    html += '<td style="color:#8b949e">' + u.id + '</td>';
+    html += '<td style="font-family:\'Courier New\',monospace">' + _esc(u.name) + '</td>';
+    html += '<td style="color:#8b949e;font-size:.8rem">' + _esc(u.email||'') + '</td>';
+    html += '<td style="color:#00ff41">' + u.solves + '</td>';
+    html += '<td>' + statusBadge + '</td>';
+    html += '<td style="display:flex;gap:6px;flex-wrap:wrap">';
+    if (!u.admin) {
+      html += '<button class="btn-sm btn-ban" onclick="toggleBan(' + u.id + ',' + !u.banned + ')">' + (u.banned ? 'Unban' : 'Ban') + '</button>';
+      html += '<button class="btn-sm btn-del" onclick="deleteUser(' + u.id + ',\'' + _esc(u.name) + '\')">Delete</button>';
+    }
+    html += '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function createSingleUser() {
+  var name  = document.getElementById('cu-name').value.trim();
+  var email = document.getElementById('cu-email').value.trim();
+  var pwd   = document.getElementById('cu-pwd').value;
+  var admin = document.getElementById('cu-admin').checked;
+  if (!name || !email || !pwd) { showAlert('Name, email and password are required', false); return; }
+  fetch('/api/ctf/admin/users/create', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+    body: JSON.stringify({ name: name, email: email, password: pwd, admin: admin })
+  }).then(function(r){ return r.json(); })
+    .then(function(r){
+      if (r.success) {
+        showAlert('User "' + name + '" created!', true);
+        document.getElementById('cu-name').value = '';
+        document.getElementById('cu-email').value = '';
+        document.getElementById('cu-pwd').value = '';
+        document.getElementById('cu-admin').checked = false;
+        loadUsers();
+      } else { showAlert(r.message || 'Failed', false); }
+    }).catch(function(){ showAlert('Network error', false); });
+}
+
+function bulkCreate() {
+  var csv = document.getElementById('bulk-csv').value.trim();
+  if (!csv) { showAlert('No CSV data provided', false); return; }
+  var lines = csv.split('\n').filter(function(l){ return l.trim(); });
+  var users = [];
+  var parseErrors = [];
+  lines.forEach(function(line, i) {
+    var parts = line.split(',').map(function(s){ return s.trim(); });
+    if (parts.length < 3) { parseErrors.push('Line ' + (i+1) + ': needs 3 columns'); return; }
+    users.push({ name: parts[0], email: parts[1], password: parts[2] });
+  });
+  if (parseErrors.length) { showAlert(parseErrors.join('; '), false); return; }
+  var statusEl = document.getElementById('bulk-status');
+  statusEl.textContent = 'Importing ' + users.length + ' users...';
+  fetch('/api/ctf/admin/users/bulk', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+    body: JSON.stringify({ users: users })
+  }).then(function(r){ return r.json(); })
+    .then(function(r){
+      if (r.success) {
+        var msg = 'Created: ' + r.created.length + (r.skipped.length ? ' | Skipped: ' + r.skipped.join(', ') : '');
+        showAlert(msg, true);
+        statusEl.textContent = '';
+        document.getElementById('bulk-csv').value = '';
+        loadUsers();
+      } else { showAlert(r.message || 'Failed', false); statusEl.textContent = ''; }
+    }).catch(function(){ showAlert('Network error', false); statusEl.textContent = ''; });
+}
+
+function toggleBan(userId, ban) {
+  fetch('/api/ctf/admin/users/' + userId, {
+    method: 'PUT', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'CSRF-Token': getCsrf() },
+    body: JSON.stringify({ banned: ban })
+  }).then(function(r){ return r.json(); })
+    .then(function(r){ if (r.success) loadUsers(); else showAlert('Failed', false); });
+}
+
+function deleteUser(userId, name) {
+  if (!confirm('Permanently delete user "' + name + '" and all their data?')) return;
+  fetch('/api/ctf/admin/users/' + userId, {
+    method: 'DELETE', credentials: 'same-origin',
+    headers: { 'CSRF-Token': getCsrf() }
+  }).then(function(r){ return r.json(); })
+    .then(function(r){
+      if (r.success) { showAlert('User deleted', true); loadUsers(); }
+      else showAlert(r.message || 'Failed', false);
+    });
+}
+
+loadUsers();
+setInterval(loadUsers, 60000);
+</script>
+{% endblock %}

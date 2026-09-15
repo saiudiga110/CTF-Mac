@@ -1,0 +1,23 @@
+{% extends "customer_base.html" %}
+{% block title %}Transfer Result{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="alert alert-{{ alert_type }} mb-4" style="font-size:0.9rem; border-radius:10px;">
+            {% if alert_type == 'success' %}
+                <i class="fas fa-check-circle me-2"></i>
+            {% elif alert_type == 'danger' %}
+                <i class="fas fa-exclamation-triangle me-2"></i>
+            {% else %}
+                <i class="fas fa-exclamation-circle me-2"></i>
+            {% endif %}
+            {{ message }}
+        </div>
+        <div class="d-flex gap-3">
+            <a href="/account/transfer"   class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-2"></i>New Transfer</a>
+            <a href="/account/dashboard"  class="btn btn-outline-secondary btn-sm"><i class="fas fa-home me-2"></i>Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,810 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <!-- Left Sidebar Navigation -->
+    <div class="admin-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="fas fa-cog"></i> Admin Features</h4>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-group">
+                <h6 class="nav-group-title">Account Management</h6>
+                <a href="#section-sessions" class="nav-item" onclick="showSection('sessions')">
+                    <i class="fas fa-key"></i> Auto-Login Sessions
+                </a>
+                <a href="#section-onboarding" class="nav-item" onclick="showSection('onboarding')">
+                    <i class="fas fa-graduation-cap"></i> User Onboarding
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <h6 class="nav-group-title">Challenge Management</h6>
+                <a href="#section-scoring" class="nav-item" onclick="showSection('scoring')">
+                    <i class="fas fa-chart-bar"></i> Dynamic Scoring
+                </a>
+                <a href="#section-validation" class="nav-item" onclick="showSection('validation')">
+                    <i class="fas fa-check-circle"></i> Challenge Validation
+                </a>
+                <a href="#section-dashboard" class="nav-item" onclick="showSection('dashboard')">
+                    <i class="fas fa-chart-line"></i> Admin Dashboard
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <h6 class="nav-group-title">Advanced Features</h6>
+                <a href="#section-mobile" class="nav-item" onclick="showSection('mobile')">
+                    <i class="fas fa-mobile-alt"></i> Mobile API
+                </a>
+                <a href="#section-audit" class="nav-item" onclick="showSection('audit')">
+                    <i class="fas fa-history"></i> Audit Logs
+                </a>
+                <a href="#section-tournaments" class="nav-item" onclick="showSection('tournaments')">
+                    <i class="fas fa-trophy"></i> Tournaments
+                </a>
+                <a href="#section-monitoring" class="nav-item" onclick="showSection('monitoring')">
+                    <i class="fas fa-heartbeat"></i> Health Monitoring
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <h6 class="nav-group-title">System</h6>
+                <a href="#section-statistics" class="nav-item" onclick="showSection('statistics')">
+                    <i class="fas fa-pie-chart"></i> Statistics
+                </a>
+                <a href="#section-config" class="nav-item" onclick="showSection('config')">
+                    <i class="fas fa-sliders-h"></i> Configuration
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="admin-content">
+        <div class="content-header">
+            <h2 id="section-title">Admin Features Dashboard</h2>
+            <p id="section-description" class="text-muted">Enhanced CTFd Administration</p>
+        </div>
+
+        <!-- Auto-Login Sessions Section -->
+        <section id="sessions" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-key"></i> Auto-Login Sessions</h3>
+            <p class="section-description">Manage persistent login tokens and sessions</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="active-sessions">0</div>
+                            <div class="stat-label">Active Sessions</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="expired-sessions">0</div>
+                            <div class="stat-label">Expired</div>
+                        </div>
+                    </div>
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Users can generate 30-day persistent login tokens for automatic session recovery.
+                    </p>
+                    <button class="btn btn-primary" onclick="loadSessions()">
+                        <i class="fas fa-sync"></i> Refresh Sessions
+                    </button>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>POST /api/impl/session/enable-autologin
+Returns: {success: true, token: "...", expires_at: "2026-05-16T..."}</code></pre>
+            </div>
+        </section>
+
+        <!-- User Onboarding Section -->
+        <section id="onboarding" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-graduation-cap"></i> User Onboarding</h3>
+            <p class="section-description">Track user onboarding progress and completion</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="onboarding-total">0</div>
+                            <div class="stat-label">Users Onboarded</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="onboarding-completed">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="onboarding-progress">0%</div>
+                            <div class="stat-label">Avg Progress</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoints:</h5>
+                <pre><code>GET  /api/impl/onboarding/status
+POST /api/impl/onboarding/mark/{step}
+Steps: profile, tutorial, first_challenge, team_setup</code></pre>
+            </div>
+        </section>
+
+        <!-- Dynamic Scoring Section -->
+        <section id="scoring" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-chart-bar"></i> Dynamic Scoring System</h3>
+            <p class="section-description">Advanced scoring calculations based on solve time and competition</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="scoring-active">0</div>
+                            <div class="stat-label">Active Scores</div>
+                        </div>
+                    </div>
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Dynamic scoring adjusts points based on:
+                    </p>
+                    <ul>
+                        <li>First-solve bonuses (+50 bonus points)</li>
+                        <li>Rank-based adjustments (decreasing with solves)</li>
+                        <li>Time-decay factors</li>
+                        <li>Competition level scoring</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>POST /api/impl/scoring/calculate
+Body: {challenge_id: int, user_id: int, base_points: int}</code></pre>
+            </div>
+        </section>
+
+        <!-- Challenge Validation Section -->
+        <section id="validation" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-check-circle"></i> Challenge Validation</h3>
+            <p class="section-description">Validate challenges for correctness and quality</p>
+            <div class="card">
+                <div class="card-body">
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Validate challenges for:
+                    </p>
+                    <ul>
+                        <li>Flag correctness and uniqueness</li>
+                        <li>Challenge description completeness</li>
+                        <li>Difficulty classification</li>
+                        <li>Resource availability</li>
+                        <li>Timeout and performance issues</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>POST /api/impl/admin/validate-challenge/{challenge_id}
+Returns: {valid: bool, errors: [], warnings: []}</code></pre>
+            </div>
+        </section>
+
+        <!-- Admin Dashboard Section -->
+        <section id="dashboard" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-chart-line"></i> Admin Dashboard</h3>
+            <p class="section-description">Real-time analytics and system statistics</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="dash-users">0</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="dash-challenges">0</div>
+                            <div class="stat-label">Challenges</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="dash-solves">0</div>
+                            <div class="stat-label">Total Solves</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>GET /api/impl/admin/dashboard
+Returns: {users: count, challenges: count, solves: count, active_users: count}</code></pre>
+            </div>
+        </section>
+
+        <!-- Mobile API Section -->
+        <section id="mobile" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-mobile-alt"></i> Mobile API Integration</h3>
+            <p class="section-description">Mobile-optimized APIs for app integration</p>
+            <div class="card">
+                <div class="card-body">
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Mobile APIs provide:
+                    </p>
+                    <ul>
+                        <li>Lightweight challenge listings with caching</li>
+                        <li>Mobile-friendly leaderboard</li>
+                        <li>Push notification support</li>
+                        <li>Offline mode compatibility</li>
+                        <li>Auto-sync functionality</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoints:</h5>
+                <pre><code>GET /api/impl/mobile/challenges
+GET /api/impl/mobile/leaderboard
+GET /api/impl/mobile/user/{user_id}</code></pre>
+            </div>
+        </section>
+
+        <!-- Audit Logs Section -->
+        <section id="audit" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-history"></i> Audit Logging</h3>
+            <p class="section-description">Complete activity and security event tracking</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="audit-total">0</div>
+                            <div class="stat-label">Total Events</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="audit-today">0</div>
+                            <div class="stat-label">Today</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadAuditLogs()">
+                        <i class="fas fa-sync"></i> Refresh Logs
+                    </button>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>GET /api/impl/admin/audit-logs
+Tracked Events:
+- ENABLE_AUTOLOGIN, APPROVE_USER, REJECT_USER
+- DYNAMIC_SCORING, VALIDATE_CHALLENGE
+- USER_LOGIN, UNAUTHORIZED_ACCESS, FLAGGED_SUBMISSION</code></pre>
+            </div>
+        </section>
+
+        <!-- Tournaments Section -->
+        <section id="tournaments" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-trophy"></i> Multi-Team Tournaments</h3>
+            <p class="section-description">Manage competitive tournament events</p>
+            <div class="card">
+                <div class="card-body">
+                    <p class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Tournament Features:
+                    </p>
+                    <ul>
+                        <li>Multi-team bracket management</li>
+                        <li>Round-robin and elimination formats</li>
+                        <li>Score multipliers for tournament play</li>
+                        <li>Playoff scheduling</li>
+                        <li>Real-time tournament leaderboards</li>
+                    </ul>
+                    <button class="btn btn-success mt-3">
+                        <i class="fas fa-plus"></i> Create Tournament
+                    </button>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>API Endpoint:</h5>
+                <pre><code>POST /api/impl/admin/tournaments
+Body: {name: string, type: "round-robin"|"elimination", teams: [int]}</code></pre>
+            </div>
+        </section>
+
+        <!-- Health Monitoring Section -->
+        <section id="monitoring" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-heartbeat"></i> Container Health Monitoring</h3>
+            <p class="section-description">Monitor system health and resource usage</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="health-containers">0</div>
+                            <div class="stat-label">Containers Running</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="health-cpu">0%</div>
+                            <div class="stat-label">Avg CPU</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="health-memory">0%</div>
+                            <div class="stat-label">Avg Memory</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadHealthMetrics()">
+                        <i class="fas fa-sync"></i> Refresh Metrics
+                    </button>
+                </div>
+            </div>
+            <div class="feature-details">
+                <h5>Monitoring:</h5>
+                <pre><code>- CPU and Memory usage
+- Disk I/O performance
+- Network bandwidth
+- Docker container status
+- Database connection pool health</code></pre>
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section id="statistics" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-pie-chart"></i> System Statistics</h3>
+            <p class="section-description">Comprehensive system statistics and metrics</p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="feature-stats mb-4">
+                        <div class="stat-box">
+                            <div class="stat-number" id="stat-users">0</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="stat-teams">0</div>
+                            <div class="stat-label">Teams</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="stat-challenges">0</div>
+                            <div class="stat-label">Challenges</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="stat-solves">0</div>
+                            <div class="stat-label">Solves</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuration Section -->
+        <section id="config" class="admin-section" style="display: none;">
+            <h3><i class="fas fa-sliders-h"></i> Configuration</h3>
+            <p class="section-description">Configure plugin settings and options</p>
+            <div class="card">
+                <div class="card-body">
+                    <form id="config-form">
+                        <div class="form-group">
+                            <label>Enable Dynamic Scoring</label>
+                            <input type="checkbox" id="config-scoring" checked>
+                        </div>
+                        <div class="form-group">
+                            <label>Enable Auto-Login</label>
+                            <input type="checkbox" id="config-autologin" checked>
+                        </div>
+                        <div class="form-group">
+                            <label>Session Expiry (days)</label>
+                            <input type="number" id="config-session-expiry" value="30" min="1" max="365">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+    .admin-container {
+        display: flex;
+        height: calc(100vh - 60px);
+        background-color: #f5f5f5;
+    }
+
+    .admin-sidebar {
+        width: 250px;
+        background-color: #2d3436;
+        color: #fff;
+        overflow-y: auto;
+        padding: 20px 0;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    .sidebar-header {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid #444;
+        margin-bottom: 20px;
+    }
+
+    .sidebar-header h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #00d4aa;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nav-group {
+        margin-bottom: 30px;
+        padding: 0 15px;
+    }
+
+    .nav-group-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #888;
+        text-transform: uppercase;
+        margin: 0 5px 10px;
+        letter-spacing: 1px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        color: #aaa;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .nav-item:hover {
+        color: #00d4aa;
+        background-color: rgba(0,212,170,0.1);
+        border-left-color: #00d4aa;
+    }
+
+    .nav-item.active {
+        color: #00d4aa;
+        background-color: rgba(0,212,170,0.15);
+        border-left-color: #00d4aa;
+        font-weight: 600;
+    }
+
+    .nav-item i {
+        margin-right: 10px;
+        width: 18px;
+        text-align: center;
+    }
+
+    .admin-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 30px;
+    }
+
+    .content-header {
+        margin-bottom: 30px;
+    }
+
+    .content-header h2 {
+        margin: 0 0 10px;
+        font-size: 28px;
+        color: #2d3436;
+    }
+
+    .content-header p {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .admin-section {
+        margin-bottom: 40px;
+    }
+
+    .admin-section h3 {
+        color: #2d3436;
+        margin-bottom: 10px;
+        font-size: 22px;
+        border-bottom: 2px solid #00d4aa;
+        padding-bottom: 10px;
+    }
+
+    .section-description {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .feature-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 8px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stat-box:nth-child(2) {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stat-box:nth-child(3) {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-box:nth-child(4) {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .card {
+        background: white;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .card-body {
+        padding: 25px;
+    }
+
+    .table {
+        margin: 0;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+    }
+
+    .alert {
+        border: none;
+        border-radius: 6px;
+    }
+
+    .alert-info {
+        background-color: #e3f2fd;
+        color: #1565c0;
+        border-left: 4px solid #1976d2;
+    }
+
+    .feature-details {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border-left: 4px solid #00d4aa;
+    }
+
+    .feature-details h5 {
+        margin-top: 0;
+        color: #2d3436;
+    }
+
+    .feature-details pre {
+        background: #2d3436;
+        color: #00d4aa;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+
+    .feature-details code {
+        color: #00d4aa;
+        font-family: 'Courier New', monospace;
+    }
+
+    .btn {
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #5568d3 0%, #6a3f96 100%);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        border: none;
+        color: #fff;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #38d070 0%, #2ee4c7 100%);
+        color: #fff;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #2d3436;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .form-group input[type="checkbox"] {
+        width: auto;
+        margin-right: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .admin-container {
+            flex-direction: column;
+        }
+
+        .admin-sidebar {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            overflow-x: auto;
+        }
+
+        .sidebar-nav {
+            flex-direction: row;
+        }
+
+        .nav-group {
+            margin-right: 30px;
+        }
+
+        .admin-content {
+            padding: 20px;
+        }
+    }
+
+    /* Scrollbar styling */
+    .admin-sidebar::-webkit-scrollbar,
+    .admin-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-track,
+    .admin-content::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.1);
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb,
+    .admin-content::-webkit-scrollbar-thumb {
+        background: rgba(0,212,170,0.5);
+        border-radius: 4px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb:hover,
+    .admin-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,212,170,0.8);
+    }
+</style>
+
+<script>
+    // Show/hide sections
+    function showSection(sectionId) {
+        // Hide all sections
+        document.querySelectorAll('.admin-section').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Remove active from all nav items
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // Show selected section
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'block';
+            
+            // Update header
+            const title = section.querySelector('h3')?.textContent || 'Admin Features';
+            document.getElementById('section-title').textContent = title;
+            
+            // Mark nav item as active
+            event.target.closest('.nav-item').classList.add('active');
+
+            // Load section data
+            if (sectionId === 'dashboard') loadDashboard();
+            else if (sectionId === 'audit') loadAuditLogs();
+            else if (sectionId === 'statistics') loadStatistics();
+        }
+    }
+
+    // Load dashboard data
+    async function loadDashboard() {
+        try {
+            const response = await fetch('/api/impl/admin/dashboard');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('dash-users').textContent = data.users || 0;
+                document.getElementById('dash-challenges').textContent = data.challenges || 0;
+                document.getElementById('dash-solves').textContent = data.solves || 0;
+            }
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+        }
+    }
+
+    // Load audit logs
+    async function loadAuditLogs() {
+        try {
+            const response = await fetch('/api/impl/admin/audit-logs');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('audit-total').textContent = data.total_logs || 0;
+                document.getElementById('audit-today').textContent = data.today_logs || 0;
+            }
+        } catch (error) {
+            console.error('Error loading audit logs:', error);
+        }
+    }
+
+    // Load statistics
+    async function loadStatistics() {
+        try {
+            // This would typically call a statistics API
+            document.getElementById('stat-users').textContent = '0';
+            document.getElementById('stat-teams').textContent = '0';
+            document.getElementById('stat-challenges').textContent = '0';
+            document.getElementById('stat-solves').textContent = '0';
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    }
+
+    // Load sessions
+    async function loadSessions() {
+        try {
+            const response = await fetch('/api/impl/session/list');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('active-sessions').textContent = data.active || 0;
+                document.getElementById('expired-sessions').textContent = data.expired || 0;
+            }
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+        }
+    }
+
+    // Load health metrics
+    async function loadHealthMetrics() {
+        try {
+            // This would call a health monitoring API
+            document.getElementById('health-containers').textContent = '6';
+            document.getElementById('health-cpu').textContent = '25%';
+            document.getElementById('health-memory').textContent = '45%';
+        } catch (error) {
+            console.error('Error loading health metrics:', error);
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show first section by default
+        showSection('sessions');
+    });
+</script>
+{% endblock %}

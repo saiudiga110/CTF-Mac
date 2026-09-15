@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin — User Management{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h5 class="fw-bold">vBank — Admin Dashboard</h5>
+            <p class="text-muted" style="font-size:0.84rem;">Logged in as <strong>{{ admin_user }}</strong></p>
+            <a href="/staff-portal/logout" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt me-1"></i>Sign Out</a>
+        </div>
+    </div>
+
+    <!-- Dashboard Tabs -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#pending-approvals">Pending Approvals</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#create-user">Create User</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#bulk-import">Bulk Import</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content mt-4">
+        <!-- ============================================================
+             TAB 1: PENDING APPROVALS
+             ============================================================ -->
+        <div id="pending-approvals" class="tab-pane fade show active">
+            <h3>Pending User Registrations</h3>
+            <p class="text-muted">Review and approve or reject pending user registrations</p>
+
+            <div id="pending-list" class="pending-list">
+                <div class="spinner-border" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+
+            <table id="pending-table" class="table table-striped" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Requested</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-tbody">
+                </tbody>
+            </table>
+
+            <div id="no-pending" class="alert alert-info" style="display:none;">
+                No pending registrations at this time.
+            </div>
+        </div>
+
+        <!-- ============================================================
+             TAB 2: CREATE SINGLE USER
+             ============================================================ -->
+        <div id="create-user" class="tab-pane fade">
+            <h3>Create User Account</h3>
+            <p class="text-muted">Create a single user account with optional auto-approval</p>
+
+            <form id="single-user-form" class="form-group" style="max-width: 500px;">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           placeholder="Enter username (min 3 chars)" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Enter password (min 4 chars)" required>
+                    <small class="form-text text-muted">
+                        Password will be stored as MD5 hash
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email (optional):</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="Enter email address">
+                </div>
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="auto-approve" name="auto_approve">
+                    <label class="form-check-label" for="auto-approve">
+                        Auto-approve this user (skip approval queue)
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">Create User</button>
+                <div id="single-response" class="mt-3"></div>
+            </form>
+        </div>
+
+        <!-- ============================================================
+             TAB 3: BULK IMPORT
+             ============================================================ -->
+        <div id="bulk-import" class="tab-pane fade">
+            <h3>Bulk Import Users</h3>
+            <p class="text-muted">
+                Import multiple users from CSV or JSON format.
+                <br>
+                <strong>CSV Format:</strong> <code>username,password,email</code> (one user per line)
+                <br>
+                <strong>JSON Format:</strong> <code>[{"username": "...", "password": "...", "email": "..."}, ...]</code>
+            </p>
+
+            <form id="bulk-import-form" style="max-width: 600px;">
+                <div class="form-group">
+                    <label for="bulk-data">Paste CSV or JSON data:</label>
+                    <textarea class="form-control" id="bulk-data" name="bulk_data" rows="10" 
+                              placeholder="Paste your CSV or JSON here..." required></textarea>
+                </div>
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="bulk-auto-approve" name="bulk_auto_approve">
+                    <label class="form-check-label" for="bulk-auto-approve">
+                        Auto-approve all imported users
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">Import Users</button>
+                <div id="bulk-response" class="mt-3"></div>
+            </form>
+
+            <hr>
+            <h5>Format Examples</h5>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>CSV Example:</h6>
+                    <pre><code>user1,password123,user1@example.com
+user2,password456,user2@example.com
+user3,password789,user3@example.com</code></pre>
+                </div>
+
+                <div class="col-md-6">
+                    <h6>JSON Example:</h6>
+                    <pre><code>[
+  {"username": "user1", "password": "password123", "email": "user1@example.com"},
+  {"username": "user2", "password": "password456", "email": "user2@example.com"},
+  {"username": "user3", "password": "password789", "email": "user3@example.com"}
+]</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-container {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    .pending-list {
+        text-align: center;
+        padding: 40px 0;
+    }
+
+    .pending-row {
+        background: white;
+        padding: 15px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .pending-row-info {
+        flex: 1;
+    }
+
+    .pending-row-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .alert {
+        margin-top: 10px;
+    }
+
+    .spinner-border {
+        color: #007bff;
+    }
+
+    pre {
+        background: #f4f4f4;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+
+    code {
+        color: #d63384;
+    }
+
+    .form-control, .form-check {
+        margin-bottom: 10px;
+    }
+
+    .table {
+        background: white;
+        border-radius: 4px;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .nav-tabs .nav-link {
+        color: #495057;
+        border: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        background-color: transparent;
+        border-bottom: 3px solid #007bff;
+    }
+
+    .tab-pane {
+        background: white;
+        padding: 20px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+        border-top: none;
+    }
+</style>
+
+<script>
+// Load pending users on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadPendingUsers();
+
+    // Single user form submission
+    document.getElementById('single-user-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createSingleUser();
+    });
+
+    // Bulk import form submission
+    document.getElementById('bulk-import-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        bulkImportUsers();
+    });
+});
+
+function loadPendingUsers() {
+    fetch('/admin/api/pending-users')
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load pending users');
+            return response.json();
+        })
+        .then(data => {
+            const pendingList = document.getElementById('pending-list');
+            const pendingTable = document.getElementById('pending-table');
+            const noPending = document.getElementById('no-pending');
+            const tbody = document.getElementById('pending-tbody');
+
+            pendingList.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (data.pending_users.length === 0) {
+                pendingList.style.display = 'none';
+                pendingTable.style.display = 'none';
+                noPending.style.display = 'block';
+                return;
+            }
+
+            noPending.style.display = 'none';
+            pendingList.style.display = 'none';
+            pendingTable.style.display = 'table';
+
+            data.pending_users.forEach(user => {
+                const row = document.createElement('tr');
+                const requestedDate = new Date(user.requested_at).toLocaleString();
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.email || '(none)'}</td>
+                    <td>${requestedDate}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="approveUser(${user.id}, '${user.username}')">
+                            Approve
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectUser(${user.id}, '${user.username}')">
+                            Reject
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            document.getElementById('pending-list').innerHTML = 
+                `<div class="alert alert-danger">Error loading pending users: ${error.message}</div>`;
+        });
+}
+
+function approveUser(userId, username) {
+    if (!confirm(`Approve user "${username}"?`)) return;
+
+    fetch(`/admin/api/users/${userId}/approve`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`User "${username}" approved successfully!`);
+                loadPendingUsers();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => alert(`Request failed: ${error.message}`));
+}
+
+function rejectUser(userId, username) {
+    const reason = prompt(`Reject user "${username}"?\n\nOptional reason:`, '');
+    if (reason === null) return; // User cancelled
+
+    fetch(`/admin/api/users/${userId}/reject`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reason: reason || 'Rejected by admin'})
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`User "${username}" rejected.`);
+                loadPendingUsers();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => alert(`Request failed: ${error.message}`));
+}
+
+function createSingleUser() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const autoApprove = document.getElementById('auto-approve').checked;
+
+    if (!username || !password) {
+        alert('Username and password are required');
+        return;
+    }
+
+    const response = document.getElementById('single-response');
+    response.innerHTML = '<div class="spinner-border" role="status"></div>';
+
+    fetch('/admin/api/users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            username: username,
+            password: password,
+            email: email,
+            auto_approve: autoApprove
+        })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                response.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Success!</strong> ${data.message}
+                    </div>
+                `;
+                document.getElementById('single-user-form').reset();
+                loadPendingUsers();
+            } else {
+                response.innerHTML = `<div class="alert alert-danger"><strong>Error:</strong> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            response.innerHTML = `<div class="alert alert-danger"><strong>Error:</strong> ${error.message}</div>`;
+        });
+}
+
+function bulkImportUsers() {
+    const bulkData = document.getElementById('bulk-data').value.trim();
+    const autoApprove = document.getElementById('bulk-auto-approve').checked;
+    const response = document.getElementById('bulk-response');
+
+    if (!bulkData) {
+        alert('Please paste CSV or JSON data');
+        return;
+    }
+
+    response.innerHTML = '<div class="spinner-border" role="status"></div> Importing...';
+
+    // Determine content type
+    let contentType = 'text/plain';
+    if (bulkData.trim().startsWith('[')) {
+        contentType = 'application/json';
+    }
+
+    const url = `/admin/api/users/bulk?auto_approve=${autoApprove}`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': contentType},
+        body: bulkData
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                let resultsHtml = `
+                    <div class="alert alert-success">
+                        <strong>Import Complete!</strong><br>
+                        Total: ${data.total} | Created: ${data.created} | Failed: ${data.failed}
+                    </div>
+                `;
+
+                if (data.results.created.length > 0) {
+                    resultsHtml += '<h5>Created:</h5><ul>';
+                    data.results.created.forEach(u => {
+                        resultsHtml += `<li><strong>${u.username}</strong> (${u.status})</li>`;
+                    });
+                    resultsHtml += '</ul>';
+                }
+
+                if (data.results.failed.length > 0) {
+                    resultsHtml += '<h5 class="text-danger">Failed:</h5><ul>';
+                    data.results.failed.forEach(u => {
+                        resultsHtml += `<li><strong>${u.username}</strong>: ${u.error}</li>`;
+                    });
+                    resultsHtml += '</ul>';
+                }
+
+                response.innerHTML = resultsHtml;
+                document.getElementById('bulk-data').value = '';
+                loadPendingUsers();
+            } else {
+                response.innerHTML = `<div class="alert alert-danger"><strong>Error:</strong> ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            response.innerHTML = `<div class="alert alert-danger"><strong>Error:</strong> ${error.message}</div>`;
+        });
+}
+
+// Auto-reload pending users every 30 seconds
+setInterval(loadPendingUsers, 30000);
+</script>
+{% endblock %}

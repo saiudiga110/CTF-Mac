@@ -1,0 +1,189 @@
+{% extends "admin/base.html" %}
+{% block title %}Live Solve Feed{% endblock %}
+{% block content %}
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--green:#00ff41;--red:#ff4444;--yellow:#ffd700;--blue:#64b4ff;--text:#c9d1d9;--muted:#8b949e;}
+body{background:var(--bg)!important;color:var(--text)!important;}
+.sf-hdr{background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid var(--border);padding:22px 0 16px;margin-bottom:24px;}
+.sf-hdr h1{font-family:'Courier New',monospace;color:var(--green);font-size:1.5rem;letter-spacing:2px;margin:0;}
+.sf-hdr p{color:var(--muted);font-size:.85rem;margin:4px 0 0;}
+.live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#00ff41;box-shadow:0 0 8px #00ff41;animation:pulse 1.5s infinite;margin-right:8px;vertical-align:middle;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.disconnected .live-dot{background:#ff4444;box-shadow:0 0 8px #ff4444;animation:none;}
+.toolbar{display:flex;align-items:center;gap:16px;margin-bottom:18px;}
+.conn-status{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);}
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:4px 12px;cursor:pointer;font-size:.75rem;font-family:'Courier New',monospace;}
+.filter-btn.active{background:rgba(0,255,65,.1);color:var(--green);border-color:rgba(0,255,65,.3);}
+.counter-row{display:flex;gap:14px;margin-bottom:18px;}
+.counter-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 18px;text-align:center;}
+.counter-box .val{font-family:'Courier New',monospace;font-size:1.4rem;color:var(--green);}
+.counter-box .lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.feed{max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--card);}
+.feed-item{padding:12px 18px;border-bottom:1px solid rgba(48,54,61,.5);display:flex;align-items:center;gap:12px;animation:slidein .3s ease;}
+@keyframes slidein{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+.feed-item:last-child{border-bottom:none;}
+.feed-icon{font-size:1.2rem;flex-shrink:0;}
+.feed-body{flex:1;min-width:0;}
+.feed-main{font-size:.88rem;color:var(--text);}
+.feed-main strong{color:var(--green);}
+.feed-meta{font-size:.72rem;color:var(--muted);font-family:'Courier New',monospace;margin-top:2px;}
+.feed-pts{font-family:'Courier New',monospace;font-size:.82rem;color:var(--yellow);font-weight:700;flex-shrink:0;}
+.fb-badge{display:inline-block;background:rgba(255,215,0,.15);color:var(--yellow);border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:1px 7px;font-size:.62rem;font-weight:700;margin-left:6px;vertical-align:middle;}
+.cat-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:.62rem;font-family:'Courier New',monospace;background:rgba(100,180,255,.1);color:var(--blue);border:1px solid rgba(100,180,255,.25);margin-left:4px;}
+.empty-feed{text-align:center;padding:50px;color:var(--muted);}
+.btn-clear{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.25);border-radius:5px;padding:5px 14px;cursor:pointer;font-family:'Courier New',monospace;font-size:.78rem;}
+.btn-clear:hover{background:rgba(255,68,68,.2);}
+</style>
+
+<div class="sf-hdr">
+  <div class="container">
+    <h1><span class="live-dot" id="live-dot"></span>Live Solve Feed</h1>
+    <p>Real-time flag submissions — updates instantly via SSE when participants solve challenges.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="counter-row">
+    <div class="counter-box"><div class="val" id="c-total">0</div><div class="lbl">Solves (session)</div></div>
+    <div class="counter-box"><div class="val" id="c-fb">0</div><div class="lbl">First Bloods</div></div>
+    <div class="counter-box"><div class="val" id="c-users">0</div><div class="lbl">Active Solvers</div></div>
+  </div>
+
+  <div class="toolbar">
+    <span class="conn-status" id="conn-status">Connecting…</span>
+    <button class="btn-clear" onclick="clearFeed()">&#10005; Clear Feed</button>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('first_blood',this)">&#127981; First Blood</button>
+    <button class="filter-btn" onclick="setFilter('solve',this)">&#9989; Solves</button>
+    <button class="filter-btn" onclick="setFilter('suspicious',this)">&#128680; Suspicious</button>
+  </div>
+
+  <div class="feed" id="feed">
+    <div class="empty-feed" id="empty-msg">Waiting for solves… get hacking!</div>
+  </div>
+</div>
+
+<script>
+var evtSource = null;
+var items = [];
+var filter = 'all';
+var solveCount = 0;
+var fbCount = 0;
+var activeUsers = new Set();
+
+function connect() {
+  if (evtSource) evtSource.close();
+  evtSource = new EventSource('/api/ctf/stream');
+
+  evtSource.onopen = function() {
+    document.getElementById('conn-status').textContent = 'Connected — live';
+    document.getElementById('live-dot').parentElement.classList.remove('disconnected');
+  };
+
+  evtSource.addEventListener('solve', function(e) {
+    var d = JSON.parse(e.data);
+    d._type = 'solve';
+    d._icon = '&#9989;';
+    solveCount++;
+    activeUsers.add(d.username);
+    updateCounters();
+    addItem(d);
+  });
+
+  evtSource.addEventListener('first_blood', function(e) {
+    var d = JSON.parse(e.data);
+    d._type = 'first_blood';
+    d._icon = '&#127981;';
+    fbCount++;
+    solveCount++;
+    activeUsers.add(d.username || d.username);
+    updateCounters();
+    addItem(d);
+  });
+
+  evtSource.addEventListener('suspicious_activity', function(e) {
+    var d = JSON.parse(e.data);
+    d._type = 'suspicious';
+    d._icon = '&#128680;';
+    addItem(d);
+  });
+
+  evtSource.onerror = function() {
+    document.getElementById('conn-status').textContent = 'Disconnected — reconnecting…';
+    document.getElementById('live-dot').classList.add('disconnected');
+    setTimeout(connect, 5000);
+  };
+}
+
+function updateCounters() {
+  document.getElementById('c-total').textContent = solveCount;
+  document.getElementById('c-fb').textContent    = fbCount;
+  document.getElementById('c-users').textContent = activeUsers.size;
+}
+
+function addItem(d) {
+  items.unshift(d);
+  renderFeed();
+}
+
+function renderFeed() {
+  var shown = filter === 'all' ? items : items.filter(function(i){return i._type === filter;});
+  var feed = document.getElementById('feed');
+  if (!shown.length) {
+    feed.innerHTML = '<div class="empty-feed" id="empty-msg">No events yet for this filter.</div>';
+    return;
+  }
+  feed.innerHTML = shown.slice(0,200).map(function(d) {
+    var ts = d.ts ? new Date(d.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+    var fbBadge = d._type === 'first_blood' ? '<span class="fb-badge">&#127981; FIRST BLOOD</span>' : '';
+    var catBadge = d.category ? '<span class="cat-badge">'+esc(d.category)+'</span>' : '';
+    var pts = d.points ? '+'+d.points+'pts' : '';
+    var mainText = '';
+    if (d._type === 'suspicious') {
+      mainText = '<strong>'+esc(d.username||'?')+'</strong> solved <em>'+esc(d.challenge||d.challenge_name||'?')+'</em> — no container was running';
+    } else {
+      mainText = '<strong>'+esc(d.username||'?')+'</strong> solved <em>'+esc(d.challenge_name||'?')+'</em>'+fbBadge+catBadge;
+    }
+    return '<div class="feed-item">'+
+      '<div class="feed-icon">'+d._icon+'</div>'+
+      '<div class="feed-body">'+
+        '<div class="feed-main">'+mainText+'</div>'+
+        '<div class="feed-meta">'+ts+'</div>'+
+      '</div>'+
+      (pts?'<div class="feed-pts">'+esc(pts)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderFeed();
+}
+
+function clearFeed() { items = []; solveCount=0; fbCount=0; activeUsers.clear(); updateCounters(); renderFeed(); }
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Load historical solves first
+fetch('/api/ctf/solves/recent',{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(rows){
+    rows.forEach(function(r){
+      r._type='solve'; r._icon='&#9989;'; r.ts=r.solved_at;
+      items.push(r);
+      activeUsers.add(r.username);
+      solveCount++;
+    });
+    updateCounters();
+    renderFeed();
+  }).catch(function(){});
+
+connect();
+</script>
+{% endblock %}

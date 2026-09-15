@@ -1,0 +1,172 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<div class="admin-wrap">
+  {% include "_admin_nav.html" %}
+  <h1 class="admin-title">Network</h1>
+  <p class="admin-lead">Players open vBank at this IP.</p>
+
+  <div id="net-alert" class="alert admin-alert" role="alert"></div>
+
+  <div class="admin-card">
+    <h2>Host IP</h2>
+    <div class="admin-field">
+      <div id="ip-pills" class="admin-ip-pills">Loading detected IPs…</div>
+    </div>
+    <div class="admin-field">
+      <label for="inp-host-ip">IP address</label>
+      <input id="inp-host-ip" type="text" value="{{ host_ip }}"
+             placeholder="192.168.1.10" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="admin-field">
+      <label for="inp-ctf-hostname">Optional hostname</label>
+      <input id="inp-ctf-hostname" type="text"
+             value="{{ ctf_hostname or 'lloydsctf.lab' }}"
+             placeholder="lloydsctf.lab" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="admin-actions">
+      <button class="btn btn-primary" id="btn-save" type="button">Save</button>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Status</h2>
+    <p id="dns-status" class="mb-2">Checking DNS…</p>
+    <p class="admin-hint mb-2">
+      Share <code id="player-url">http://{{ host_ip or 'HOST_IP' }}</code> with players.
+      DNS is only needed for <code>{{ ctf_hostname or 'lloydsctf.lab' }}</code>.
+    </p>
+    <button class="btn btn-sm btn-outline-secondary" type="button" id="btn-copy-url">Copy player URL</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  function csrfToken() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+    return '';
+  }
+
+  function showAlert(msg, ok) {
+    var el = document.getElementById('net-alert');
+    el.className = 'alert admin-alert ' + (ok ? 'alert-success' : 'alert-danger');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function () { el.style.display = 'none'; }, 5000);
+  }
+
+  function parseJson(r) {
+    return r.text().then(function (text) {
+      try { return JSON.parse(text); }
+      catch (e) {
+        if (r.status === 403 || r.status === 401) {
+          throw new Error('Session expired. Refresh and log in again.');
+        }
+        throw new Error('Save failed (HTTP ' + r.status + ').');
+      }
+    });
+  }
+
+  function loadIps() {
+    var box = document.getElementById('ip-pills');
+    fetch('/plugins/ctfd-target/admin/network/detect-ips', { credentials: 'same-origin' })
+      .then(parseJson)
+      .then(function (d) {
+        if (!d.ips || !d.ips.length) {
+          box.textContent = 'None found — type the IP below.';
+          return;
+        }
+        box.innerHTML = '';
+        var current = document.getElementById('inp-host-ip').value.trim();
+        d.ips.forEach(function (item) {
+          var pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = 'admin-ip-pill' + (item.ip === current ? ' is-on' : '');
+          pill.textContent = item.ip;
+          pill.title = item.label || '';
+          pill.addEventListener('click', function () {
+            document.getElementById('inp-host-ip').value = item.ip;
+            document.querySelectorAll('.admin-ip-pill').forEach(function (p) { p.classList.remove('is-on'); });
+            pill.classList.add('is-on');
+          });
+          box.appendChild(pill);
+        });
+      })
+      .catch(function () { box.textContent = 'Could not detect IPs — type one below.'; });
+  }
+
+  function checkDns() {
+    var el = document.getElementById('dns-status');
+    fetch('/plugins/ctfd-target/admin/network/dns-status', { credentials: 'same-origin' })
+      .then(parseJson)
+      .then(function (d) {
+        if (d.running && d.resolves) {
+          el.innerHTML = '<span class="admin-status-ok">DNS running</span> — ' +
+            (d.ctf_hostname || '') + ' → ' + (d.resolved_ip || d.host_ip || '');
+        } else if (d.running) {
+          el.innerHTML = '<span class="admin-status-ok">DNS running</span> — still applying.';
+        } else {
+          el.innerHTML = '<span class="admin-status-bad">DNS not running</span>';
+        }
+      })
+      .catch(function () {
+        el.innerHTML = '<span class="admin-status-bad">Could not check DNS.</span>';
+      });
+  }
+
+  document.getElementById('btn-save').addEventListener('click', function () {
+    var btn = this;
+    var hostIp = document.getElementById('inp-host-ip').value.trim();
+    var hostname = document.getElementById('inp-ctf-hostname').value.trim() || 'lloydsctf.lab';
+    if (!hostIp) { showAlert('Enter a host IP.', false); return; }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    fetch('/plugins/ctfd-target/admin/network/save', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken() },
+      body: JSON.stringify({ host_ip: hostIp, ctf_hostname: hostname })
+    })
+    .then(parseJson)
+    .then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      showAlert(d.msg || (d.success ? 'Saved.' : 'Could not save.'), !!d.success);
+      if (d.success) {
+        document.getElementById('player-url').textContent = 'http://' + (d.host_ip || hostIp);
+        setTimeout(checkDns, 2000);
+      }
+    })
+    .catch(function (err) {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      showAlert(err.message || 'Could not save.', false);
+    });
+  });
+
+  var copyBtn = document.getElementById('btn-copy-url');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var url = (document.getElementById('player-url') || {}).textContent || '';
+      if (!url) return;
+      var done = function () {
+        copyBtn.textContent = 'Copied';
+        setTimeout(function () { copyBtn.textContent = 'Copy player URL'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(function () {
+          window.prompt('Copy this URL', url);
+        });
+      } else {
+        window.prompt('Copy this URL', url);
+      }
+    });
+  }
+
+  loadIps();
+  checkDns();
+})();
+</script>
+{% endblock %}

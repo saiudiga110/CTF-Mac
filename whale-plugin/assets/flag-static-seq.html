@@ -1,0 +1,33 @@
+<div class="form-group">
+    <label for="content">Flag</label>
+    <input type="text" class="form-control" name="content" id="content" placeholder="Flag Content" required>
+</div>
+
+<div class="form-group">
+    <label>Case Sensitivity</label>
+    <select class="form-control" name="data" id="flag-case-select">
+        <option value="case_sensitive">Case Sensitive</option>
+        <option value="case_insensitive">Case Insensitive</option>
+    </select>
+</div>
+
+<script>
+    (function () {
+        // Populate case selector on edit (existing data is just the string value)
+        setTimeout(function () {
+            var sel = document.getElementById('flag-case-select');
+            var content = document.getElementById('content');
+            if (!sel || !content) return;
+            // data field on the hidden input injected by CTFd for existing flags
+            var existing = document.querySelector('input[name="data"]');
+            if (existing && existing !== sel) {
+                try {
+                    var d = JSON.parse(existing.value);
+                    if (d && d.case) sel.value = d.case;
+                } catch (e) {
+                    if (existing.value === 'case_insensitive') sel.value = 'case_insensitive';
+                }
+            }
+        }, 100);
+    })();
+</script>

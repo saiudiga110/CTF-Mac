@@ -1,0 +1,187 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<style>
+:root{--cg-bg:#0a0e13;--cg-card:#0f1620;--cg-border:rgba(0,255,65,.15);--cg-green:#00ff41;--cg-red:#ff4444;--cg-yellow:#ffcc00;--cg-cyan:#00d4ff;--cg-muted:#6b7a8d;--cg-font-mono:'Share Tech Mono',monospace;}
+body{background:var(--cg-bg)!important;color:#cdd6f4!important;}
+.live-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px;}
+.live-card{background:var(--cg-card);border:1px solid var(--cg-border);border-radius:10px;padding:20px;}
+.live-card-full{grid-column:1/-1;}
+.live-card h3{font-family:var(--cg-font-mono);color:var(--cg-green);font-size:.85rem;letter-spacing:2px;text-transform:uppercase;margin:0 0 16px;border-bottom:1px solid var(--cg-border);padding-bottom:10px;}
+.ctl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.live-input{flex:1;background:#0a0e13;border:1px solid var(--cg-border);border-radius:6px;color:#cdd6f4;padding:8px 12px;font-family:var(--cg-font-mono);font-size:.82rem;}
+.live-input:focus{outline:none;border-color:var(--cg-cyan);}
+.live-btn{padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-family:var(--cg-font-mono);font-size:.78rem;letter-spacing:1px;font-weight:700;transition:.2s;}
+.btn-green{background:rgba(0,255,65,.1);border:1px solid rgba(0,255,65,.3);color:var(--cg-green);}
+.btn-green:hover{background:rgba(0,255,65,.2);}
+.btn-red{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:var(--cg-red);}
+.btn-red:hover{background:rgba(255,68,68,.2);}
+.btn-yellow{background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.3);color:var(--cg-yellow);}
+.btn-cyan{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--cg-cyan);}
+.broadcast-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;}
+.broadcast-item{display:flex;justify-content:space-between;align-items:center;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);border-radius:6px;padding:8px 12px;gap:10px;}
+.broadcast-msg{font-family:var(--cg-font-mono);font-size:.8rem;flex:1;}
+.broadcast-del{background:none;border:none;color:var(--cg-red);cursor:pointer;font-size:1rem;padding:0 4px;}
+.broadcast-del:hover{color:#ff8888;}
+.freeze-status{font-family:var(--cg-font-mono);font-size:.78rem;padding:8px 14px;border-radius:6px;display:inline-block;margin-bottom:12px;}
+.freeze-active{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:var(--cg-red);}
+.freeze-inactive{background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.2);color:var(--cg-green);}
+.solve-table{width:100%;border-collapse:collapse;font-family:var(--cg-font-mono);font-size:.78rem;}
+.solve-table th{color:var(--cg-muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--cg-border);font-size:.7rem;letter-spacing:1px;text-transform:uppercase;}
+.solve-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);}
+.solve-table tr:hover td{background:rgba(0,255,65,.03);}
+.solve-table tr.first-blood td{background:rgba(255,68,68,.06);}
+.solve-table tr.first-blood td:first-child::before{content:"🩸 ";}
+.cat-badge{padding:2px 8px;border-radius:3px;font-size:.68rem;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);color:var(--cg-cyan);}
+.solve-count{font-family:var(--cg-font-mono);font-size:.72rem;color:var(--cg-muted);margin-left:8px;}
+.refresh-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cg-green);animation:pulse 2s infinite;margin-left:8px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.page-title{font-family:var(--cg-font-mono);color:var(--cg-green);font-size:1.1rem;letter-spacing:3px;text-transform:uppercase;padding:20px 20px 0;}
+@media(max-width:900px){.live-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="page-title">⚡ CTF Live Dashboard</div>
+<div class="live-grid">
+
+  <!-- SCOREBOARD FREEZE -->
+  <div class="live-card">
+    <h3>🧊 Scoreboard Freeze</h3>
+    <div id="freeze-status" class="freeze-status freeze-inactive">Not frozen</div>
+    <div class="ctl-row">
+      <input type="datetime-local" id="freeze-dt" class="live-input" style="flex:1;">
+      <button class="live-btn btn-yellow" onclick="setFreeze()">Set Freeze</button>
+      <button class="live-btn btn-red" onclick="clearFreeze()">Clear</button>
+    </div>
+    <p style="font-size:.72rem;color:var(--cg-muted);margin:0;">Scoreboard displays scores as of this time. Players can still submit after freeze.</p>
+  </div>
+
+  <!-- ADMIN BROADCAST -->
+  <div class="live-card">
+    <h3>📢 Broadcast to All Players</h3>
+    <div class="ctl-row">
+      <input type="text" id="bc-msg" class="live-input" placeholder="Message for all players..." maxlength="200">
+      <button class="live-btn btn-green" onclick="sendBroadcast()">Send</button>
+    </div>
+    <div class="ctl-row" style="justify-content:flex-end;margin-top:-4px;">
+      <button class="live-btn btn-red" onclick="clearAll()" style="font-size:.7rem;padding:5px 12px;">Clear All</button>
+    </div>
+    <ul class="broadcast-list" id="bc-list"></ul>
+  </div>
+
+  <!-- LIVE SOLVE FEED -->
+  <div class="live-card live-card-full">
+    <h3>🔴 Live Solve Feed <span class="refresh-dot"></span> <span id="solve-count" class="solve-count"></span></h3>
+    <div style="overflow-x:auto;">
+      <table class="solve-table">
+        <thead><tr><th>Time</th><th>Player</th><th>Challenge</th><th>Category</th><th>Points</th></tr></thead>
+        <tbody id="solve-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var CSRF = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+
+// ── Freeze ───────────────────────────────────────────────────────────────────
+function loadFreeze() {
+  fetch('/plugins/ctf-live/admin/freeze', {headers:{'CSRF-Token':CSRF}})
+    .then(r=>r.json()).then(d=>{
+      var el = document.getElementById('freeze-status');
+      if (d.freeze) {
+        var dt = new Date(d.freeze * 1000);
+        el.className = 'freeze-status ' + (d.active ? 'freeze-active' : 'freeze-inactive');
+        el.textContent = (d.active ? '🧊 FROZEN as of ' : '⏳ Freezes at ') + dt.toLocaleString();
+        document.getElementById('freeze-dt').value = dt.toISOString().slice(0,16);
+      } else {
+        el.className = 'freeze-status freeze-inactive';
+        el.textContent = 'Not frozen';
+      }
+    });
+}
+
+function setFreeze() {
+  var val = document.getElementById('freeze-dt').value;
+  if (!val) return;
+  var ts = Math.floor(new Date(val).getTime() / 1000);
+  fetch('/plugins/ctf-live/admin/freeze', {method:'POST', headers:{'Content-Type':'application/json','CSRF-Token':CSRF}, body: JSON.stringify({timestamp:ts})})
+    .then(r=>r.json()).then(()=>loadFreeze());
+}
+
+function clearFreeze() {
+  fetch('/plugins/ctf-live/admin/freeze', {method:'POST', headers:{'Content-Type':'application/json','CSRF-Token':CSRF}, body: JSON.stringify({action:'clear'})})
+    .then(r=>r.json()).then(()=>loadFreeze());
+}
+
+// ── Broadcasts ───────────────────────────────────────────────────────────────
+function loadBroadcasts() {
+  fetch('/plugins/ctf-live/admin/broadcast', {method:'GET', headers:{'CSRF-Token':CSRF}})
+    .catch(()=>{});
+  // read from events endpoint which returns current broadcasts
+  fetch('/plugins/ctf-live/events', {credentials:'same-origin', headers:{'CSRF-Token':CSRF}})
+    .then(r=>r.json()).then(d=>renderBroadcasts(d.broadcasts||[]));
+}
+
+function renderBroadcasts(list) {
+  var ul = document.getElementById('bc-list');
+  ul.innerHTML = '';
+  list.forEach(function(b) {
+    var li = document.createElement('li');
+    li.className = 'broadcast-item';
+    li.innerHTML = '<span class="broadcast-msg">' + esc(b.message) + '</span>' +
+      '<button class="broadcast-del" onclick="deleteBroadcast(\''+b.id+'\')">✕</button>';
+    ul.appendChild(li);
+  });
+}
+
+function sendBroadcast() {
+  var msg = document.getElementById('bc-msg').value.trim();
+  if (!msg) return;
+  fetch('/plugins/ctf-live/admin/broadcast', {method:'POST', headers:{'Content-Type':'application/json','CSRF-Token':CSRF}, body: JSON.stringify({message:msg})})
+    .then(r=>r.json()).then(()=>{ document.getElementById('bc-msg').value=''; loadBroadcasts(); });
+}
+
+function deleteBroadcast(id) {
+  fetch('/plugins/ctf-live/admin/broadcast/'+id, {method:'DELETE', headers:{'CSRF-Token':CSRF}})
+    .then(()=>loadBroadcasts());
+}
+
+function clearAll() {
+  fetch('/plugins/ctf-live/admin/broadcast/clear', {method:'POST', headers:{'CSRF-Token':CSRF}})
+    .then(()=>loadBroadcasts());
+}
+
+// ── Solve Feed ───────────────────────────────────────────────────────────────
+function loadSolveFeed() {
+  fetch('/plugins/ctf-live/admin/live/data', {credentials:'same-origin'})
+    .then(r=>r.json()).then(function(rows) {
+      if (rows.error) return;
+      document.getElementById('solve-count').textContent = '(' + rows.length + ' solves)';
+      var tbody = document.getElementById('solve-tbody');
+      tbody.innerHTML = '';
+      rows.forEach(function(row) {
+        var tr = document.createElement('tr');
+        if (row.first_blood) tr.className = 'first-blood';
+        tr.innerHTML = '<td>' + esc(row.ts) + '</td>' +
+          '<td><strong>' + esc(row.user) + '</strong></td>' +
+          '<td>' + esc(row.challenge) + '</td>' +
+          '<td><span class="cat-badge">' + esc(row.category) + '</span></td>' +
+          '<td style="color:var(--cg-green)">' + row.points + '</td>';
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Initial load + auto-refresh
+loadFreeze();
+loadBroadcasts();
+loadSolveFeed();
+setInterval(loadSolveFeed, 8000);
+setInterval(loadBroadcasts, 10000);
+setInterval(loadFreeze, 30000);
+</script>
+{% endblock %}

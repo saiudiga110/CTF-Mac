@@ -1,0 +1,10 @@
+<div class="mb-3">
+    <label class="form-label fw-bold">Challenge Key <span class="text-danger">*</span></label>
+    <input class="form-control" name="content" type="text"
+           value="{{ flag.content }}"
+           required pattern="[a-z0-9_]+"
+           title="Lowercase letters, digits, underscores only">
+    <div class="form-text">
+        Internal key used in HMAC: <code>LYD{hmac_sha256(FLAG_SECRET, "&lt;team_id&gt;:&lt;key&gt;")[:24]}</code>
+    </div>
+</div>

@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<div class="admin-wrap admin-wrap-wide">
+  <h1 class="admin-title">Instances</h1>
+  <p class="admin-lead">Refreshes automatically. <span id="inst-updated"></span></p>
+
+  <div class="admin-card" style="padding:0; overflow:auto;">
+    <table class="table table-sm admin-table mb-0">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Open</th>
+          <th>Expires</th>
+        </tr>
+      </thead>
+      <tbody id="inst-tbody">
+        {% if containers %}
+          {% for container in containers %}
+          <tr>
+            <td data-label="Player">{{ container.username }}</td>
+            <td data-label="Type">{{ container.role }}{% if container.challenge_id %} · {{ container.challenge_id }}{% endif %}</td>
+            <td data-label="Status"><span class="admin-pill {% if container.status == 'running' %}admin-pill-ok{% else %}admin-pill-muted{% endif %}">{{ container.status }}</span></td>
+            <td data-label="Open">
+              {% if container.url %}
+                <a href="{{ container.url }}" target="_blank" rel="noopener">Open</a>
+              {% elif container.port %}
+                {{ container.port }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td data-label="Expires">{{ container.expires_at or "—" }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No instances running.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function render(rows) {
+    var tbody = document.getElementById('inst-tbody');
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No instances running.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (c) {
+      var type = esc(c.role) + (c.challenge_id ? ' · ' + esc(c.challenge_id) : '');
+      var pill = c.status === 'running' ? 'admin-pill-ok' : 'admin-pill-muted';
+      var open = c.url
+        ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>'
+        : (c.port ? esc(c.port) : '—');
+      return '<tr>' +
+        '<td data-label="Player">' + esc(c.username) + '</td>' +
+        '<td data-label="Type">' + type + '</td>' +
+        '<td data-label="Status"><span class="admin-pill ' + pill + '">' + esc(c.status) + '</span></td>' +
+        '<td data-label="Open">' + open + '</td>' +
+        '<td data-label="Expires">' + esc(c.expires_at || '—') + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+  function tick() {
+    fetch('/plugins/ctfd-target/admin/instances.json', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.success) render(d.containers || []);
+        var el = document.getElementById('inst-updated');
+        if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
+      })
+      .catch(function () {});
+  }
+  setInterval(tick, 12000);
+})();
+</script>
+{% endblock %}

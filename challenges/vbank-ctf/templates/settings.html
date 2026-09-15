@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Account Settings{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-cog"></i></div>Portal Preferences</div>
+            <div class="card-body" style="font-size:0.84rem; color:#475569;">
+                <p>Preferences are managed by the analytics service at <code>{{ analytics_url }}</code>.</p>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-sliders-h"></i></div>Analytics Config Merge</div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:0.84rem;">
+                    Merge custom configuration settings into the analytics service.
+                    Accepts JSON object with preference overrides.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label">Config JSON</label>
+                    <textarea id="config-json" class="form-control" rows="5"
+                        style="font-family:monospace; font-size:0.8rem;"
+                        placeholder='{"theme": "dark", "language": "en-GB"}'></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="mergeConfig()"><i class="fas fa-sync me-1"></i>Apply Settings</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadConfig()"><i class="fas fa-download me-1"></i>Load Current</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="checkAdmin()"><i class="fas fa-shield me-1"></i>Admin Panel</button>
+                </div>
+                <div id="config-result" class="mt-3" style="display:none;">
+                    <div class="terminal" id="config-output" style="min-height:60px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-info-circle"></i></div>API Reference</div>
+            <div class="card-body" style="font-size:0.82rem; color:#475569; line-height:1.8;">
+                <p><strong>GET</strong> <code>/api/settings/current</code></p>
+                <p><strong>POST</strong> <code>/api/settings/merge</code></p>
+                <p><strong>GET</strong> <code>/api/settings/admin-panel</code></p>
+                <p class="mb-0"><strong>POST</strong> <code>/api/settings/reset</code></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function mergeConfig() {
+    var data;
+    try { data = JSON.parse(document.getElementById('config-json').value); } catch(e) { alert('Invalid JSON'); return; }
+    fetch('/api/settings/merge', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+        .then(r => r.json()).then(d => { showResult(d); });
+}
+function loadConfig() {
+    fetch('/api/settings/current').then(r => r.json()).then(d => { showResult(d); });
+}
+function checkAdmin() {
+    fetch('/api/settings/admin-panel').then(r => r.json()).then(d => { showResult(d); });
+}
+function showResult(d) {
+    document.getElementById('config-result').style.display='block';
+    document.getElementById('config-output').textContent = JSON.stringify(d, null, 2);
+}
+</script>
+{% endblock %}

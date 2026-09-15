@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vBank — Your Trusted Banking Partner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- vBank build v2.4.1-staging | internal note: staff portal at /staff-portal -->
+    <style>
+        :root {
+            --navy: #0b1e35;
+            --blue: #1255cc;
+            --blue-mid: #1a69e0;
+            --blue-light: #2e84f5;
+            --gold: #e8a020;
+            --light: #f6f8fc;
+            --border: #dde3ef;
+            --text: #1a2540;
+            --muted: #5a6a85;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #fff; color: var(--text); }
+        a { text-decoration: none; }
+
+        /* ── TOPBAR ── */
+        .topbar-strip {
+            background: var(--navy);
+            padding: 6px 64px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.72rem; color: rgba(255,255,255,0.55);
+        }
+        .topbar-strip a { color: rgba(255,255,255,0.55); margin-left: 16px; }
+        .topbar-strip a:hover { color: #fff; }
+
+        /* ── NAVBAR ── */
+        .navbar-main {
+            background: #fff;
+            border-bottom: 2px solid var(--blue);
+            padding: 0 64px; height: 68px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 200;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .nav-brand { display: flex; align-items: center; gap: 11px; }
+        .nav-brand .logo-box {
+            width: 40px; height: 40px; background: var(--blue);
+            border-radius: 9px; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.15rem;
+        }
+        .nav-brand .logo-text { font-size: 1.3rem; font-weight: 900; color: var(--navy); letter-spacing: -0.03em; }
+        .nav-brand .logo-text span { color: var(--blue); }
+        .nav-menu { display: flex; gap: 0; align-items: center; }
+        .nav-menu > a {
+            color: var(--text); font-size: 0.87rem; font-weight: 500;
+            padding: 22px 18px; border-bottom: 3px solid transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .nav-menu > a:hover { color: var(--blue); border-bottom-color: var(--blue); }
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+        .btn-nav-login {
+            background: var(--blue); color: #fff;
+            padding: 9px 22px; border-radius: 7px; font-size: 0.87rem; font-weight: 600;
+            transition: background 0.15s;
+        }
+        .btn-nav-login:hover { background: #0d47a1; color: #fff; }
+        .btn-nav-open {
+            background: transparent; color: var(--blue); border: 1.5px solid var(--blue);
+            padding: 9px 20px; border-radius: 7px; font-size: 0.87rem; font-weight: 600;
+            transition: background 0.15s;
+        }
+        .btn-nav-open:hover { background: var(--blue); color: #fff; }
+
+        /* ── HERO ── */
+        .hero {
+            background: linear-gradient(130deg, var(--navy) 0%, #0d2a52 45%, #1255cc 100%);
+            padding: 90px 64px 80px;
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; min-height: 560px;
+        }
+        .hero-orb1 { position:absolute; top:-120px; right:-60px; width:520px; height:520px; background:rgba(255,255,255,0.03); border-radius:50%; }
+        .hero-orb2 { position:absolute; bottom:-80px; right:200px; width:360px; height:360px; background:rgba(21,101,204,0.15); border-radius:50%; }
+        .hero-orb3 { position:absolute; top:40px; right:380px; width:200px; height:200px; background:rgba(255,255,255,0.04); border-radius:50%; }
+        .hero-inner { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; width:100%; gap:48px; }
+        .hero-left { flex: 1; max-width: 600px; }
+        .hero-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.9); border-radius: 30px;
+            font-size: 0.72rem; font-weight: 700; padding: 5px 16px;
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 26px;
+        }
+        .hero-tag .dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+        .hero h1 { font-size: 3rem; font-weight: 900; color: #fff; line-height: 1.12; letter-spacing: -0.03em; margin-bottom: 22px; }
+        .hero h1 em { color: #7eb8ff; font-style: normal; }
+        .hero-sub { color: rgba(255,255,255,0.68); font-size: 1rem; line-height: 1.75; margin-bottom: 40px; max-width: 480px; }
+        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-h1 {
+            background: #fff; color: var(--navy);
+            padding: 13px 30px; border-radius: 9px; font-size: 0.93rem; font-weight: 700;
+            transition: box-shadow 0.2s, transform 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-h1:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.25); color: var(--blue); }
+        .btn-h2 {
+            background: rgba(255,255,255,0.08); color: #fff; border: 1.5px solid rgba(255,255,255,0.3);
+            padding: 13px 28px; border-radius: 9px; font-size: 0.93rem; font-weight: 600;
+            transition: background 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-h2:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .hero-right { flex-shrink: 0; }
+        .hero-card-stack { position: relative; width: 340px; }
+        .bank-card {
+            background: linear-gradient(135deg, #1a69e0, #0b1e35);
+            border-radius: 18px; padding: 28px; color: #fff;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.35);
+            position: relative; overflow: hidden;
+        }
+        .bank-card::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; background:rgba(255,255,255,0.06); border-radius:50%; }
+        .bank-card-chip { width: 36px; height: 28px; background: linear-gradient(135deg, #e8a020, #f5c842); border-radius: 5px; margin-bottom: 24px; }
+        .bank-card-num { font-size: 1.1rem; letter-spacing: 0.18em; font-weight: 300; margin-bottom: 20px; opacity: 0.85; }
+        .bank-card-bot { display: flex; justify-content: space-between; align-items: flex-end; }
+        .bank-card-name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+        .bank-card-logo { font-size: 1.4rem; font-weight: 900; opacity: 0.9; }
+        .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .mini-stat {
+            background: rgba(255,255,255,0.08); backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px; padding: 14px; color: #fff;
+        }
+        .mini-stat .ms-val { font-size: 1.1rem; font-weight: 700; }
+        .mini-stat .ms-lbl { font-size: 0.68rem; opacity: 0.6; margin-top: 3px; }
+
+        /* ── TRUST BAR ── */
+        .trust-bar {
+            background: #fff; border-bottom: 1px solid var(--border);
+            padding: 20px 64px;
+            display: flex; align-items: center; justify-content: center; gap: 48px;
+            flex-wrap: wrap;
+        }
+        .trust-item { display: flex; align-items: center; gap: 9px; font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+        .trust-item i { color: var(--blue); font-size: 1rem; }
+
+        /* ── STATS ── */
+        .stats-section {
+            background: var(--light);
+            padding: 56px 64px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+        }
+        .stat-box {
+            background: #fff; border: 1px solid var(--border); border-radius: 12px;
+            padding: 28px; text-align: center;
+            border-top: 3px solid var(--blue);
+        }
+        .stat-num { font-size: 2rem; font-weight: 900; color: var(--navy); letter-spacing: -0.03em; }
+        .stat-lbl { font-size: 0.78rem; color: var(--muted); margin-top: 6px; font-weight: 500; }
+
+        /* ── SECTION SHARED ── */
+        .section { padding: 80px 64px; }
+        .section-label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 12px; }
+        .section-title { font-size: 2rem; font-weight: 800; color: var(--navy); line-height: 1.2; margin-bottom: 14px; letter-spacing: -0.02em; }
+        .section-sub { font-size: 0.95rem; color: var(--muted); line-height: 1.7; max-width: 520px; }
+
+        /* ── PRODUCTS ── */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 22px; margin-top: 44px; }
+        .product-card {
+            background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .product-card:hover { box-shadow: 0 10px 32px rgba(0,0,0,0.09); transform: translateY(-4px); }
+        .product-top { padding: 28px; border-bottom: 1px solid var(--border); }
+        .product-icon { width: 50px; height: 50px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 18px; }
+        .product-name { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+        .product-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
+        .product-bottom { padding: 16px 28px; background: var(--light); display: flex; justify-content: space-between; align-items: center; }
+        .product-rate { font-size: 1.2rem; font-weight: 800; color: var(--blue); }
+        .product-rate-lbl { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+        .product-link { font-size: 0.8rem; color: var(--blue); font-weight: 600; }
+        .product-link:hover { text-decoration: underline; }
+
+        /* ── RATES TICKER ── */
+        .rates-bar {
+            background: var(--navy);
+            padding: 14px 64px;
+            display: flex; gap: 40px; align-items: center; overflow: hidden;
+        }
+        .rates-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.45); white-space: nowrap; }
+        .rate-item { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
+        .rate-item .rname { color: rgba(255,255,255,0.5); }
+        .rate-item .rval { color: #fff; font-weight: 600; }
+        .rate-item .rup { color: #4ade80; font-size: 0.72rem; }
+        .rate-item .rdn { color: #f87171; font-size: 0.72rem; }
+
+        /* ── FEATURES ── */
+        .features-section { background: var(--light); }
+        .features-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+        .features-visual {
+            background: linear-gradient(140deg, var(--navy), #1a69e0);
+            border-radius: 20px; padding: 40px 36px;
+            position: relative; overflow: hidden;
+        }
+        .features-visual::after { content:''; position:absolute; bottom:-60px; right:-60px; width:220px; height:220px; background:rgba(255,255,255,0.04); border-radius:50%; }
+        .feat-row { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; }
+        .feat-row:last-child { margin-bottom: 0; }
+        .feat-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.1); border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.9rem; flex-shrink: 0; }
+        .feat-text .ft1 { font-size: 0.85rem; font-weight: 600; color: #fff; }
+        .feat-text .ft2 { font-size: 0.73rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+        .feat-check { margin-left: auto; color: #4ade80; font-size: 0.9rem; }
+        .features-list { }
+        .features-list h3 { font-size: 1.6rem; font-weight: 800; color: var(--navy); letter-spacing: -0.02em; margin-bottom: 14px; }
+        .features-list p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+        .feat-item { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 22px; }
+        .feat-bullet { width: 36px; height: 36px; background: #dbeafe; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--blue); font-size: 0.88rem; flex-shrink: 0; margin-top: 1px; }
+        .feat-item h5 { font-size: 0.9rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+        .feat-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin: 0; }
+
+        /* ── SECURITY BAND ── */
+        .security-band {
+            background: #fff; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            padding: 40px 64px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+        }
+        .sec-item { display: flex; align-items: center; gap: 14px; }
+        .sec-icon { width: 44px; height: 44px; background: var(--light); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--blue); font-size: 1rem; flex-shrink: 0; }
+        .sec-item h6 { font-size: 0.85rem; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+        .sec-item p { font-size: 0.75rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+        /* ── TESTIMONIALS ── */
+        .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
+        .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; position: relative; }
+        .testi-card::before { content: '\201C'; font-size: 4rem; color: var(--border); position: absolute; top: 10px; left: 22px; line-height: 1; font-family: Georgia, serif; }
+        .testi-text { font-size: 0.87rem; color: var(--muted); line-height: 1.7; margin-top: 28px; margin-bottom: 22px; }
+        .testi-author { display: flex; align-items: center; gap: 12px; }
+        .testi-avatar { width: 38px; height: 38px; background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; }
+        .testi-name { font-size: 0.85rem; font-weight: 700; color: var(--navy); }
+        .testi-role { font-size: 0.72rem; color: var(--muted); }
+        .stars { color: #f59e0b; font-size: 0.75rem; margin-bottom: 2px; }
+
+        /* ── NEWS ── */
+        .news-section { background: var(--light); }
+        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
+        .news-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: box-shadow 0.2s; }
+        .news-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .news-img { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+        .news-body { padding: 22px; }
+        .news-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 4px; margin-bottom: 10px; }
+        .news-title { font-size: 0.92rem; font-weight: 700; color: var(--navy); margin-bottom: 8px; line-height: 1.4; }
+        .news-excerpt { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+        .news-date { font-size: 0.72rem; color: var(--muted); }
+
+        /* ── CTA ── */
+        .cta-section {
+            background: linear-gradient(130deg, var(--navy) 0%, #0d2a52 50%, var(--blue) 100%);
+            padding: 90px 64px; text-align: center; position: relative; overflow: hidden;
+        }
+        .cta-section::before { content:''; position:absolute; top:-100px; left:-100px; width:400px; height:400px; background:rgba(255,255,255,0.03); border-radius:50%; }
+        .cta-section::after  { content:''; position:absolute; bottom:-80px; right:-80px; width:360px; height:360px; background:rgba(255,255,255,0.03); border-radius:50%; }
+        .cta-inner { position: relative; z-index: 1; }
+        .cta-section h2 { font-size: 2.4rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 16px; }
+        .cta-section p { color: rgba(255,255,255,0.65); font-size: 1rem; margin-bottom: 40px; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+        .cta-btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+        /* ── FOOTER ── */
+        .footer { background: #07111f; color: rgba(255,255,255,0.45); }
+        .footer-main { padding: 64px; display: grid; grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr; gap: 40px; }
+        .footer-brand-name { font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; margin-bottom: 12px; }
+        .footer-desc { font-size: 0.76rem; line-height: 1.75; color: rgba(255,255,255,0.38); margin-bottom: 20px; }
+        .footer-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .footer-badge { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; padding: 4px 10px; font-size: 0.65rem; color: rgba(255,255,255,0.5); font-weight: 600; letter-spacing: 0.05em; }
+        .footer-col h6 { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.55); margin-bottom: 14px; }
+        .footer-col a { display: block; color: rgba(255,255,255,0.38); font-size: 0.8rem; margin-bottom: 9px; transition: color 0.15s; }
+        .footer-col a:hover { color: rgba(255,255,255,0.75); }
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 20px 64px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .footer-bottom p { font-size: 0.72rem; }
+        .fscs-note { font-size: 0.68rem; color: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+
+<!-- Top strip -->
+<div class="topbar-strip">
+    <span><i class="fas fa-phone-alt me-2"></i>0800 123 4567 &nbsp;|&nbsp; <i class="fas fa-envelope me-2"></i>support@vbank.co.in</span>
+    <span>
+        <i class="fas fa-lock me-1"></i>Secure Login
+        <a href="/customer/login">Online Banking</a>
+        <a href="#">Mobile App</a>
+        <a href="#">Branch Finder</a>
+    </span>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar-main">
+    <div class="nav-brand">
+        <div class="logo-box"><i class="fas fa-university"></i></div>
+        <div class="logo-text">v<span>Bank</span></div>
+    </div>
+    <div class="nav-menu">
+        <a href="#">Personal</a>
+        <a href="#">Business</a>
+        <a href="#">Mortgages</a>
+        <a href="#">Investments</a>
+        <a href="#">Help &amp; Support</a>
+    </div>
+    <div class="nav-actions">
+        <a href="#" class="btn-nav-open">Open Account</a>
+        <a href="/customer/login" class="btn-nav-login"><i class="fas fa-sign-in-alt me-2"></i>Online Banking</a>
+    </div>
+</nav>
+
+<!-- Rates ticker -->
+<div class="rates-bar">
+    <span class="rates-label">Live Rates</span>
+    <div class="rate-item"><span class="rname">Base Rate</span><span class="rval">5.25%</span><span class="rup">▲ +0.00</span></div>
+    <div class="rate-item"><span class="rname">Savings AER</span><span class="rval">4.25%</span><span class="rup">▲ +0.10</span></div>
+    <div class="rate-item"><span class="rname">Mortgage (2yr)</span><span class="rval">4.89%</span><span class="rdn">▼ -0.05</span></div>
+    <div class="rate-item"><span class="rname">Personal Loan</span><span class="rval">6.9% APR</span></div>
+    <div class="rate-item"><span class="rname">GBP/EUR</span><span class="rval">1.1742</span><span class="rdn">▼ -0.0012</span></div>
+    <div class="rate-item"><span class="rname">GBP/USD</span><span class="rval">1.2650</span><span class="rup">▲ +0.0033</span></div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-orb1"></div>
+    <div class="hero-orb2"></div>
+    <div class="hero-orb3"></div>
+    <div class="hero-inner">
+        <div class="hero-left">
+            <div class="hero-tag"><span class="dot"></span>FCA Authorised &amp; Regulated</div>
+            <h1>Banking built for <em>people</em>, not just numbers.</h1>
+            <p class="hero-sub">vBank gives you full control of your finances — instant transfers, real-time statements, competitive savings rates, and 24/7 support. Trusted by over 2.4 million customers across the UK.</p>
+            <div class="hero-btns">
+                <a href="/customer/login" class="btn-h1"><i class="fas fa-user-circle"></i>Sign in to Online Banking</a>
+                <a href="#products" class="btn-h2"><i class="fas fa-compass"></i>Explore Products</a>
+            </div>
+        </div>
+        <div class="hero-right">
+            <div class="hero-card-stack">
+                <div class="bank-card">
+                    <div class="bank-card-chip"></div>
+                    <div class="bank-card-num">•••• &nbsp; •••• &nbsp; •••• &nbsp; 4821</div>
+                    <div class="bank-card-bot">
+                        <div>
+                            <div class="bank-card-name">James Henderson</div>
+                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:2px;">Valid Thru 09/27</div>
+                        </div>
+                        <div class="bank-card-logo">vBank</div>
+                    </div>
+                </div>
+                <div class="mini-stats">
+                    <div class="mini-stat">
+                        <div class="ms-val">£12,450</div>
+                        <div class="ms-lbl">Current Balance</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="ms-val">£4,210</div>
+                        <div class="ms-lbl">Monthly Spend</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="ms-val">+4.25%</div>
+                        <div class="ms-lbl">Savings Rate</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="ms-val">3 Active</div>
+                        <div class="ms-lbl">Accounts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Trust bar -->
+<div class="trust-bar">
+    <div class="trust-item"><i class="fas fa-shield-alt"></i>FCA &amp; PRA Regulated</div>
+    <div class="trust-item"><i class="fas fa-lock"></i>256-bit SSL Encryption</div>
+    <div class="trust-item"><i class="fas fa-piggy-bank"></i>FSCS Protected up to £85,000</div>
+    <div class="trust-item"><i class="fas fa-certificate"></i>ISO 27001 Certified</div>
+    <div class="trust-item"><i class="fas fa-star" style="color:#f59e0b;"></i>Which? Recommended 2024</div>
+    <div class="trust-item"><i class="fas fa-users"></i>2.4M+ Customers</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-section">
+    <div class="stat-box">
+        <div class="stat-num">2.4M+</div>
+        <div class="stat-lbl">Active Customers</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-num">£18.3B</div>
+        <div class="stat-lbl">Assets Under Management</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-num">99.98%</div>
+        <div class="stat-lbl">Platform Uptime</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-num">127</div>
+        <div class="stat-lbl">UK Branches &amp; ATMs</div>
+    </div>
+</div>
+
+<!-- Products -->
+<section class="section" id="products">
+    <div class="section-label">Our Products</div>
+    <div class="section-title">Accounts for every stage of life</div>
+    <p class="section-sub">Whether you're saving for a house, running a business, or planning retirement — vBank has a product that fits.</p>
+    <div class="products-grid">
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#dbeafe;"><i class="fas fa-wallet" style="color:#1255cc;"></i></div>
+                <div class="product-name">Current Account</div>
+                <div class="product-desc">Everyday banking with no monthly fees. Free Visa debit card, contactless payments, instant push notifications, and fee-free UK ATM withdrawals.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">£0<span style="font-size:0.75rem;font-weight:500;">/mo</span></div><div class="product-rate-lbl">No monthly fee</div></div>
+                <a href="#" class="product-link">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#dcfce7;"><i class="fas fa-piggy-bank" style="color:#16a34a;"></i></div>
+                <div class="product-name">Smart Saver</div>
+                <div class="product-desc">Earn a market-leading 4.25% AER on your savings with instant access. No lock-in, no minimum deposit, and interest credited monthly.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">4.25%</div><div class="product-rate-lbl">AER variable</div></div>
+                <a href="#" class="product-link">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#f3e8ff;"><i class="fas fa-home" style="color:#7c3aed;"></i></div>
+                <div class="product-name">Mortgages</div>
+                <div class="product-desc">Competitive fixed and tracker mortgages with rates from 4.69%. First-time buyer schemes, remortgage, and buy-to-let options available.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">4.69%</div><div class="product-rate-lbl">2-year fixed</div></div>
+                <a href="#" class="product-link">Get a quote <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#fff7ed;"><i class="fas fa-briefcase" style="color:#ea580c;"></i></div>
+                <div class="product-name">Business Banking</div>
+                <div class="product-desc">Full-featured business current account with multi-user access, expense management, payroll integration, and a dedicated relationship manager.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">£12<span style="font-size:0.75rem;font-weight:500;">/mo</span></div><div class="product-rate-lbl">Business Pro plan</div></div>
+                <a href="#" class="product-link">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#fef9c3;"><i class="fas fa-chart-line" style="color:#ca8a04;"></i></div>
+                <div class="product-name">Investment ISA</div>
+                <div class="product-desc">Grow your money tax-free with our Stocks &amp; Shares ISA. Access 3,000+ funds, ETFs, and shares with no platform fee in year one.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">£0<span style="font-size:0.75rem;font-weight:500;"> yr 1</span></div><div class="product-rate-lbl">Platform fee</div></div>
+                <a href="#" class="product-link">Start investing <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        <div class="product-card">
+            <div class="product-top">
+                <div class="product-icon" style="background:#fce7f3;"><i class="fas fa-credit-card" style="color:#db2777;"></i></div>
+                <div class="product-name">Personal Loan</div>
+                <div class="product-desc">Borrow from £1,000 to £25,000 at a representative 6.9% APR. Instant decision online, flexible repayment terms from 1 to 7 years.</div>
+            </div>
+            <div class="product-bottom">
+                <div><div class="product-rate">6.9%</div><div class="product-rate-lbl">Representative APR</div></div>
+                <a href="#" class="product-link">Apply now <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features deep-dive -->
+<section class="section features-section">
+    <div class="features-inner">
+        <div class="features-visual">
+            <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.4); margin-bottom:18px;">Your vBank Dashboard</div>
+            <div class="feat-row">
+                <div class="feat-icon"><i class="fas fa-paper-plane"></i></div>
+                <div class="feat-text"><div class="ft1">Instant Transfer to Barclays ····1234</div><div class="ft2">£850.00 &nbsp;·&nbsp; Today 09:14</div></div>
+                <i class="fas fa-check-circle feat-check"></i>
+            </div>
+            <div class="feat-row">
+                <div class="feat-icon"><i class="fas fa-bell"></i></div>
+                <div class="feat-text"><div class="ft1">Direct Debit — BT Group plc</div><div class="ft2">£42.50 &nbsp;·&nbsp; Today 08:00</div></div>
+                <i class="fas fa-check-circle feat-check"></i>
+            </div>
+            <div class="feat-row">
+                <div class="feat-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="feat-text"><div class="ft1">Fraud Alert Blocked</div><div class="ft2">Unusual login attempt — blocked &amp; reported</div></div>
+                <i class="fas fa-shield-alt feat-check"></i>
+            </div>
+            <div class="feat-row">
+                <div class="feat-icon"><i class="fas fa-chart-bar"></i></div>
+                <div class="feat-text"><div class="ft1">Savings Goal: Holiday Fund</div><div class="ft2">£2,100 / £3,000 &nbsp;·&nbsp; 70% complete</div></div>
+                <span style="color:#f59e0b; margin-left:auto; font-size:0.8rem; font-weight:700;">70%</span>
+            </div>
+            <div style="margin-top:20px; background:rgba(255,255,255,0.06); border-radius:10px; padding:14px 18px; display:flex; justify-content:space-between;">
+                <div><div style="font-size:0.68rem; color:rgba(255,255,255,0.4);">Smart Saver Balance</div><div style="font-size:1.2rem; font-weight:800; color:#fff; margin-top:4px;">£8,240.00</div></div>
+                <div><div style="font-size:0.68rem; color:rgba(255,255,255,0.4);">Interest earned (YTD)</div><div style="font-size:1.2rem; font-weight:800; color:#4ade80; margin-top:4px;">+£214.50</div></div>
+            </div>
+        </div>
+        <div class="features-list">
+            <div class="section-label">Why vBank</div>
+            <h3>Everything you need, all in one place</h3>
+            <p>Our online banking platform is designed around you — intuitive, fast, and packed with features that make managing your money effortless.</p>
+            <div class="feat-item">
+                <div class="feat-bullet"><i class="fas fa-bolt"></i></div>
+                <div><h5>Real-time payments</h5><p>Send and receive money instantly 24/7 with Faster Payments. No cut-off times, no delays.</p></div>
+            </div>
+            <div class="feat-item">
+                <div class="feat-bullet"><i class="fas fa-chart-pie"></i></div>
+                <div><h5>Smart spending insights</h5><p>Automatic categorisation of every transaction so you always know where your money goes.</p></div>
+            </div>
+            <div class="feat-item">
+                <div class="feat-bullet"><i class="fas fa-bell"></i></div>
+                <div><h5>Instant alerts</h5><p>Get push notifications the moment any transaction hits your account — normal or suspicious.</p></div>
+            </div>
+            <div class="feat-item">
+                <div class="feat-bullet"><i class="fas fa-mobile-alt"></i></div>
+                <div><h5>Mobile &amp; web banking</h5><p>Full feature parity between our app and web portal. Banking on your terms, on any device.</p></div>
+            </div>
+            <a href="/customer/login" class="btn-h1" style="background: var(--blue); color:#fff; display:inline-flex; margin-top:8px;"><i class="fas fa-sign-in-alt"></i>Access Online Banking</a>
+        </div>
+    </div>
+</section>
+
+<!-- Security band -->
+<div class="security-band">
+    <div class="sec-item">
+        <div class="sec-icon"><i class="fas fa-lock"></i></div>
+        <div><h6>256-bit Encryption</h6><p>Every session and transaction is protected with bank-grade TLS encryption.</p></div>
+    </div>
+    <div class="sec-item">
+        <div class="sec-icon"><i class="fas fa-user-shield"></i></div>
+        <div><h6>Multi-Factor Auth</h6><p>Biometric, SMS OTP, and authenticator app support for all accounts.</p></div>
+    </div>
+    <div class="sec-item">
+        <div class="sec-icon"><i class="fas fa-eye"></i></div>
+        <div><h6>24/7 Fraud Monitoring</h6><p>AI-powered fraud detection watches every transaction in real time.</p></div>
+    </div>
+    <div class="sec-item">
+        <div class="sec-icon"><i class="fas fa-piggy-bank"></i></div>
+        <div><h6>FSCS Protected</h6><p>Eligible deposits protected up to £85,000 per person by the FSCS.</p></div>
+    </div>
+</div>
+
+<!-- Testimonials -->
+<section class="section">
+    <div class="section-label">Customer Stories</div>
+    <div class="section-title">Trusted by millions across the UK</div>
+    <div class="testimonials-grid">
+        <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="testi-text">Switched from a big high street bank three years ago and haven't looked back. The app is incredibly fast and the savings rate is the best I've found anywhere.</div>
+            <div class="testi-author">
+                <div class="testi-avatar">SH</div>
+                <div><div class="testi-name">Sarah H.</div><div class="testi-role">Smart Saver customer since 2021</div></div>
+            </div>
+        </div>
+        <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="testi-text">vBank Business Pro transformed how I run my company. Multi-user access and the payroll integration alone saved us hours every month.</div>
+            <div class="testi-author">
+                <div class="testi-avatar">MK</div>
+                <div><div class="testi-name">Marcus K.</div><div class="testi-role">Business Pro customer, 48 employees</div></div>
+            </div>
+        </div>
+        <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="testi-text">The mortgage process was shockingly smooth. Got a decision within hours and the rate was 0.3% lower than my existing provider. Highly recommend.</div>
+            <div class="testi-author">
+                <div class="testi-avatar">PL</div>
+                <div><div class="testi-name">Priya L.</div><div class="testi-role">Mortgage customer, first-time buyer</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- News -->
+<section class="section news-section">
+    <div class="section-label">Latest News</div>
+    <div class="section-title">What's new at vBank</div>
+    <div class="news-grid">
+        <div class="news-card">
+            <div class="news-img" style="background:#dbeafe;">🏦</div>
+            <div class="news-body">
+                <span class="news-tag" style="background:#dbeafe; color:#1255cc;">Product Update</span>
+                <div class="news-title">Smart Saver rate raised to 4.25% AER</div>
+                <div class="news-excerpt">Following the Bank of England's latest base rate decision, we've increased our Smart Saver rate to 4.25% AER — effective immediately for all customers.</div>
+                <div class="news-date"><i class="fas fa-calendar me-1"></i>12 April 2024</div>
+            </div>
+        </div>
+        <div class="news-card">
+            <div class="news-img" style="background:#dcfce7;">📱</div>
+            <div class="news-body">
+                <span class="news-tag" style="background:#dcfce7; color:#16a34a;">App Update</span>
+                <div class="news-title">New mobile app v4.2 — faster, smarter</div>
+                <div class="news-excerpt">Our latest app release brings biometric login improvements, redesigned spending insights dashboard, and support for Apple Pay and Google Pay in 34 new countries.</div>
+                <div class="news-date"><i class="fas fa-calendar me-1"></i>5 April 2024</div>
+            </div>
+        </div>
+        <div class="news-card">
+            <div class="news-img" style="background:#fef9c3;">🏆</div>
+            <div class="news-body">
+                <span class="news-tag" style="background:#fef9c3; color:#ca8a04;">Award</span>
+                <div class="news-title">vBank wins Which? Best Bank 2024</div>
+                <div class="news-excerpt">For the second consecutive year, vBank has been awarded Which? Recommended Provider status, recognised for outstanding customer service and digital innovation.</div>
+                <div class="news-date"><i class="fas fa-calendar me-1"></i>1 March 2024</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="cta-inner">
+        <h2>Your money. Your control.</h2>
+        <p>Sign in to vBank Online Banking to manage transfers, check balances, review statements, and more — all from one secure platform.</p>
+        <div class="cta-btns">
+            <a href="/customer/login" class="btn-h1"><i class="fas fa-sign-in-alt"></i>Sign in to Online Banking</a>
+            <a href="#" class="btn-h2"><i class="fas fa-phone-alt"></i>Speak to an Advisor</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-main">
+        <div>
+            <div class="footer-brand-name"><i class="fas fa-university me-2"></i>vBank</div>
+            <p class="footer-desc">vBank plc is authorised by the Prudential Regulation Authority and regulated by the Financial Conduct Authority and the Prudential Regulation Authority (FRN: 122702). Hi-tech city, Hyderabad, 500084.</p>
+            <div class="footer-badges">
+                <span class="footer-badge">FCA Regulated</span>
+                <span class="footer-badge">ISO 27001</span>
+                <span class="footer-badge">FSCS Protected</span>
+                <span class="footer-badge">PCI-DSS</span>
+            </div>
+        </div>
+        <div class="footer-col">
+            <h6>Personal</h6>
+            <a href="#">Current Accounts</a>
+            <a href="#">Savings Accounts</a>
+            <a href="#">Personal Loans</a>
+            <a href="#">Mortgages</a>
+            <a href="#">Credit Cards</a>
+        </div>
+        <div class="footer-col">
+            <h6>Business</h6>
+            <a href="#">Business Accounts</a>
+            <a href="#">Business Loans</a>
+            <a href="#">Corporate Banking</a>
+            <a href="#">API Banking</a>
+            <a href="#">Merchant Services</a>
+        </div>
+        <div class="footer-col">
+            <h6>Investments</h6>
+            <a href="#">Stocks &amp; Shares ISA</a>
+            <a href="#">Cash ISA</a>
+            <a href="#">Pension</a>
+            <a href="#">Fixed Rate Bonds</a>
+        </div>
+        <div class="footer-col">
+            <h6>Support</h6>
+            <a href="#">Contact Us</a>
+            <a href="#">Branch Finder</a>
+            <a href="#">FAQs</a>
+            <a href="#">Security Centre</a>
+            <a href="#">Accessibility</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2024 vBank plc &nbsp;|&nbsp; All rights reserved</p>
+        <p class="fscs-note">Eligible deposits with vBank are protected up to a total of £85,000 by the Financial Services Compensation Scheme (FSCS). Calls may be recorded. Rates correct as at April 2024 and subject to change.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

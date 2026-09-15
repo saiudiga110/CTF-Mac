@@ -1,0 +1,205 @@
+{% extends "admin/base.html" %}
+
+{% block stylesheets %}
+<style>
+	@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+	.whale-cyber-page .jumbotron {
+		background: linear-gradient(135deg, #0a0a0f 0%, #0d1117 50%, #1a0a2e 100%) !important;
+		border-bottom: 2px solid #00f0ff;
+		box-shadow: 0 4px 30px rgba(0, 240, 255, 0.15);
+		padding: 2rem 0 !important;
+	}
+
+	.whale-cyber-page .jumbotron h1 {
+		font-family: 'Orbitron', monospace;
+		color: #00f0ff;
+		text-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.2);
+		font-size: 1.8rem;
+		letter-spacing: 2px;
+	}
+
+	.whale-cyber-page .whale-sidebar .nav-link {
+		font-family: 'Share Tech Mono', monospace;
+		color: #8892b0;
+		border: 1px solid transparent;
+		margin-bottom: 4px;
+		transition: all 0.3s ease;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		font-size: 0.85rem;
+	}
+
+	.whale-cyber-page .whale-sidebar .nav-link:hover {
+		color: #00f0ff;
+		border-color: rgba(0, 240, 255, 0.3);
+		background: rgba(0, 240, 255, 0.05);
+	}
+
+	.whale-cyber-page .whale-sidebar .nav-link.active {
+		background: rgba(0, 240, 255, 0.1) !important;
+		color: #00f0ff !important;
+		border: 1px solid #00f0ff;
+		box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+	}
+
+	.whale-cyber-page .whale-panel {
+		background: #0d1117;
+		border: 1px solid rgba(0, 240, 255, 0.15);
+		border-radius: 8px;
+		padding: 1.5rem;
+	}
+
+	.whale-cyber-page .form-group label {
+		font-family: 'Share Tech Mono', monospace;
+		color: #00f0ff;
+		text-transform: uppercase;
+		font-size: 0.85rem;
+		letter-spacing: 1px;
+	}
+
+	.whale-cyber-page .form-group .form-text {
+		color: #586069 !important;
+		font-family: 'Share Tech Mono', monospace;
+		font-size: 0.75rem;
+	}
+
+	.whale-cyber-page .form-control {
+		background: #161b22 !important;
+		border: 1px solid rgba(0, 240, 255, 0.2) !important;
+		color: #c9d1d9 !important;
+		font-family: 'Share Tech Mono', monospace;
+		transition: all 0.3s ease;
+	}
+
+	.whale-cyber-page .form-control:focus {
+		border-color: #00f0ff !important;
+		box-shadow: 0 0 10px rgba(0, 240, 255, 0.25) !important;
+	}
+
+	.whale-cyber-page .btn-primary {
+		background: linear-gradient(135deg, #00f0ff 0%, #0080ff 100%);
+		border: none;
+		color: #0a0a0f;
+		font-family: 'Orbitron', monospace;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 2px;
+		transition: all 0.3s ease;
+	}
+
+	.whale-cyber-page .btn-primary:hover {
+		box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+		transform: translateY(-1px);
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="whale-cyber-page">
+	<div class="jumbotron">
+		<div class="container">
+			<h1>🐳 WHALE CONFIGURATION</h1>
+		</div>
+	</div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-3 whale-sidebar">
+				<ul class="nav nav-pills flex-column">
+					<li class="nav-item">
+						<a class="nav-link rounded-0 active" href="#settings" role="tab" data-toggle="tab">⚙
+							Settings</a>
+						<a class="nav-link rounded-0" href="/plugins/ctfd-whale/admin/containers">📦 Instances</a>
+					</li>
+				</ul>
+			</div>
+			<div class="col-md-9">
+				<div class="tab-content">
+					<div role="tabpanel" class="tab-pane config-section active whale-panel" id="settings">
+						<form method="POST" autocomplete="off" class="w-100">
+
+							<div class="form-group">
+								<label>
+									Docker API URL
+									<small class="form-text text-muted">Docker daemon socket or TCP endpoint</small>
+								</label>
+								<input type="text" class="form-control" id="docker-api-url" name="docker_api_url"
+									value="{{ configs.get('docker_api_url', '') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Direct IP Address
+									<small class="form-text text-muted">IP address players use to access
+										containers</small>
+								</label>
+								<input type="text" class="form-control" id="frp-direct-ip-address"
+									name="frp_direct_ip_address"
+									value="{{ configs.get('frp_direct_ip_address', 'localhost') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Minimum Port
+									<small class="form-text text-muted">Start of the port range for container
+										mapping</small>
+								</label>
+								<input type="text" class="form-control" id="frp-direct-port-minimum"
+									name="frp_direct_port_minimum"
+									value="{{ configs.get('frp_direct_port_minimum', '10000') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Maximum Port
+									<small class="form-text text-muted">End of the port range for container
+										mapping</small>
+								</label>
+								<input type="text" class="form-control" id="frp-direct-port-maximum"
+									name="frp_direct_port_maximum"
+									value="{{ configs.get('frp_direct_port_maximum', '10100') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Max Container Count
+									<small class="form-text text-muted">Maximum concurrent running containers</small>
+								</label>
+								<input type="text" class="form-control" id="docker-max-container-count"
+									name="docker_max_container_count"
+									value="{{ configs.get('docker_max_container_count', '100') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Max Renewal Times
+									<small class="form-text text-muted">How many times a player can renew their
+										instance</small>
+								</label>
+								<input type="text" class="form-control" id="docker-max-renew-count"
+									name="docker_max_renew_count"
+									value="{{ configs.get('docker_max_renew_count', '5') }}">
+							</div>
+
+							<div class="form-group">
+								<label>
+									Container Timeout (seconds)
+									<small class="form-text text-muted">3600 = 1 hour, 7200 = 2 hours</small>
+								</label>
+								<input type="number" class="form-control" id="docker-timeout" name="docker_timeout"
+									value="{{ configs.get('docker_timeout', '3600') }}">
+							</div>
+
+							<button type="submit" class="btn btn-md btn-primary float-right">Update</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="{{ url_for('plugins.ctfd-whale.assets', path='config.js') }}"></script>
+{% endblock %}

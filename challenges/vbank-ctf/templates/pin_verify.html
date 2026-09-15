@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Secure Vault{% endblock %}
+{% block page_title %}Secure Vault — PIN Verification{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><div class="card-icon"><i class="fas fa-vault"></i></div>Vault PIN Verification</div>
+            <div class="card-body">
+                <p class="text-muted mb-4" style="font-size:0.84rem;">
+                    Enter the 5-digit admin PIN to access the vault. The PIN was configured during system setup.
+                    Extract it via the loan application reference system to verify your identity.
+                </p>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Admin PIN (5 digits)</label>
+                        <input type="text" name="pin" class="form-control" maxlength="10"
+                            placeholder="Enter PIN" style="font-size:1.2rem; letter-spacing:0.3em; text-align:center;" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-unlock me-2"></i>Verify PIN</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

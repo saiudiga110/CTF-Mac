@@ -1,0 +1,241 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=9">
+<div class="admin-wrap">
+  {% include "_admin_nav.html" %}
+  <h1 class="admin-title">Settings</h1>
+  <p class="admin-lead">How players get a vBank instance.</p>
+
+  <div id="target-alert" class="alert admin-alert" role="alert"></div>
+
+  <form id="target-settings-form">
+    <div class="admin-card">
+      <h2>Mode</h2>
+      <div class="admin-mode" id="mode-group">
+        <label class="{% if settings.target_mode != 'per_challenge' %}is-on{% endif %}">
+          <input type="radio" name="target_mode" value="global"
+                 {% if settings.target_mode != 'per_challenge' %}checked{% endif %}>
+          Shared vBank
+        </label>
+        <label class="{% if settings.target_mode == 'per_challenge' %}is-on{% endif %}">
+          <input type="radio" name="target_mode" value="per_challenge"
+                 {% if settings.target_mode == 'per_challenge' %}checked{% endif %}>
+          Per challenge
+        </label>
+      </div>
+      <p class="admin-hint mb-0">Shared: one container per player. Per challenge: a container for each enabled challenge.</p>
+    </div>
+
+    <div class="admin-card">
+      <h2>Images and lifetime</h2>
+      <div class="admin-field">
+        <label for="target_image">vBank image</label>
+        <input type="text" id="target_image" name="target_image" value="{{ settings.target_image }}" placeholder="vbank-ctf">
+      </div>
+      <div class="admin-field">
+        <label for="analytics_image">Analytics image</label>
+        <input type="text" id="analytics_image" name="analytics_image" value="{{ settings.analytics_image }}" placeholder="vbank-analytics">
+      </div>
+      <div class="admin-field">
+        <label for="instance_lifetime">Lifetime (seconds)</label>
+        <input type="text" id="instance_lifetime" name="instance_lifetime" value="{{ settings.instance_lifetime }}" placeholder="3600">
+      </div>
+      <div class="admin-field">
+        <label for="max_total_instances">Max running instances on this host</label>
+        <input type="text" id="max_total_instances" name="max_total_instances" value="{{ settings.max_total_instances }}" placeholder="80">
+        <p class="admin-hint">Stops new launches when this many player containers are running.</p>
+      </div>
+      <div class="admin-field">
+        <label for="enable_kali">Pwn Machine</label>
+        <select id="enable_kali" name="enable_kali">
+          <option value="0" {% if settings.enable_kali == '0' %}selected{% endif %}>Off</option>
+          <option value="1" {% if settings.enable_kali == '1' %}selected{% endif %}>On</option>
+        </select>
+      </div>
+      <div class="admin-field">
+        <label for="kali_image">Pwn Machine image</label>
+        <input type="text" id="kali_image" name="kali_image" value="{{ settings.kali_image }}" placeholder="kali-ctf">
+      </div>
+      <div class="admin-field">
+        <label for="kali_password">Pwn Machine password</label>
+        <input type="text" id="kali_password" name="kali_password" value="{{ settings.kali_password }}" placeholder="kali123">
+      </div>
+      <div class="admin-field">
+        <label for="flag_secret">Flag secret</label>
+        <input type="password" id="flag_secret" name="flag_secret" value="{{ settings.flag_secret }}" placeholder="Keep private">
+      </div>
+      <input type="hidden" id="host_ip" name="host_ip" value="{{ settings.host_ip }}">
+      <input type="hidden" id="target_port" name="target_port" value="{{ settings.target_port }}">
+      <input type="hidden" id="kali_port" name="kali_port" value="{{ settings.kali_port }}">
+      <input type="hidden" id="target_port_range_start" name="target_port_range_start" value="{{ settings.target_port_range_start }}">
+      <input type="hidden" id="target_port_range_end" name="target_port_range_end" value="{{ settings.target_port_range_end }}">
+      <input type="hidden" id="kali_port_range_start" name="kali_port_range_start" value="{{ settings.kali_port_range_start }}">
+      <input type="hidden" id="kali_port_range_end" name="kali_port_range_end" value="{{ settings.kali_port_range_end }}">
+      <input type="hidden" id="mem_limit" name="mem_limit" value="{{ settings.mem_limit }}">
+      <input type="hidden" id="cpu_quota" name="cpu_quota" value="{{ settings.cpu_quota }}">
+      <input type="hidden" id="docker_api_url" name="docker_api_url" value="{{ settings.docker_api_url }}">
+    </div>
+
+    <div class="admin-card" id="per-challenge-card" style="{% if settings.target_mode != 'per_challenge' %}display:none;{% endif %}">
+      <h2>Per-challenge targets</h2>
+      <div class="admin-field">
+        <label for="max_challenge_instances">Max running instances per player</label>
+        <input type="text" id="max_challenge_instances" name="max_challenge_instances"
+               value="{{ settings.max_challenge_instances }}" placeholder="3" style="max-width:120px;">
+      </div>
+      <div id="chal-targets-loading" class="admin-hint">Loading…</div>
+      <div class="table-responsive">
+        <table class="table table-sm admin-table mb-0" id="chal-targets-table" style="display:none;">
+          <thead>
+            <tr><th>On</th><th>Challenge</th><th>Image</th><th></th></tr>
+          </thead>
+          <tbody id="chal-targets-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-actions">
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+    function csrfToken() {
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && csrfMeta.getAttribute('content')) return csrfMeta.getAttribute('content');
+        if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+        return '';
+    }
+
+    function showAlert(msg, ok) {
+        var alert = document.getElementById('target-alert');
+        alert.className = 'alert admin-alert ' + (ok ? 'alert-success' : 'alert-danger');
+        alert.textContent = msg;
+        alert.style.display = 'block';
+        setTimeout(function () { alert.style.display = 'none'; }, 5000);
+    }
+
+    function parseJson(r) {
+        return r.text().then(function (text) {
+            try { return JSON.parse(text); }
+            catch (e) {
+                if (r.status === 403 || r.status === 401) {
+                    throw new Error('Session expired. Refresh and log in again.');
+                }
+                throw new Error('Save failed (HTTP ' + r.status + ').');
+            }
+        });
+    }
+
+    function currentMode() {
+        var selected = document.querySelector('input[name="target_mode"]:checked');
+        return selected ? selected.value : 'global';
+    }
+
+    function syncModeUI() {
+        var mode = currentMode();
+        document.querySelectorAll('#mode-group label').forEach(function (label) {
+            var input = label.querySelector('input');
+            label.classList.toggle('is-on', input && input.checked);
+        });
+        document.getElementById('per-challenge-card').style.display =
+            mode === 'per_challenge' ? '' : 'none';
+    }
+
+    document.querySelectorAll('input[name="target_mode"]').forEach(function (el) {
+        el.addEventListener('change', syncModeUI);
+    });
+
+    document.getElementById('target-settings-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fields = [
+            'target_image', 'analytics_image', 'kali_image', 'target_port', 'kali_port',
+            'target_port_range_start', 'target_port_range_end',
+            'kali_port_range_start', 'kali_port_range_end',
+            'host_ip', 'mem_limit', 'cpu_quota', 'docker_api_url', 'flag_secret',
+            'enable_kali', 'instance_lifetime', 'kali_password', 'max_challenge_instances',
+            'max_total_instances'
+        ];
+        var formData = new FormData();
+        formData.append('target_mode', currentMode());
+        fields.forEach(function (k) {
+            var el = document.getElementById(k);
+            if (el) formData.append(k, el.value);
+        });
+        fetch('/plugins/ctfd-target/admin/settings', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'CSRF-Token': csrfToken() },
+            body: formData
+        })
+        .then(parseJson)
+        .then(function (data) {
+            showAlert(data.msg || (data.success ? 'Saved.' : 'Could not save.'), !!data.success);
+        })
+        .catch(function (err) {
+            showAlert(err.message || 'Could not save.', false);
+        });
+    });
+
+    function loadChallengeTargets() {
+        fetch('/plugins/ctfd-target/admin/challenge-targets', { credentials: 'same-origin' })
+            .then(parseJson)
+            .then(function (data) {
+                var loading = document.getElementById('chal-targets-loading');
+                var table = document.getElementById('chal-targets-table');
+                var tbody = document.getElementById('chal-targets-tbody');
+                if (!data.success || !data.challenges || !data.challenges.length) {
+                    loading.textContent = 'No challenges yet.';
+                    return;
+                }
+                loading.style.display = 'none';
+                tbody.innerHTML = '';
+                data.challenges.forEach(function (ch) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="checkbox" class="ct-enabled"' + (ch.enabled ? ' checked' : '') + '></td>' +
+                        '<td>' + (ch.name || '') + '</td>' +
+                        '<td><input type="text" class="form-control form-control-sm ct-image" value="' + (ch.image_name || 'vbank-ctf') + '"></td>' +
+                        '<td><button type="button" class="btn btn-sm btn-outline-primary ct-save">Save</button></td>';
+                    tr.querySelector('.ct-save').addEventListener('click', function () {
+                        var btn = this;
+                        btn.disabled = true;
+                        fetch('/plugins/ctfd-target/admin/challenge-targets', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json', 'CSRF-Token': csrfToken() },
+                            body: JSON.stringify({
+                                challenge_id: ch.challenge_id,
+                                enabled: tr.querySelector('.ct-enabled').checked,
+                                image_name: tr.querySelector('.ct-image').value,
+                                internal_port: ch.internal_port || 80,
+                                needs_analytics: !!ch.needs_analytics,
+                                health_path: ch.health_path || '/',
+                                challenge_key: ch.challenge_key || '',
+                                target_profile: ch.target_profile || ''
+                            })
+                        })
+                        .then(parseJson)
+                        .then(function (res) {
+                            btn.disabled = false;
+                            showAlert(res.success ? ('Saved ' + ch.name) : (res.msg || 'Save failed'), !!res.success);
+                        })
+                        .catch(function (err) {
+                            btn.disabled = false;
+                            showAlert(err.message || 'Could not save.', false);
+                        });
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.style.display = '';
+            })
+            .catch(function () {
+                document.getElementById('chal-targets-loading').textContent = 'Could not load challenges.';
+            });
+    }
+    loadChallengeTargets();
+})();
+</script>
+{% endblock %}

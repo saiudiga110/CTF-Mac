@@ -1,0 +1,164 @@
+{% extends "admin/base.html" %}
+{% block title %}Suspicious Activity{% endblock %}
+{% block content %}
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--green:#00ff41;--red:#ff4444;--yellow:#ffd700;--blue:#64b4ff;--text:#c9d1d9;--muted:#8b949e;}
+body{background:var(--bg)!important;color:var(--text)!important;}
+.sa-hdr{background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid var(--border);padding:22px 0 16px;margin-bottom:24px;}
+.sa-hdr h1{font-family:'Courier New',monospace;color:var(--red);font-size:1.5rem;letter-spacing:2px;margin:0;}
+.sa-hdr p{color:var(--muted);font-size:.85rem;margin:4px 0 0;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-btn{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:5px 14px;cursor:pointer;font-size:.75rem;font-family:'Courier New',monospace;}
+.filter-btn.active{background:rgba(255,68,68,.1);color:var(--red);border-color:rgba(255,68,68,.3);}
+.filter-btn.active-all{background:rgba(0,255,65,.08);color:var(--green);border-color:rgba(0,255,65,.25);}
+.summary-row{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap;}
+.summary-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 20px;min-width:110px;text-align:center;}
+.summary-card .val{font-family:'Courier New',monospace;font-size:1.5rem;}
+.summary-card .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.val-red{color:var(--red);}
+.val-yellow{color:var(--yellow);}
+.val-green{color:var(--green);}
+table{width:100%;border-collapse:collapse;}
+th{font-family:'Courier New',monospace;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:9px 14px;border-bottom:1px solid var(--border);text-align:left;}
+td{padding:10px 14px;border-bottom:1px solid rgba(48,54,61,.4);font-size:.83rem;vertical-align:middle;}
+tr:hover td{background:rgba(255,68,68,.02);}
+.unreviewed td:first-child{border-left:3px solid var(--red);}
+.reviewed td:first-child{border-left:3px solid rgba(0,255,65,.3);}
+.reason-badge{display:inline-block;background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.25);border-radius:10px;padding:2px 8px;font-size:.65rem;font-family:'Courier New',monospace;}
+.reviewed-badge{background:rgba(0,255,65,.08);color:var(--green);border-color:rgba(0,255,65,.2);}
+.btn-review{background:rgba(0,255,65,.08);color:var(--green);border:1px solid rgba(0,255,65,.25);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:.72rem;font-family:'Courier New',monospace;}
+.btn-review:hover{background:rgba(0,255,65,.18);}
+.btn-review:disabled{opacity:.4;cursor:not-allowed;}
+.empty{text-align:center;padding:50px;color:var(--muted);}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid rgba(0,255,65,.3);border-radius:8px;padding:10px 18px;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);z-index:9999;display:none;}
+.ip-mono{font-family:'Courier New',monospace;font-size:.78rem;color:var(--muted);}
+.flag-snippet{font-family:'Courier New',monospace;font-size:.75rem;color:var(--yellow);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+</style>
+
+<div class="sa-hdr">
+  <div class="container">
+    <h1>&#128680; Suspicious Activity</h1>
+    <p>Flag submissions with no associated container — potential flag sharing or external solving.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="summary-row">
+    <div class="summary-card"><div class="val val-red" id="s-total">—</div><div class="lbl">Total Alerts</div></div>
+    <div class="summary-card"><div class="val val-yellow" id="s-pending">—</div><div class="lbl">Unreviewed</div></div>
+    <div class="summary-card"><div class="val val-green" id="s-reviewed">—</div><div class="lbl">Reviewed</div></div>
+    <div class="summary-card"><div class="val" style="color:var(--blue)" id="s-users">—</div><div class="lbl">Flagged Users</div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="filter-btn active-all active" id="f-all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" id="f-unreviewed" onclick="setFilter('unreviewed',this)">&#128680; Unreviewed</button>
+    <button class="filter-btn" id="f-reviewed" onclick="setFilter('reviewed',this)">&#9989; Reviewed</button>
+    <button class="filter-btn" onclick="load()" style="margin-left:auto">&#8635; Refresh</button>
+  </div>
+
+  <div id="table-wrap"><div class="empty">Loading…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var allData = [];
+var filterVal = 'all';
+
+function load() {
+  fetch('/api/ctf/admin/suspicious', {credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){ allData = d; buildSummary(); renderTable(); })
+    .catch(function(e){ toast('Error: '+e,'#ff4444'); });
+}
+
+function buildSummary() {
+  var pending  = allData.filter(function(x){return !x.reviewed;}).length;
+  var reviewed = allData.filter(function(x){return x.reviewed;}).length;
+  var users    = new Set(allData.map(function(x){return x.username;})).size;
+  document.getElementById('s-total').textContent    = allData.length;
+  document.getElementById('s-pending').textContent  = pending;
+  document.getElementById('s-reviewed').textContent = reviewed;
+  document.getElementById('s-users').textContent    = users;
+}
+
+function setFilter(f, btn) {
+  filterVal = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){
+    b.classList.remove('active','active-all');
+  });
+  btn.classList.add('active');
+  if (f === 'all') btn.classList.add('active-all');
+  renderTable();
+}
+
+function renderTable() {
+  var data = allData;
+  if (filterVal === 'unreviewed') data = allData.filter(function(x){return !x.reviewed;});
+  else if (filterVal === 'reviewed') data = allData.filter(function(x){return x.reviewed;});
+
+  if (!data.length) {
+    document.getElementById('table-wrap').innerHTML = '<div class="empty">No alerts for this filter.</div>';
+    return;
+  }
+
+  var html = '<table><thead><tr><th>User</th><th>Challenge</th><th>Flag Submitted</th><th>Reason</th><th>IP</th><th>Time</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  data.forEach(function(r) {
+    var ts = r.created_at ? new Date(r.created_at).toLocaleString() : '—';
+    var rowCls = r.reviewed ? 'reviewed' : 'unreviewed';
+    var statusBadge = r.reviewed
+      ? '<span class="reason-badge reviewed-badge">Reviewed</span>'
+      : '<span class="reason-badge">Pending</span>';
+    var actionBtn = r.reviewed
+      ? '<button class="btn-review" disabled>Done</button>'
+      : '<button class="btn-review" onclick="markReviewed('+r.id+',this)">&#10003; Review</button>';
+    html += '<tr class="'+rowCls+'">' +
+      '<td style="font-family:monospace">'+esc(r.username||'?')+'</td>' +
+      '<td>'+esc(r.challenge_name||'?')+'</td>' +
+      '<td class="flag-snippet" title="'+esc(r.flag_submitted||'')+'">'+esc(r.flag_submitted||'—')+'</td>' +
+      '<td><span class="reason-badge">'+esc(r.reason||'no_container')+'</span></td>' +
+      '<td class="ip-mono">'+esc(r.ip_address||'—')+'</td>' +
+      '<td style="font-family:monospace;font-size:.75rem">'+esc(ts)+'</td>' +
+      '<td>'+statusBadge+'</td>' +
+      '<td>'+actionBtn+'</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('table-wrap').innerHTML = html;
+}
+
+function markReviewed(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  fetch('/api/ctf/admin/suspicious/'+id+'/review', {
+    method: 'POST', credentials: 'same-origin',
+    headers: {'CSRF-Token': getCsrf()}
+  }).then(function(r){return r.json();})
+    .then(function(d){
+      if (d.success) {
+        toast('Marked as reviewed','#00ff41');
+        var row = allData.find(function(x){return x.id===id;});
+        if (row) row.reviewed = true;
+        buildSummary(); renderTable();
+      } else {
+        toast(d.error||'Error','#ff4444');
+        btn.disabled=false; btn.textContent='✓ Review';
+      }
+    }).catch(function(e){ toast(''+e,'#ff4444'); btn.disabled=false; });
+}
+
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function toast(msg, col) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.color = col||'var(--green)'; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(function(){t.style.display='none';}, 3000);
+}
+
+load();
+</script>
+{% endblock %}

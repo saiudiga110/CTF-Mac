@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lloyds vBank CTF — Live Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #010801;
+    color: #c9d1d9;
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  #spec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px 14px;
+    border-bottom: 1px solid rgba(0,255,65,.12);
+    flex-shrink: 0;
+  }
+  #spec-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #00ff41;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(0,255,65,.4);
+  }
+  #spec-subtitle {
+    font-size: .75rem;
+    color: rgba(0,255,65,.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  #spec-clock {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #00ff41;
+    letter-spacing: 6px;
+    text-shadow: 0 0 16px rgba(0,255,65,.3);
+  }
+  #spec-ctf-timer {
+    text-align: right;
+  }
+  #spec-ctf-label {
+    font-size: .65rem;
+    color: rgba(0,255,65,.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  #spec-ctf-countdown {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255,204,0,.3);
+  }
+  #spec-ctf-countdown.warn  { color: #ff6600; text-shadow: 0 0 10px rgba(255,102,0,.4); }
+  #spec-ctf-countdown.ended { color: #ff3333; text-shadow: 0 0 10px rgba(255,51,51,.4); }
+
+  /* ── Live dot ── */
+  #spec-live {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(0,255,65,.06);
+    border: 1px solid rgba(0,255,65,.15);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: .68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(0,255,65,.6);
+  }
+  #spec-live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #00ff41;
+    box-shadow: 0 0 8px #00ff41;
+    animation: live-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+  /* ── Table ── */
+  #spec-board {
+    flex: 1;
+    overflow: hidden;
+    padding: 24px 40px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  #spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  #spec-table thead th {
+    font-family: 'Orbitron', monospace;
+    font-size: .62rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(0,255,65,.4);
+    padding: 0 0 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0,255,65,.08);
+  }
+  #spec-table thead th:first-child { width: 80px; text-align: center; }
+  #spec-table thead th:last-child  { width: 160px; text-align: right; }
+
+  .spec-row {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    transition: background .4s ease;
+  }
+  .spec-row td {
+    padding: 10px 0;
+    vertical-align: middle;
+  }
+  .spec-rank {
+    text-align: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    font-weight: 900;
+    width: 80px;
+  }
+  .rank-1 { color: #ffd700; text-shadow: 0 0 16px rgba(255,215,0,.5); }
+  .rank-2 { color: #c0c0c0; text-shadow: 0 0 12px rgba(192,192,192,.4); }
+  .rank-3 { color: #cd7f32; text-shadow: 0 0 12px rgba(205,127,50,.4); }
+  .rank-other { color: rgba(139,148,158,.5); font-size: 1rem; }
+
+  .spec-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e6edf3;
+    letter-spacing: 1px;
+    padding-left: 8px;
+  }
+  .spec-name.rank-1-name { color: #ffd700; }
+  .spec-name.rank-2-name { color: #c0c0c0; }
+  .spec-name.rank-3-name { color: #cd7f32; }
+
+  .spec-score {
+    text-align: right;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #00ff41;
+    text-shadow: 0 0 10px rgba(0,255,65,.25);
+    width: 160px;
+  }
+  .spec-score-bar-wrap {
+    padding: 0 16px 0 8px;
+  }
+  .spec-score-bar-bg {
+    height: 6px;
+    background: rgba(255,255,255,.05);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .spec-score-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #00ff41, #00cc33);
+    transition: width .8s cubic-bezier(.25,.46,.45,.94);
+  }
+  .rank-1-bar { background: linear-gradient(90deg, #ffd700, #ffaa00); }
+  .rank-2-bar { background: linear-gradient(90deg, #c0c0c0, #a0a0a0); }
+  .rank-3-bar { background: linear-gradient(90deg, #cd7f32, #b06a20); }
+
+  .spec-change {
+    font-size: .68rem;
+    font-family: 'Share Tech Mono', monospace;
+    padding-left: 6px;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .spec-change.show { opacity: 1; animation: change-flash 2.5s ease forwards; }
+  .spec-change.up   { color: #00ff41; }
+  .spec-change.down { color: #ff4444; }
+  @keyframes change-flash { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+
+  /* ── Solve ticker ── */
+  #spec-ticker {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(0,255,65,.08);
+    padding: 10px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow: hidden;
+    height: 44px;
+  }
+  #spec-ticker-label {
+    font-family: 'Orbitron', monospace;
+    font-size: .58rem;
+    color: rgba(0,255,65,.35);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  #spec-ticker-track {
+    display: flex;
+    gap: 28px;
+    animation: ticker-scroll 40s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .spec-tick-item {
+    font-size: .72rem;
+    color: rgba(139,148,158,.7);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spec-tick-user { color: #00ff41; font-family: 'Orbitron', monospace; font-size: .65rem; }
+  .spec-tick-pts  { color: #ffcc00; }
+
+  /* ── Scanline overlay ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,.03) 0px,
+      rgba(0,0,0,.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* ── Score updated flash ── */
+  @keyframes row-flash {
+    0%  { background: rgba(0,255,65,.12); }
+    100%{ background: transparent; }
+  }
+  .row-updated { animation: row-flash .8s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="spec-header">
+  <div>
+    <div id="spec-title">Lloyds vBank CTF</div>
+    <div id="spec-subtitle">&#9889; Live Scoreboard</div>
+  </div>
+  <div id="spec-live"><div id="spec-live-dot"></div>LIVE</div>
+  <div id="spec-clock">--:--:--</div>
+  <div id="spec-ctf-timer">
+    <div id="spec-ctf-label">CTF Ends In</div>
+    <div id="spec-ctf-countdown">--:--:--</div>
+  </div>
+</div>
+
+<!-- Scoreboard table -->
+<div id="spec-board">
+  <table id="spec-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Player / Team</th>
+        <th></th>
+        <th style="text-align:right">Score</th>
+      </tr>
+    </thead>
+    <tbody id="spec-tbody"></tbody>
+  </table>
+</div>
+
+<!-- Solve ticker -->
+<div id="spec-ticker">
+  <div id="spec-ticker-label">&#9889; Recent Solves</div>
+  <div id="spec-ticker-track"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var prevScores = {};
+  var maxScore   = 0;
+
+  // ── Clock ──────────────────────────────────────────────────────────────────
+  function tickClock() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    document.getElementById('spec-clock').textContent =
+      pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  // ── CTF countdown ──────────────────────────────────────────────────────────
+  fetch('/api/ctf/config').then(function(r){ return r.json(); }).then(function(cfg){
+    if (!cfg.end) return;
+    var endTs = cfg.end;
+    function tickCtf() {
+      var rem = endTs - Math.floor(Date.now() / 1000);
+      var el = document.getElementById('spec-ctf-countdown');
+      if (!el) return;
+      if (rem <= 0) { el.textContent = 'ENDED'; el.className = 'ended'; return; }
+      var h = Math.floor(rem / 3600), m = Math.floor((rem % 3600) / 60), s = rem % 60;
+      el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+      el.className = rem < 900 ? 'warn' : '';
+    }
+    tickCtf();
+    setInterval(tickCtf, 1000);
+  }).catch(function(){});
+
+  // ── Scoreboard refresh ─────────────────────────────────────────────────────
+  function refreshBoard() {
+    fetch('/api/ctf/scoreboard').then(function(r){ return r.json(); }).then(function(rows){
+      if (!rows || !rows.length) return;
+
+      maxScore = rows[0] ? rows[0].score : 1;
+
+      var tbody = document.getElementById('spec-tbody');
+      var top = rows.slice(0, 12);
+
+      top.forEach(function(row, i) {
+        var rank = i + 1;
+        var prev = prevScores[row.user_id];
+        var changed = prev !== undefined && prev !== row.score;
+        prevScores[row.user_id] = row.score;
+
+        var trId = 'spec-row-' + row.user_id;
+        var tr = document.getElementById(trId);
+
+        if (!tr) {
+          tr = document.createElement('tr');
+          tr.id = trId;
+          tr.className = 'spec-row';
+          tbody.appendChild(tr);
+        }
+
+        if (changed) {
+          tr.classList.remove('row-updated');
+          void tr.offsetWidth;
+          tr.classList.add('row-updated');
+        }
+
+        var rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+        var nameClass = rank <= 3 ? 'rank-' + rank + '-name' : '';
+        var barClass  = rank <= 3 ? 'rank-' + rank + '-bar' : '';
+        var barPct    = maxScore ? Math.round(row.score / maxScore * 100) : 0;
+        var changeHtml = '';
+        if (changed && prev !== undefined) {
+          var diff = row.score - prev;
+          changeHtml = '<span class="spec-change ' + (diff > 0 ? 'up' : 'down') + ' show">' +
+            (diff > 0 ? '+' : '') + diff + '</span>';
+        }
+
+        tr.innerHTML =
+          '<td class="spec-rank ' + rankClass + '">' + rank + '</td>' +
+          '<td class="spec-name ' + nameClass + '">' + esc(row.username) + changeHtml + '</td>' +
+          '<td class="spec-score-bar-wrap">' +
+            '<div class="spec-score-bar-bg">' +
+              '<div class="spec-score-bar ' + barClass + '" style="width:' + barPct + '%"></div>' +
+            '</div>' +
+          '</td>' +
+          '<td class="spec-score">' + row.score + '</td>';
+      });
+
+      // Remove stale rows
+      var allRows = tbody.querySelectorAll('tr');
+      var activeIds = top.map(function(r){ return 'spec-row-' + r.user_id; });
+      allRows.forEach(function(r){
+        if (activeIds.indexOf(r.id) === -1) tbody.removeChild(r);
+      });
+
+    }).catch(function(){});
+  }
+
+  refreshBoard();
+  setInterval(refreshBoard, 5000);
+
+  // ── Solve ticker ───────────────────────────────────────────────────────────
+  function refreshTicker() {
+    fetch('/api/features/admin/solve-feed').then(function(r){ return r.json(); })
+      .then(function(solves){
+        if (!Array.isArray(solves) || !solves.length) return;
+        var track = document.getElementById('spec-ticker-track');
+        // Build double-copy for seamless loop
+        var items = solves.slice(0, 20).map(function(s){
+          return '<div class="spec-tick-item">' +
+            '<span class="spec-tick-user">' + esc(s.solver || '?') + '</span>' +
+            '<span>solved</span>' +
+            '<span style="color:#c9d1d9;">' + esc(s.challenge || '?') + '</span>' +
+            '<span class="spec-tick-pts">+' + (s.value || 0) + '</span>' +
+          '</div>';
+        }).join('');
+        track.innerHTML = items + items; // duplicate for seamless loop
+      }).catch(function(){});
+  }
+
+  refreshTicker();
+  setInterval(refreshTicker, 30000);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+})();
+</script>
+</body>
+</html>

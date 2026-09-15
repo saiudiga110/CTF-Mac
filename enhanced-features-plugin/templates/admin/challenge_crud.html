@@ -1,0 +1,294 @@
+{% extends "admin/base.html" %}
+{% block title %}Challenge Management{% endblock %}
+{% block content %}
+<style>
+body { background:#0d1117 !important; color:#c9d1d9 !important; }
+.crud-header { background:linear-gradient(135deg,#0d1117,#161b22,#0d1117);
+  border-bottom:1px solid #30363d; padding:24px 0 18px; margin-bottom:24px; }
+.crud-header h1 { font-family:'Courier New',monospace; color:#00ff41; font-size:1.6rem;
+  letter-spacing:2px; text-shadow:0 0 12px rgba(0,255,65,.4); }
+.panel { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:22px; margin-bottom:20px; }
+.panel h4 { margin:0 0 16px; color:#64b4ff; font-family:'Courier New',monospace; font-size:1rem; }
+.form-ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px;
+  color:#c9d1d9; padding:8px 12px; width:100%; font-size:.88rem; box-sizing:border-box; }
+.form-ctrl:focus { outline:none; border-color:#00ff41; }
+select.form-ctrl option { background:#161b22; }
+textarea.form-ctrl { min-height:100px; resize:vertical; }
+.form-row { margin-bottom:12px; }
+label { font-size:.76rem; color:#8b949e; display:block; margin-bottom:4px; }
+.btn { border:none; border-radius:6px; padding:8px 20px; font-weight:600; cursor:pointer; font-size:.85rem; transition:all .15s; }
+.btn-green { background:linear-gradient(135deg,#00ff41,#00cc33); color:#000; }
+.btn-green:hover { opacity:.88; }
+.btn-blue  { background:rgba(100,180,255,.15); color:#64b4ff; border:1px solid rgba(100,180,255,.3); }
+.btn-blue:hover { background:rgba(100,180,255,.25); }
+.btn-red   { background:rgba(255,68,68,.15); color:#ff4444; border:1px solid rgba(255,68,68,.3); }
+.btn-red:hover { background:rgba(255,68,68,.25); }
+.btn-sm { padding:4px 12px; font-size:.78rem; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
+  color:#8b949e; border-bottom:1px solid #30363d; padding:8px 10px; }
+td { padding:9px 10px; border-bottom:1px solid rgba(48,54,61,.5); font-size:.85rem; vertical-align:middle; }
+tr:hover td { background:rgba(255,255,255,.02); }
+.badge { display:inline-block; border-radius:8px; padding:2px 8px; font-size:.7rem; font-weight:600; }
+.badge-b { background:rgba(0,200,83,.12); color:#00c853; }
+.badge-i { background:rgba(255,215,0,.12); color:#ffd700; }
+.badge-a { background:rgba(255,68,68,.12); color:#ff4444; }
+.alert { border-radius:6px; padding:9px 14px; margin-bottom:14px; font-size:.83rem; display:none; }
+.alert-ok  { background:rgba(0,255,65,.08); border:1px solid rgba(0,255,65,.25); color:#00ff41; }
+.alert-err { background:rgba(255,68,68,.08); border:1px solid rgba(255,68,68,.25); color:#ff4444; }
+.pts-badge { background:rgba(100,180,255,.1); color:#64b4ff; border-radius:8px;
+  padding:2px 8px; font-size:.72rem; font-family:monospace; }
+#hint-list .hint-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+#hint-list .hint-row input { flex:1; }
+#hint-list .hint-row input[type=number] { width:70px; flex:none; }
+</style>
+
+<div class="crud-header">
+  <div class="container">
+    <h1>&#x2699;&#xfe0f; Challenge Management</h1>
+    <p style="color:#8b949e;font-size:.88rem">Create, edit, and delete challenges. Flags are set per-challenge.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="alert-box" class="alert"></div>
+
+  <!-- CREATE / EDIT FORM -->
+  <div class="panel" id="chal-form-panel">
+    <h4 id="form-title">&#x2795; Create New Challenge</h4>
+    <input type="hidden" id="chal-id" value="">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="form-row"><label>Challenge Name</label>
+        <input class="form-ctrl" id="chal-name" placeholder="e.g. The Careless Developer"></div>
+      <div class="form-row"><label>Category</label>
+        <select class="form-ctrl" id="chal-cat">
+          <option>Web — Beginner</option>
+          <option>Web — Intermediate</option>
+          <option>Web — Advanced</option>
+          <option>Crypto</option>
+          <option>Forensics</option>
+          <option>Misc</option>
+        </select></div>
+      <div class="form-row"><label>Points</label>
+        <input class="form-ctrl" id="chal-pts" type="number" placeholder="100" min="1"></div>
+      <div class="form-row"><label>State</label>
+        <select class="form-ctrl" id="chal-state">
+          <option value="visible">Visible</option>
+          <option value="hidden">Hidden</option>
+        </select></div>
+    </div>
+    <div class="form-row"><label>Description (supports Markdown)</label>
+      <textarea class="form-ctrl" id="chal-desc" placeholder="Story-based description..."></textarea></div>
+    <div class="form-row"><label>Flag (LYD{...} format)</label>
+      <input class="form-ctrl" id="chal-flag" placeholder="LYD{example_flag_here}"></div>
+    <div class="form-row"><label>Hints</label>
+      <div id="hint-list"></div>
+      <button type="button" class="btn btn-blue btn-sm" onclick="addHintRow()" style="margin-top:6px">+ Add Hint</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-green" id="chal-save-btn" onclick="saveChallenge()">&#x1f4be; Save Challenge</button>
+      <button class="btn btn-blue" onclick="resetForm()">Clear</button>
+    </div>
+  </div>
+
+  <!-- CHALLENGE TABLE -->
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h4 style="margin:0">&#x1f4cb; All Challenges</h4>
+      <div style="display:flex;gap:8px">
+        <input class="form-ctrl" id="search-box" style="width:220px;padding:6px 10px" placeholder="&#x1f50d; Search...">
+        <select class="form-ctrl" id="cat-filter" style="width:180px;padding:6px 10px" onchange="loadChallenges()">
+          <option value="">All Categories</option>
+          <option>Web — Beginner</option>
+          <option>Web — Intermediate</option>
+          <option>Web — Advanced</option>
+          <option>Crypto</option>
+          <option>Forensics</option>
+          <option>Misc</option>
+        </select>
+      </div>
+    </div>
+    <table id="chal-table">
+      <thead><tr>
+        <th>#</th><th>Name</th><th>Category</th><th>Pts</th><th>State</th><th>Solves</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="chal-tbody"><tr><td colspan="7" style="text-align:center;color:#8b949e;padding:24px">Loading...</td></tr></tbody>
+    </table>
+    <div id="chal-count" style="font-size:.75rem;color:#8b949e;margin-top:10px;text-align:right"></div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div id="del-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:28px;max-width:420px;width:100%">
+    <h4 style="color:#ff4444;margin:0 0 12px;font-family:'Courier New',monospace">Delete Challenge?</h4>
+    <p id="del-msg" style="color:#8b949e;font-size:.88rem;margin:0 0 20px"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-blue" onclick="document.getElementById('del-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-red" id="del-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCsrf() {
+  var m = document.querySelector('meta[name="csrf-token"]');
+  if (m && m.getAttribute('content')) return m.getAttribute('content');
+  if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+  return '';
+}
+
+function showAlert(msg,ok){
+  var b=document.getElementById('alert-box');
+  b.className='alert '+(ok?'alert-ok':'alert-err');
+  b.textContent=msg; b.style.display='block';
+  setTimeout(function(){b.style.display='none';},5000);
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Hint management ──────────────────────────────────────────────────────────
+var _hints = [];
+
+function addHintRow(text, cost){
+  var list = document.getElementById('hint-list');
+  var idx = _hints.length;
+  _hints.push({text:text||'',cost:cost||0});
+  var row = document.createElement('div');
+  row.className='hint-row'; row.dataset.idx=idx;
+  row.innerHTML =
+    '<input class="form-ctrl" placeholder="Hint text..." value="'+esc(text||'')+'" oninput="_hints['+idx+'].text=this.value">'+
+    '<input type="number" class="form-ctrl" placeholder="Cost" value="'+(cost||0)+'" min="0" oninput="_hints['+idx+'].cost=parseInt(this.value)||0">'+
+    '<button type="button" class="btn btn-red btn-sm" onclick="removeHint('+idx+')">&#x2715;</button>';
+  list.appendChild(row);
+}
+
+function removeHint(idx){
+  _hints.splice(idx,1);
+  renderHints();
+}
+
+function renderHints(){
+  document.getElementById('hint-list').innerHTML='';
+  var tmp=[].concat(_hints); _hints=[];
+  tmp.forEach(function(h){ addHintRow(h.text,h.cost); });
+}
+
+function resetForm(){
+  document.getElementById('chal-id').value='';
+  document.getElementById('chal-name').value='';
+  document.getElementById('chal-pts').value='';
+  document.getElementById('chal-desc').value='';
+  document.getElementById('chal-flag').value='';
+  document.getElementById('chal-state').value='visible';
+  document.getElementById('chal-cat').value='Web \u2014 Beginner';
+  _hints=[]; document.getElementById('hint-list').innerHTML='';
+  document.getElementById('form-title').textContent='\u2795 Create New Challenge';
+  document.getElementById('chal-save-btn').textContent='\ud83d\udcbe Save Challenge';
+}
+
+// ── Save challenge (create or update) ────────────────────────────────────────
+function saveChallenge(){
+  var id   = document.getElementById('chal-id').value;
+  var name = document.getElementById('chal-name').value.trim();
+  var cat  = document.getElementById('chal-cat').value;
+  var pts  = parseInt(document.getElementById('chal-pts').value)||0;
+  var desc = document.getElementById('chal-desc').value.trim();
+  var flag = document.getElementById('chal-flag').value.trim();
+  var state= document.getElementById('chal-state').value;
+
+  if(!name||!pts||!flag){ showAlert('Name, points and flag are required',false); return; }
+  if(!flag.startsWith('LYD{')){ showAlert('Flag must start with LYD{',false); return; }
+
+  var hints = _hints.filter(function(h){return h.text.trim();});
+
+  var payload = {name:name, category:cat, value:pts, description:desc, flag:flag, state:state, hints:hints};
+  var url    = id ? ('/api/ctf/admin/challenges/'+id) : '/api/ctf/admin/challenges';
+  var method = id ? 'PUT' : 'POST';
+
+  fetch(url,{method:method, credentials:'same-origin',
+    headers:{'Content-Type':'application/json','CSRF-Token':getCsrf()},
+    body:JSON.stringify(payload)})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.success){ showAlert((id?'Updated':'Created')+' successfully!',true); resetForm(); loadChallenges(); }
+    else { showAlert(d.message||'Failed',false); }
+  }).catch(function(e){ showAlert('Network error: '+e,false); });
+}
+
+// ── Load challenge table ─────────────────────────────────────────────────────
+function loadChallenges(){
+  var cat = document.getElementById('cat-filter').value;
+  var url = '/api/ctf/admin/challenges' + (cat ? '?category='+encodeURIComponent(cat) : '');
+  fetch(url,{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(chals){
+    var search = document.getElementById('search-box').value.toLowerCase();
+    if(search) chals=chals.filter(function(c){ return c.name.toLowerCase().includes(search)||c.category.toLowerCase().includes(search); });
+    var html='';
+    if(chals.length===0){ html='<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:24px">No challenges found.</td></tr>'; }
+    chals.forEach(function(c,i){
+      var diff = c.category.includes('Beginner')?'b':c.category.includes('Advanced')?'a':'i';
+      html+='<tr>';
+      html+='<td style="color:#8b949e;font-size:.75rem">'+(i+1)+'</td>';
+      html+='<td style="font-family:\'Courier New\',monospace">'+esc(c.name)+'</td>';
+      html+='<td><span class="badge badge-'+diff+'">'+esc(c.category)+'</span></td>';
+      html+='<td><span class="pts-badge">'+c.value+' pts</span></td>';
+      html+='<td style="color:'+(c.state==='visible'?'#00ff41':'#8b949e')+'">'+c.state+'</td>';
+      html+='<td>'+c.solves+'</td>';
+      html+='<td><div style="display:flex;gap:6px">';
+      html+='<button class="btn btn-blue btn-sm" onclick="editChallenge('+c.id+')">Edit</button>';
+      html+='<button class="btn btn-red btn-sm" onclick="deleteChallenge('+c.id+',\''+esc(c.name)+'\')">Delete</button>';
+      html+='</div></td></tr>';
+    });
+    document.getElementById('chal-tbody').innerHTML=html;
+    document.getElementById('chal-count').textContent=chals.length+' challenge'+(chals.length!==1?'s':'');
+  }).catch(function(){ document.getElementById('chal-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#ff4444">Failed to load.</td></tr>'; });
+}
+
+// ── Edit ─────────────────────────────────────────────────────────────────────
+function editChallenge(id){
+  fetch('/api/ctf/admin/challenges/'+id,{credentials:'same-origin'})
+  .then(function(r){return r.json();})
+  .then(function(c){
+    document.getElementById('chal-id').value=c.id;
+    document.getElementById('chal-name').value=c.name;
+    document.getElementById('chal-pts').value=c.value;
+    document.getElementById('chal-desc').value=c.description||'';
+    document.getElementById('chal-flag').value=c.flag||'';
+    document.getElementById('chal-state').value=c.state;
+    // Match category option
+    var sel=document.getElementById('chal-cat');
+    for(var i=0;i<sel.options.length;i++){
+      if(sel.options[i].value===c.category||sel.options[i].text===c.category){ sel.selectedIndex=i; break; }
+    }
+    _hints=[]; document.getElementById('hint-list').innerHTML='';
+    (c.hints||[]).forEach(function(h){ addHintRow(h.content, h.cost); });
+    document.getElementById('form-title').textContent='\u270f\ufe0f Edit: '+c.name;
+    document.getElementById('chal-save-btn').textContent='\ud83d\udcbe Update Challenge';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }).catch(function(){ showAlert('Failed to load challenge',false); });
+}
+
+// ── Delete ───────────────────────────────────────────────────────────────────
+function deleteChallenge(id, name){
+  document.getElementById('del-msg').textContent='Delete "'+name+'"? This cannot be undone.';
+  document.getElementById('del-modal').style.display='flex';
+  document.getElementById('del-confirm-btn').onclick=function(){
+    document.getElementById('del-modal').style.display='none';
+    fetch('/api/ctf/admin/challenges/'+id,{method:'DELETE',credentials:'same-origin',
+      headers:{'CSRF-Token':getCsrf(),'Content-Type':'application/json'}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.success){ showAlert('Challenge deleted',true); loadChallenges(); }
+      else { showAlert(d.message||'Failed',false); }
+    }).catch(function(){ showAlert('Network error',false); });
+  };
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+document.getElementById('search-box').addEventListener('input', loadChallenges);
+
+loadChallenges();
+</script>
+{% endblock %}

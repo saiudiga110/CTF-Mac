@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ ctf_name }} — player pack</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; max-width: 920px; margin: 28px auto; padding: 0 20px 48px; color: #111; background: #fff; }
+    h1 { font-size: 1.7rem; margin: 0 0 6px; }
+    .sub { color: #444; margin: 0 0 18px; }
+    .hero { display: flex; gap: 24px; align-items: center; border: 2px solid #111; padding: 16px 18px; margin-bottom: 22px; }
+    .qr { width: 132px; height: 132px; flex-shrink: 0; }
+    .qr svg { width: 132px; height: 132px; }
+    .url { font-family: Consolas, "Courier New", monospace; font-size: 1.1rem; word-break: break-all; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
+    th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #444; }
+    .notes { white-space: pre-wrap; border: 1px solid #111; padding: 12px 14px; margin-top: 18px; }
+    .no-print { margin-bottom: 16px; }
+    button { font-size: 1rem; padding: 8px 14px; }
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button type="button" onclick="window.print()">Print</button>
+    <a href="/plugins/ctfd-target/admin/ops">Back to Operations</a>
+  </div>
+  <h1>{{ ctf_name }}</h1>
+  <p class="sub">Desk pack — {{ players|length }} registered player{{ '' if players|length == 1 else 's' }}</p>
+  <div class="hero">
+    {% if qr_svg %}
+    <div class="qr">{{ qr_svg|safe }}</div>
+    {% endif %}
+    <div>
+      <strong>Join at</strong>
+      <div class="url">{{ join_url or 'Set host IP first' }}</div>
+      {% if start_label or end_label %}
+      <p>
+        {% if start_label %}Starts {{ start_label }}{% endif %}
+        {% if start_label and end_label %} · {% endif %}
+        {% if end_label %}Ends {{ end_label }}{% endif %}
+      </p>
+      {% endif %}
+      {% if join_password %}<p>Room password: <strong>{{ join_password }}</strong></p>{% endif %}
+    </div>
+  </div>
+  {% if players %}
+  <table>
+    <thead><tr><th>#</th><th>Username</th><th>Email</th><th>Solves</th></tr></thead>
+    <tbody>
+      {% for p in players %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ p.name }}</td>
+        <td>{{ p.email }}</td>
+        <td>{{ p.solves }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No players registered yet.</p>
+  {% endif %}
+  {% if notes %}
+  <div class="notes"><strong>Room notes</strong><br>{{ notes }}</div>
+  {% endif %}
+</body>
+</html>

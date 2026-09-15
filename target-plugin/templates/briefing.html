@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ ctf_name }} — player briefing</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; max-width: 720px; margin: 32px auto; padding: 0 24px 48px; color: #111; background: #fff; }
+    h1 { font-size: 1.8rem; margin: 0 0 8px; }
+    .sub { color: #444; margin: 0 0 24px; }
+    .box { border: 2px solid #111; padding: 16px 18px; margin: 16px 0; }
+    .hero { display: flex; gap: 20px; align-items: center; }
+    .qr { width: 128px; height: 128px; flex-shrink: 0; }
+    .qr svg { width: 128px; height: 128px; }
+    .url { font-family: Consolas, "Courier New", monospace; font-size: 1.15rem; word-break: break-all; }
+    ol { padding-left: 1.2rem; }
+    li { margin: 8px 0; }
+    .notes { white-space: pre-wrap; }
+    .no-print { margin-bottom: 20px; }
+    button { font-size: 1rem; padding: 8px 14px; }
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button type="button" onclick="window.print()">Print</button>
+    <a href="/plugins/ctfd-target/admin/ops">Back to Operations</a>
+  </div>
+  <h1>{{ ctf_name }}</h1>
+  <p class="sub">Player briefing</p>
+  <div class="box hero">
+    {% if qr_svg %}
+    <div class="qr">{{ qr_svg|safe }}</div>
+    {% endif %}
+    <div>
+    <strong>Join at</strong>
+    <div class="url">{{ join_url or 'Ask an organiser for the URL' }}</div>
+    {% if host_ip %}<p>Host: {{ host_ip }}</p>{% endif %}
+    {% if start_label or end_label %}
+    <p>
+      {% if start_label %}Starts {{ start_label }}{% endif %}
+      {% if start_label and end_label %} · {% endif %}
+      {% if end_label %}Ends {{ end_label }}{% endif %}
+    </p>
+    {% endif %}
+    </div>
+  </div>
+  <ol>
+    <li>Open the join URL on your laptop and register (or sign in).</li>
+    <li>Go to Challenges. Launch <strong>vBank</strong> when you are ready to attack.</li>
+    <li>Optional: launch the <strong>Pwn Machine</strong> for a browser Linux desktop.</li>
+    <li>Submit flags in CTFd. Do not attack anything except your assigned target.</li>
+    <li>When time is up, stop attacking and leave targets running only if staff say so.</li>
+  </ol>
+  {% if notes %}
+  <div class="box notes"><strong>Room notes</strong><br>{{ notes }}</div>
+  {% endif %}
+</body>
+</html>

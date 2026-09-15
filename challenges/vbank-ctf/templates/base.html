@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}vBank Staff Portal{% endblock %} — vBank Internal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --mfg-navy:   #0d2137;
+            --mfg-dark:   #081624;
+            --mfg-blue:   #1565c0;
+            --mfg-accent: #2196f3;
+            --mfg-light:  #f4f6f9;
+            --mfg-border: #e1e8ef;
+            --mfg-text:   #1e293b;
+            --mfg-muted:  #64748b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--mfg-light);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--mfg-text);
+            margin: 0;
+        }
+        .sidebar {
+            position: fixed; top: 0; left: 0;
+            width: 248px; height: 100vh;
+            background: var(--mfg-navy);
+            display: flex; flex-direction: column;
+            overflow-y: auto; z-index: 200;
+            border-right: 1px solid rgba(255,255,255,0.04);
+        }
+        .sidebar-brand {
+            display: flex; align-items: center; gap: 12px;
+            padding: 20px 20px 18px;
+            background: var(--mfg-dark);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            flex-shrink: 0;
+        }
+        .sidebar-brand .brand-icon {
+            width: 38px; height: 38px;
+            background: var(--mfg-accent);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #fff; flex-shrink: 0;
+        }
+        .sidebar-brand .brand-name { font-size: 0.95rem; font-weight: 700; color: #fff; line-height: 1.2; }
+        .sidebar-brand .brand-sub { font-size: 0.65rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; }
+        .sidebar-nav { padding: 12px 0; flex: 1; }
+        .nav-section {
+            font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.1em; color: rgba(255,255,255,0.3);
+            padding: 16px 20px 6px;
+        }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.65);
+            padding: 9px 20px;
+            text-decoration: none; font-size: 0.82rem;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+        }
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: #fff; border-left-color: rgba(255,255,255,0.2); }
+        .sidebar-nav a.active { background: rgba(33,150,243,0.12); color: #63b3ff; border-left-color: var(--mfg-accent); }
+        .sidebar-nav a i { width: 15px; font-size: 0.8rem; opacity: 0.8; flex-shrink: 0; }
+        .sidebar-footer {
+            padding: 14px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.7rem; color: rgba(255,255,255,0.3); flex-shrink: 0;
+        }
+        .main-wrap { margin-left: 248px; min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar {
+            background: #fff; border-bottom: 1px solid var(--mfg-border);
+            padding: 0 28px; height: 58px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--mfg-muted); }
+        .topbar-left .page-name { font-weight: 600; color: var(--mfg-text); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .env-badge {
+            background: #fff8e1; color: #f57c00;
+            border: 1px solid #ffe082; border-radius: 4px;
+            font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .user-chip {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--mfg-light); border: 1px solid var(--mfg-border);
+            border-radius: 20px; padding: 5px 14px 5px 8px;
+            font-size: 0.78rem; color: var(--mfg-muted);
+        }
+        .user-chip .avatar {
+            width: 26px; height: 26px; background: var(--mfg-blue);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.7rem; font-weight: 700;
+        }
+        .content-area { padding: 28px; flex: 1; }
+        .page-header { margin-bottom: 24px; }
+        .page-title { font-size: 1.15rem; font-weight: 700; color: var(--mfg-text); }
+        .page-subtitle { font-size: 0.8rem; color: var(--mfg-muted); margin-top: 2px; }
+        .card { border: 1px solid var(--mfg-border); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .card-header {
+            background: #fff; border-bottom: 1px solid var(--mfg-border);
+            border-radius: 10px 10px 0 0 !important;
+            padding: 14px 20px; font-weight: 600; font-size: 0.875rem; color: var(--mfg-text);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-header .card-icon {
+            width: 30px; height: 30px; background: var(--mfg-light);
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            color: var(--mfg-blue); font-size: 0.85rem;
+        }
+        .card-body { padding: 20px; background: #fff; border-radius: 0 0 10px 10px; }
+        .stat-card {
+            background: #fff; border: 1px solid var(--mfg-border);
+            border-radius: 10px; padding: 20px;
+        }
+        .stat-label { font-size: 0.75rem; color: var(--mfg-muted); font-weight: 500; margin-bottom: 4px; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--mfg-text); line-height: 1; }
+        .stat-sub { font-size: 0.72rem; color: var(--mfg-muted); margin-top: 4px; }
+        .btn-primary { background: var(--mfg-blue); border-color: var(--mfg-blue); }
+        .btn-primary:hover { background: #0d47a1; border-color: #0d47a1; }
+        .btn-outline-primary { color: var(--mfg-blue); border-color: var(--mfg-blue); }
+        .btn-outline-primary:hover { background: var(--mfg-blue); }
+        .table { font-size: 0.84rem; }
+        .table thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mfg-muted); font-weight: 600; border-bottom-width: 1px; }
+        .table td { vertical-align: middle; }
+        .alert { font-size: 0.84rem; border-radius: 8px; }
+        .alert-internal { background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; border-left: 4px solid #f59e0b; }
+        .alert-system { background: #eff6ff; border: 1px solid #93c5fd; color: #1e3a8a; border-left: 4px solid #3b82f6; }
+        .alert-dev { background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; border-left: 4px solid #f59e0b; font-size: 0.78rem; }
+        .terminal {
+            background: #0f1923; color: #a8d8a8;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.82rem; border-radius: 8px;
+            padding: 16px; min-height: 120px; white-space: pre-wrap; word-break: break-all;
+        }
+        .form-control, .form-select { border-color: var(--mfg-border); font-size: 0.875rem; }
+        .form-control:focus, .form-select:focus { border-color: var(--mfg-accent); box-shadow: 0 0 0 3px rgba(33,150,243,0.15); }
+        .form-label { font-size: 0.8rem; font-weight: 600; color: var(--mfg-muted); }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fas fa-shield-alt"></i></div>
+        <div>
+            <div class="brand-name">vBank Staff</div>
+            <div class="brand-sub">Internal Portal</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Overview</div>
+        <a href="/staff/dashboard" {% if request.path == '/staff/dashboard' %}class="active"{% endif %}><i class="fas fa-chart-pie"></i> Dashboard</a>
+        <div class="nav-section">Operations</div>
+        <a href="/staff/maintenance" {% if 'maintenance' in request.path %}class="active"{% endif %}><i class="fas fa-terminal"></i> System Maintenance</a>
+        <a href="/staff/credit-status" {% if 'credit-status' in request.path %}class="active"{% endif %}><i class="fas fa-search-dollar"></i> Credit Status</a>
+        <a href="/staff/tickets" {% if 'tickets' in request.path %}class="active"{% endif %}><i class="fas fa-headset"></i> Support Tickets</a>
+        <a href="/staff/support-tools" {% if 'support-tools' in request.path %}class="active"{% endif %}><i class="fas fa-tools"></i> Support Tools</a>
+        <a href="/staff/files" {% if 'files' in request.path %}class="active"{% endif %}><i class="fas fa-folder-open"></i> Report Archive</a>
+        <div class="nav-section">Finance</div>
+        <a href="/staff/payroll" {% if 'payroll' in request.path %}class="active"{% endif %}><i class="fas fa-file-invoice-dollar"></i> Payroll Export</a>
+        <div class="nav-section">Developer</div>
+        <a href="/staff/api-portal" {% if 'api-portal' in request.path %}class="active"{% endif %}><i class="fas fa-code"></i> API Portal</a>
+        <div class="nav-section">Account</div>
+        <a href="/staff/settings" {% if 'settings' in request.path %}class="active"{% endif %}><i class="fas fa-cog"></i> Settings</a>
+        <a href="/staff-portal/logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+    </nav>
+    <div class="sidebar-footer">
+        vBank Internal v2.4.1 &nbsp;|&nbsp; Staff Only<br>
+        &copy; 2024 vBank
+    </div>
+</div>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="topbar-left">
+            <span style="font-size:0.75rem; color:#cbd5e1;">vBank Staff</span>
+            <i class="fas fa-chevron-right" style="font-size:0.6rem; color:#cbd5e1;"></i>
+            <span class="page-name">{% block page_title %}Dashboard{% endblock %}</span>
+        </div>
+        <div class="topbar-right">
+            <span class="env-badge">Internal</span>
+            <div class="user-chip">
+                <div class="avatar">{{ (session.get('login_user', 'S') | upper)[0] }}</div>
+                <span>{{ session.get('login_user', 'Staff') }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="content-area">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}
+            <div class="alert alert-{{ 'danger' if cat == 'error' else cat }} mb-3 alert-dismissible fade show">
+                {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}{% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
