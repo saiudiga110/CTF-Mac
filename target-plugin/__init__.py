@@ -3691,11 +3691,11 @@ def load(app):
         from flask import Response
         return Response(guide, mimetype="text/html")
 
-    _CSS_TAG = '<link rel="stylesheet" href="/plugins/ctfd-target/assets/cyber-theme.css?v=37">'
-    _JS_TAG  = '<script src="/plugins/ctfd-target/assets/target-inject.js?v=37"></script>'
+    _CSS_TAG = '<link rel="stylesheet" href="/plugins/ctfd-target/assets/cyber-theme.css?v=38">'
+    _JS_TAG  = '<script src="/plugins/ctfd-target/assets/target-inject.js?v=38"></script>'
     _HEAD_INJECT = _CSS_TAG + "\n</head>"
     _BODY_INJECT = _JS_TAG  + "\n</body>"
-    _CSS_MARKER  = b"cyber-theme.css?v=37"   # fast bytes probe
+    _CSS_MARKER  = b"cyber-theme.css?v=38"   # fast bytes probe
 
     @app.after_request
     def inject_target_assets(response):

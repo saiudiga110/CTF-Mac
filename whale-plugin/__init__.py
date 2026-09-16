@@ -635,9 +635,13 @@ def load(app):
             for r in results:
                 ControlUtil.remove_container(app, r.user_id)
 
-    # Inject Kali script globally on all HTML pages
+    # The ctfd-target plugin owns the production Kali/target launcher UI.
+    # Keep this legacy injector opt-in so it cannot add a second launcher on
+    # /challenges and send users to the stale ctfd-whale endpoints.
     @app.after_request
     def inject_kali_script(response):
+        if os.environ.get("CTFD_WHALE_INJECT_KALI", "0").lower() not in ("1", "true", "yes", "on"):
+            return response
         if response.content_type and 'text/html' in response.content_type:
             try:
                 data = response.get_data(as_text=True)
