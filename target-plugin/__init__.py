@@ -382,7 +382,7 @@ def load(app):
         return _instance_manager_id(user_id, 0, "kali")
 
     def _manager_kali_payload(user):
-        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "2560m"), 2560)
+        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "2048m"), 2048)
         cpu_quota = int(_get_config("kali_cpu_quota", "200000") or "200000")
         image_platform = str(_get_config("kali_image_platform", _get_config("image_platform", "multi")) or "multi").strip()
         return {
