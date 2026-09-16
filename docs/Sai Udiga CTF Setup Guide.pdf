@@ -117,7 +117,7 @@ ET
 endstream
 endobj
 4 0 obj
-<< /Length 1778 >>
+<< /Length 1739 >>
 stream
 BT
 /F1 10 Tf
@@ -157,7 +157,88 @@ BT
 0 -14 Td () Tj
 0 -14 Td (./scripts/ctfctl.sh cleanup-tests) Tj
 0 -14 Td () Tj
-0 -14 Td (7. Installation From GitHub on a Fresh Mac mini 1) Tj
+0 -14 Td () Tj
+0 -14 Td (7. Resume or Start Next Time) Tj
+0 -14 Td () Tj
+0 -14 Td (Use this section when the Mac minis were restarted, Docker Desktop was quit, the lab was) Tj
+0 -14 Td (paused, or the LAN IP changed. You do not need to manually configure IP addresses, worker) Tj
+0 -14 Td (addresses, image sharing, or tunnels.) Tj
+0 -14 Td () Tj
+0 -14 Td (Run this only on Mac mini 1:) Tj
+0 -14 Td () Tj
+0 -14 Td (cd /Users/rislab/CTF-Main) Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (The resume command automatically performs these steps:) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 2696 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+() Tj
+0 -14 Td (1. Detects the current Mac mini 1 LAN IP.) Tj
+0 -14 Td (2. Updates .env with the detected HOST_IP.) Tj
+0 -14 Td (3. Starts or resumes CTFd, proxy, database, cache, Instance Manager, and the local worker.) Tj
+0 -14 Td (4. Connects to Mac mini 2 and Mac mini 3 over SSH.) Tj
+0 -14 Td (5. Starts Docker Desktop on the remote machines if needed.) Tj
+0 -14 Td (6. Syncs the latest repo code and workload images to the remote machines.) Tj
+0 -14 Td (7. Creates or reuses SSH tunnels for remote worker control traffic.) Tj
+0 -14 Td (8. Starts or restarts the remote worker agents.) Tj
+0 -14 Td (9. Waits for worker heartbeats so the architecture page can show all machines.) Tj
+0 -14 Td () Tj
+0 -14 Td (After the command finishes, print the current URLs:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh urls) Tj
+0 -14 Td () Tj
+0 -14 Td (Then verify all three Mac minis are visible:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh status) Tj
+0 -14 Td () Tj
+0 -14 Td (Expected healthy output includes:) Tj
+0 -14 Td () Tj
+0 -14 Td (Cluster: OK) Tj
+0 -14 Td (? mac-mini-1: fresh=True inventory=True) Tj
+0 -14 Td (? mac-mini-2: fresh=True inventory=True) Tj
+0 -14 Td (? mac-mini-3: fresh=True inventory=True) Tj
+0 -14 Td () Tj
+0 -14 Td (If Mac mini 1 receives a different LAN IP after reboot, use the new URL printed by) Tj
+0 -14 Td (./scripts/ctfctl.sh urls. The automation updates the application, but players still need the) Tj
+0 -14 Td (current address unless the router reserves a fixed DHCP address for Mac mini 1.) Tj
+0 -14 Td () Tj
+0 -14 Td (Recommended production setup:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Reserve Mac mini 1, Mac mini 2, and Mac mini 3 IP addresses in the router DHCP settings.) Tj
+0 -14 Td (? Keep Docker Desktop set to start automatically on all three machines.) Tj
+0 -14 Td (? Run ./scripts/ctfctl.sh start before every event or lab session.) Tj
+0 -14 Td (? Keep the Architecture page open during the event.) Tj
+0 -14 Td () Tj
+0 -14 Td (Resume troubleshooting:) Tj
+0 -14 Td () Tj
+0 -14 Td (Symptom  Fix) Tj
+0 -14 Td (URL changed after reboot  Run ./scripts/ctfctl.sh urls and use the printed IP URL) Tj
+0 -14 Td (Architecture page misses Mac mini 2 or 3  Run ./scripts/ctfctl.sh start again to refresh SSH) Tj
+0 -14 Td (tunnels and worker heartbeats) Tj
+0 -14 Td (Remote worker inventory is false  Check SSH with ssh rislab@rislab-mini2.local hostname and) Tj
+0 -14 Td (ssh rislab@rislab-mini3.local hostname) Tj
+0 -14 Td (Docker is not ready on a remote Mac  Open Docker Desktop on that Mac, then rerun) Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td (Old crash-test containers remain  Run ./scripts/ctfctl.sh cleanup-tests, then) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 2363 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(./scripts/ctfctl.sh status) Tj
+0 -14 Td () Tj
+0 -14 Td (8. Installation From GitHub on a Fresh Mac mini 1) Tj
 0 -14 Td () Tj
 0 -14 Td (cd /Users/rislab) Tj
 0 -14 Td (git clone https://github.com/saiudiga110/CTF-Main.git) Tj
@@ -170,21 +251,12 @@ BT
 0 -14 Td (? Docker Desktop installed and running on all three Mac minis.) Tj
 0 -14 Td (? Passwordless SSH from Mac mini 1 to Mac mini 2 and Mac mini 3.) Tj
 0 -14 Td (? Same LAN connectivity between the three machines.) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Length 2470 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-(? SSH local forwarding allowed from Mac mini 1 to each remote Mac mini; ctfctl start creates) Tj
+0 -14 Td (? SSH local forwarding allowed from Mac mini 1 to each remote Mac mini; ctfctl start creates) Tj
 0 -14 Td (the required forwards automatically.) Tj
 0 -14 Td (? Mac mini 2 hostname: rislab-mini2.local.) Tj
 0 -14 Td (? Mac mini 3 hostname: rislab-mini3.local.) Tj
 0 -14 Td () Tj
-0 -14 Td (8. Available Endpoints) Tj
+0 -14 Td (9. Available Endpoints) Tj
 0 -14 Td () Tj
 0 -14 Td (User and player endpoints) Tj
 0 -14 Td () Tj
@@ -212,7 +284,16 @@ BT
 0 -14 Td (/plugins/ctfd-target/admin/dashboard  Running instance dashboard) Tj
 0 -14 Td () Tj
 0 -14 Td (Instance Manager endpoints) Tj
-0 -14 Td () Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 2478 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+() Tj
 0 -14 Td (Endpoint  Purpose) Tj
 0 -14 Td (http://10.34.204.246:8088/health  Manager health) Tj
 0 -14 Td (/workers/heartbeat  Worker registration heartbeat) Tj
@@ -222,21 +303,12 @@ BT
 0 -14 Td (/instances/<id>/status  Instance status) Tj
 0 -14 Td (/instances/<id> DELETE  Stop instance) Tj
 0 -14 Td () Tj
-0 -14 Td (9. Production Notes) Tj
+0 -14 Td (10. Production Notes) Tj
 0 -14 Td () Tj
 0 -14 Td (? The cluster is currently clean and healthy with 3 fresh nodes and zero test containers.) Tj
 0 -14 Td (? Current image sizes are reduced: vBank about 170 MB and Kali about 2.85 GB.) Tj
 0 -14 Td (? Architecture page auto-refreshes every 10 seconds.) Tj
-ET
-endstream
-endobj
-6 0 obj
-<< /Length 2197 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-(? Worker heartbeats now retry after transient manager timeouts instead of exiting.) Tj
+0 -14 Td (? Worker heartbeats now retry after transient manager timeouts instead of exiting.) Tj
 0 -14 Td (? Instance allocation is locked in the manager to avoid duplicate port assignment under) Tj
 0 -14 Td (concurrent launch bursts.) Tj
 0 -14 Td (? DNS port 53 on Mac mini 1 is currently occupied by another local service. The app still) Tj
@@ -256,7 +328,7 @@ BT
 0 -14 Td (The automation is ready, but the platform should avoid sudden burst creation of 30+ Kali) Tj
 0 -14 Td (desktops at once unless a warm pool is implemented.) Tj
 0 -14 Td () Tj
-0 -14 Td (11. Troubleshooting) Tj
+0 -14 Td (12. Troubleshooting) Tj
 0 -14 Td () Tj
 0 -14 Td (Check everything) Tj
 0 -14 Td () Tj
@@ -269,7 +341,16 @@ BT
 0 -14 Td () Tj
 0 -14 Td (./scripts/ctfctl.sh start) Tj
 0 -14 Td () Tj
-0 -14 Td (Then wait 30 seconds and run:) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 1567 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(Then wait 30 seconds and run:) Tj
 0 -14 Td () Tj
 0 -14 Td (./scripts/ctfctl.sh status) Tj
 0 -14 Td () Tj
@@ -284,16 +365,7 @@ BT
 0 -14 Td () Tj
 0 -14 Td (lsof -nP -iTCP:18091 -sTCP:LISTEN) Tj
 0 -14 Td (lsof -nP -iTCP:18092 -sTCP:LISTEN) Tj
-ET
-endstream
-endobj
-7 0 obj
-<< /Length 1897 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-() Tj
+0 -14 Td () Tj
 0 -14 Td (Check Docker on remote:) Tj
 0 -14 Td () Tj
 0 -14 Td (ssh rislab@rislab-mini2.local 'docker ps') Tj
@@ -324,9 +396,18 @@ BT
 0 -14 Td () Tj
 0 -14 Td (The startup script compares Docker image IDs and syncs changed images automatically.) Tj
 0 -14 Td () Tj
-0 -14 Td (12. Files Added or Changed for Operations) Tj
+0 -14 Td (13. Files Added or Changed for Operations) Tj
 0 -14 Td () Tj
-0 -14 Td (File  Purpose) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Length 1357 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(File  Purpose) Tj
 0 -14 Td (scripts/ctfctl.sh  Operator command wrapper) Tj
 0 -14 Td (scripts/start-macmini-cluster.sh  Full cluster start/sync command) Tj
 0 -14 Td (target-plugin/templates/architecture.html  Architecture page UI) Tj
@@ -336,21 +417,12 @@ BT
 0 -14 Td (challenges/parrot/Dockerfile  Reduced Kali image size) Tj
 0 -14 Td (challenges/vbank-ctf/Dockerfile  Reduced vBank image size) Tj
 0 -14 Td () Tj
-0 -14 Td (13. Daily Event Checklist) Tj
+0 -14 Td (14. Daily Event Checklist) Tj
 0 -14 Td () Tj
 0 -14 Td (Before event:) Tj
 0 -14 Td () Tj
 0 -14 Td (cd /Users/rislab/CTF-Main) Tj
-ET
-endstream
-endobj
-8 0 obj
-<< /Length 536 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-(./scripts/ctfctl.sh start) Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
 0 -14 Td (./scripts/ctfctl.sh doctor) Tj
 0 -14 Td () Tj
 0 -14 Td (During event:) Tj
@@ -366,58 +438,63 @@ BT
 ET
 endstream
 endobj
-9 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
-endobj
 10 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
 endobj
 11 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
 endobj
 12 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
 endobj
 13 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
 endobj
 14 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
 endobj
 15 0 obj
-<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
 endobj
 16 0 obj
-<< /Type /Pages /Kids [9 0 R 10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R] /Count 7 >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
 endobj
 17 0 obj
-<< /Type /Catalog /Pages 16 0 R >>
+<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 9 0 R >>
 endobj
 18 0 obj
+<< /Type /Pages /Kids [10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R] /Count 8 >>
+endobj
+19 0 obj
+<< /Type /Catalog /Pages 18 0 R >>
+endobj
+20 0 obj
 << /Title (Sai Udiga CTF Setup Guide) /Author (Sai Udiga) >>
 endobj
 xref
-0 19
+0 21
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
 0000002224 00000 n 
 0000004713 00000 n 
-0000006543 00000 n 
-0000009065 00000 n 
-0000011314 00000 n 
-0000013263 00000 n 
-0000013850 00000 n 
-0000013977 00000 n 
-0000014105 00000 n 
-0000014233 00000 n 
-0000014361 00000 n 
-0000014489 00000 n 
-0000014617 00000 n 
-0000014745 00000 n 
-0000014845 00000 n 
-0000014896 00000 n 
-trailer << /Size 19 /Root 17 0 R /Info 18 0 R >>
+0000006504 00000 n 
+0000009252 00000 n 
+0000011667 00000 n 
+0000014197 00000 n 
+0000015816 00000 n 
+0000017225 00000 n 
+0000017353 00000 n 
+0000017481 00000 n 
+0000017609 00000 n 
+0000017737 00000 n 
+0000017865 00000 n 
+0000017993 00000 n 
+0000018121 00000 n 
+0000018249 00000 n 
+0000018357 00000 n 
+0000018408 00000 n 
+trailer << /Size 21 /Root 19 0 R /Info 20 0 R >>
 startxref
-14973
+18485
 %%EOF

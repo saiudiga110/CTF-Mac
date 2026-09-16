@@ -140,7 +140,71 @@ cd /Users/rislab/CTF-Main
 ./scripts/ctfctl.sh cleanup-tests
 ```
 
-## 7. Installation From GitHub on a Fresh Mac mini 1
+
+## 7. Resume or Start Next Time
+
+Use this section when the Mac minis were restarted, Docker Desktop was quit, the lab was paused, or the LAN IP changed. You do not need to manually configure IP addresses, worker addresses, image sharing, or tunnels.
+
+Run this only on Mac mini 1:
+
+```bash
+cd /Users/rislab/CTF-Main
+./scripts/ctfctl.sh start
+```
+
+The resume command automatically performs these steps:
+
+1. Detects the current Mac mini 1 LAN IP.
+2. Updates `.env` with the detected `HOST_IP`.
+3. Starts or resumes CTFd, proxy, database, cache, Instance Manager, and the local worker.
+4. Connects to Mac mini 2 and Mac mini 3 over SSH.
+5. Starts Docker Desktop on the remote machines if needed.
+6. Syncs the latest repo code and workload images to the remote machines.
+7. Creates or reuses SSH tunnels for remote worker control traffic.
+8. Starts or restarts the remote worker agents.
+9. Waits for worker heartbeats so the architecture page can show all machines.
+
+After the command finishes, print the current URLs:
+
+```bash
+./scripts/ctfctl.sh urls
+```
+
+Then verify all three Mac minis are visible:
+
+```bash
+./scripts/ctfctl.sh status
+```
+
+Expected healthy output includes:
+
+```text
+Cluster: OK
+- mac-mini-1: fresh=True inventory=True
+- mac-mini-2: fresh=True inventory=True
+- mac-mini-3: fresh=True inventory=True
+```
+
+If Mac mini 1 receives a different LAN IP after reboot, use the new URL printed by `./scripts/ctfctl.sh urls`. The automation updates the application, but players still need the current address unless the router reserves a fixed DHCP address for Mac mini 1.
+
+Recommended production setup:
+
+- Reserve Mac mini 1, Mac mini 2, and Mac mini 3 IP addresses in the router DHCP settings.
+- Keep Docker Desktop set to start automatically on all three machines.
+- Run `./scripts/ctfctl.sh start` before every event or lab session.
+- Keep the Architecture page open during the event.
+
+Resume troubleshooting:
+
+| Symptom | Fix |
+|---|---|
+| URL changed after reboot | Run `./scripts/ctfctl.sh urls` and use the printed IP URL |
+| Architecture page misses Mac mini 2 or 3 | Run `./scripts/ctfctl.sh start` again to refresh SSH tunnels and worker heartbeats |
+| Remote worker inventory is false | Check SSH with `ssh rislab@rislab-mini2.local hostname` and `ssh rislab@rislab-mini3.local hostname` |
+| Docker is not ready on a remote Mac | Open Docker Desktop on that Mac, then rerun `./scripts/ctfctl.sh start` |
+| Old crash-test containers remain | Run `./scripts/ctfctl.sh cleanup-tests`, then `./scripts/ctfctl.sh status` |
+
+## 8. Installation From GitHub on a Fresh Mac mini 1
 
 ```bash
 cd /Users/rislab
@@ -159,7 +223,7 @@ Prerequisites:
 - Mac mini 2 hostname: `rislab-mini2.local`.
 - Mac mini 3 hostname: `rislab-mini3.local`.
 
-## 8. Available Endpoints
+## 9. Available Endpoints
 
 ### User and player endpoints
 
@@ -200,7 +264,7 @@ Prerequisites:
 | `/instances/<id>/status` | Instance status |
 | `/instances/<id>` DELETE | Stop instance |
 
-## 9. Production Notes
+## 10. Production Notes
 
 - The cluster is currently clean and healthy with 3 fresh nodes and zero test containers.
 - Current image sizes are reduced: vBank about 170 MB and Kali about 2.85 GB.
@@ -220,7 +284,7 @@ To make 30+ Kali sessions production reliable, use one or both of these improvem
 
 The automation is ready, but the platform should avoid sudden burst creation of 30+ Kali desktops at once unless a warm pool is implemented.
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### Check everything
 
@@ -298,7 +362,7 @@ Run:
 
 The startup script compares Docker image IDs and syncs changed images automatically.
 
-## 12. Files Added or Changed for Operations
+## 13. Files Added or Changed for Operations
 
 | File | Purpose |
 |---|---|
@@ -311,7 +375,7 @@ The startup script compares Docker image IDs and syncs changed images automatica
 | `challenges/parrot/Dockerfile` | Reduced Kali image size |
 | `challenges/vbank-ctf/Dockerfile` | Reduced vBank image size |
 
-## 13. Daily Event Checklist
+## 14. Daily Event Checklist
 
 Before event:
 
