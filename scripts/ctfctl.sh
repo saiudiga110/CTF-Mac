@@ -76,7 +76,8 @@ stop_cluster() {
   for host in $(remote_hosts); do
     info "Stopping worker agent on ${host}"
     ssh ${SSH_OPTS} "${REMOTE_USER}@${host}" 'export PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin;
-      cd /Users/rislab/CTF-Main 2>/dev/null && docker compose -f docker-compose.worker.yml down || true' || warn "Could not stop worker on ${host}"
+      docker rm -f ctf-main-worker-agent-1 2>/dev/null || true;
+      cd /Users/rislab/CTF-Main 2>/dev/null && docker compose -f docker-compose.worker.yml down 2>/dev/null || true' || warn "Could not stop worker on ${host}"
   done
 
   info "Closing SSH worker tunnels..."
