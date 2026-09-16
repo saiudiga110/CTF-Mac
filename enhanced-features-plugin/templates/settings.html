@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+{% from "macros/forms.html" import render_extra_fields %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="mb-4 pb-2 border-bottom" style="border-color: rgba(0, 99, 65, 0.3) !important;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h2 class="mb-1" style="color: #e2e8e4; font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 1px;">
+          <i class="fas fa-user-cog me-2" style="color: #39FF14;"></i>Account Settings
+        </h2>
+        <p class="text-muted mb-0" style="font-size: 0.9rem;">Manage your user profile, change credentials, and create personal access tokens.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge" style="background: rgba(0, 99, 65, 0.25); color: #39FF14; border: 1px solid rgba(57, 255, 20, 0.3); font-family: monospace; font-size: 0.85rem; padding: 6px 12px;">
+          <i class="fas fa-shield-alt me-1"></i>{{ User.name }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Sidebar Tabs -->
+    <div class="col-lg-3 col-md-4">
+      <div class="nav flex-column nav-pills custom-settings-pills" id="settings-pills-tab" role="tablist">
+        <button
+          class="nav-link active d-flex align-items-center gap-2 mb-2"
+          id="settings-profile-tab"
+          data-bs-toggle="pill"
+          data-bs-target="#profile"
+          type="button"
+          role="tab"
+          aria-controls="profile"
+          aria-selected="true"
+        >
+          <i class="fas fa-id-badge fa-fw"></i>
+          <span>Profile</span>
+        </button>
+
+        <button
+          class="nav-link d-flex align-items-center gap-2 mb-2"
+          id="settings-password-tab"
+          data-bs-toggle="pill"
+          data-bs-target="#password-pane"
+          type="button"
+          role="tab"
+          aria-controls="password-pane"
+          aria-selected="false"
+        >
+          <i class="fas fa-key fa-fw" style="color: #ffd700;"></i>
+          <span>Change Password</span>
+        </button>
+
+        <button
+          class="nav-link d-flex align-items-center gap-2 mb-2"
+          id="settings-tokens-tab"
+          data-bs-toggle="pill"
+          data-bs-target="#tokens"
+          type="button"
+          role="tab"
+          aria-controls="tokens"
+          aria-selected="false"
+        >
+          <i class="fas fa-code fa-fw"></i>
+          <span>Access Tokens</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Tab Content -->
+    <div class="col-lg-9 col-md-8">
+      <div class="tab-content" id="settings-tabContent">
+
+        <!-- ───────────────────────────────────────────────
+             TAB 1: PROFILE
+             ─────────────────────────────────────────────── -->
+        <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="settings-profile-tab">
+          <div class="card settings-card">
+            <div class="card-header d-flex align-items-center gap-2">
+              <i class="fas fa-user-edit" style="color: #39FF14;"></i>
+              <span class="fw-bold text-white">Profile Details</span>
+            </div>
+            <div class="card-body p-4">
+              {% include "components/errors.html" %}
+
+              {% with form = Forms.self.SettingsForm(language=language, country=country) %}
+                <form
+                  method="post"
+                  accept-charset="utf-8"
+                  autocomplete="off"
+                  role="form"
+                  x-data="SettingsForm"
+                  @submit.prevent="updateProfile()"
+                  class="form-horizontal"
+                >
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="name">{{ form.name.label.text }}</label>
+                      {{ form.name(class="form-control custom-input", value=name) }}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="email">{{ form.email.label.text }}</label>
+                      {{ form.email(class="form-control custom-input", value=email) }}
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="language">{{ form.language.label.text }}</label>
+                      {{ form.language(class="form-select custom-input", value=language) }}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="country">{{ form.country.label.text }}</label>
+                      {{ form.country(class="form-select custom-input", value=country) }}
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="affiliation">{{ form.affiliation.label.text }}</label>
+                      {{ form.affiliation(class="form-control custom-input", value=affiliation or "") }}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="website">{{ form.website.label.text }}</label>
+                      {{ form.website(class="form-control custom-input", value=website or "") }}
+                    </div>
+                  </div>
+
+                  <!-- Hidden inputs for confirm/password inside profile so SettingsForm serialization doesn't fail -->
+                  <input type="hidden" name="confirm" value="">
+                  <input type="hidden" name="password" value="">
+
+                  {{ render_extra_fields(form.extra) }}
+
+                  <div id="results" class="mb-3">
+                    <div
+                      class="alert alert-success alert-dismissible submit-row"
+                      role="alert"
+                      x-cloak="success"
+                      x-show="success"
+                      style="background: rgba(0, 99, 65, 0.2); border-color: rgba(57, 255, 20, 0.4); color: #39FF14;"
+                    >
+                      <i class="fas fa-check-circle me-1"></i>
+                      <strong>Success!</strong> {% trans %}Your profile has been updated{% endtrans %}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <template x-for="(msg, idx) in errors" :key="idx">
+                      <div class="alert alert-danger alert-dismissible" role="alert" style="background: rgba(220, 53, 69, 0.15); border-color: rgba(220, 53, 69, 0.4); color: #ff6b6b;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <span x-text="msg"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div class="mt-4 pt-2 border-top d-flex justify-content-end" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <button type="submit" class="btn btn-primary custom-btn-primary px-4">
+                      <i class="fas fa-save me-1"></i>Save Profile
+                    </button>
+                  </div>
+                </form>
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+
+        <!-- ───────────────────────────────────────────────
+             TAB 2: CHANGE PASSWORD (PRODUCTION READY)
+             ─────────────────────────────────────────────── -->
+        <div class="tab-pane fade" id="password-pane" role="tabpanel" aria-labelledby="settings-password-tab">
+          <div class="card settings-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-lock" style="color: #39FF14;"></i>
+                <span class="fw-bold text-white">Change Account Password</span>
+              </div>
+              <span class="badge" style="background: rgba(57, 255, 20, 0.1); color: #39FF14; border: 1px solid rgba(57, 255, 20, 0.25); font-size: 0.75rem;">
+                <i class="fas fa-sync-alt me-1"></i>Instant Sync
+              </span>
+            </div>
+            <div class="card-body p-4">
+              <p class="text-muted mb-4" style="font-size: 0.88rem;">
+                Set a new password for your CTFd account. Your current session will remain active, and your new credentials will be synchronized immediately across the entire platform.
+              </p>
+
+              <!-- Alerts -->
+              <div id="cp-alert-success" class="alert alert-success d-none mb-4" role="alert" style="background: rgba(0, 99, 65, 0.25); border: 1px solid rgba(57, 255, 20, 0.4); color: #39FF14; border-radius: 8px;">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fas fa-check-circle fa-lg"></i>
+                  <span id="cp-success-text">Password updated successfully! You can now log in with your new credentials.</span>
+                </div>
+              </div>
+
+              <div id="cp-alert-error" class="alert alert-danger d-none mb-4" role="alert" style="background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.4); color: #ff6b6b; border-radius: 8px;">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fas fa-exclamation-circle fa-lg"></i>
+                  <span id="cp-error-text">Failed to update password.</span>
+                </div>
+              </div>
+
+              <form id="change-password-form" autocomplete="off" onsubmit="handlePasswordChange(event)">
+                <!-- Current Password -->
+                <div class="mb-3">
+                  <label class="form-label text-muted fw-bold" for="cp-current">
+                    Current Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      id="cp-current"
+                      class="form-control custom-input"
+                      placeholder="Enter your current password"
+                      autocomplete="current-password"
+                      required
+                    >
+                    <button class="btn btn-outline-secondary custom-input-addon" type="button" onclick="togglePasswordVisibility('cp-current', this)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.06);">
+
+                <!-- New Password -->
+                <div class="mb-3">
+                  <label class="form-label text-muted fw-bold" for="cp-new">
+                    New Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      id="cp-new"
+                      class="form-control custom-input"
+                      placeholder="Enter new password (min. 6 characters)"
+                      autocomplete="new-password"
+                      required
+                      oninput="validatePasswordMatch()"
+                    >
+                    <button class="btn btn-outline-secondary custom-input-addon" type="button" onclick="togglePasswordVisibility('cp-new', this)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <div class="form-text" style="color: #8b949e; font-size: 0.8rem;">
+                    Must be at least 6 characters long.
+                  </div>
+                </div>
+
+                <!-- Confirm New Password -->
+                <div class="mb-4">
+                  <label class="form-label text-muted fw-bold" for="cp-confirm">
+                    Confirm New Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      id="cp-confirm"
+                      class="form-control custom-input"
+                      placeholder="Re-type your new password"
+                      autocomplete="new-password"
+                      required
+                      oninput="validatePasswordMatch()"
+                    >
+                    <button class="btn btn-outline-secondary custom-input-addon" type="button" onclick="togglePasswordVisibility('cp-confirm', this)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <div id="cp-match-feedback" class="mt-1" style="font-size: 0.82rem; min-height: 20px;"></div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2 border-top d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
+                  <span class="text-muted" style="font-size: 0.82rem;">
+                    <i class="fas fa-info-circle me-1"></i>Changes take effect immediately.
+                  </span>
+                  <button type="submit" id="cp-submit-btn" class="btn btn-primary custom-btn-primary px-4">
+                    <span id="cp-btn-spinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                    <i class="fas fa-shield-alt me-1" id="cp-btn-icon"></i>
+                    <span id="cp-btn-text">Update Password</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───────────────────────────────────────────────
+             TAB 3: ACCESS TOKENS
+             ─────────────────────────────────────────────── -->
+        <div class="tab-pane fade" id="tokens" role="tabpanel" aria-labelledby="settings-tokens-tab">
+          <div class="card settings-card">
+            <div class="card-header d-flex align-items-center gap-2">
+              <i class="fas fa-terminal" style="color: #39FF14;"></i>
+              <span class="fw-bold text-white">Generate Access Token</span>
+            </div>
+            <div class="card-body p-4">
+              {% with form = Forms.self.TokensForm() %}
+                <form method="POST" x-data="TokensForm" @submit.prevent="generateToken()" class="mb-4">
+                  <!-- Token Modal -->
+                  <div class="modal fade" tabindex="-1" x-ref="tokenModal">
+                    <div class="modal-dialog modal-lg">
+                      <div class="modal-content custom-modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" style="color: #39FF14; font-family: monospace;">{% trans %}API Key Generated{% endtrans %}</h5>
+                          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p class="text-muted">{% trans %}Please copy your API Key, it won't be shown again!{% endtrans %}</p>
+                          <div class="input-group mb-3">
+                            <input type="text" class="form-control custom-input" x-ref="token" x-model="token" readonly>
+                            <button class="btn btn-outline-secondary custom-input-addon px-3" type="button" @click="copyToken()">
+                              <i class="fas fa-clipboard"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-primary custom-btn-primary" data-bs-dismiss="modal">Got it!</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="expiration">{{ form.expiration.label.text }}</label>
+                      {{ form.expiration(class="form-control custom-input") }}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label text-muted fw-bold" for="description">{{ form.description.label.text }}</label>
+                      {{ form.description(class="form-control custom-input", rows="1") }}
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary custom-btn-primary px-4">
+                      <i class="fas fa-plus-circle me-1"></i>Generate Token
+                    </button>
+                  </div>
+                </form>
+              {% endwith %}
+
+              {% if tokens %}
+                <hr style="border-color: rgba(255,255,255,0.08);">
+                <h5 class="mb-3 mt-4" style="color: #e2e8e4; font-family: 'JetBrains Mono', monospace; font-size: 1rem;">
+                  <i class="fas fa-key me-2" style="color: #39FF14;"></i>Active Tokens
+                </h5>
+
+                <div x-data="Tokens">
+                  <!-- Confirm Delete Modal -->
+                  <div class="modal fade" x-ref="confirmModal" tabindex="-1" role="dialog" aria-modal="true">
+                    <div class="modal-dialog" role="document">
+                      <div class="modal-content custom-modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title text-danger">{% trans %}Delete Token{% endtrans %}</h5>
+                          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p class="text-muted">{% trans %}Are you sure you want to delete this token?{% endtrans %}</p>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No</button>
+                          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" @click="deleteSelectedToken()">Yes, Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table custom-tokens-table align-middle">
+                      <thead>
+                        <tr>
+                          <th>{% trans %}Created{% endtrans %}</th>
+                          <th>{% trans %}Expiration{% endtrans %}</th>
+                          <th>{% trans %}Description{% endtrans %}</th>
+                          <th class="text-center">{% trans %}Action{% endtrans %}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for token in tokens %}
+                          <tr x-ref="token-{{ token.id }}">
+                            <td><span data-time="{{ token.created | isoformat }}"></span></td>
+                            <td><span data-time="{{ token.expiration | isoformat }}"></span></td>
+                            <td><span>{{ token.description | default('—', true) }}</span></td>
+                            <td class="text-center">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                style="border-radius: 4px; padding: 2px 8px;"
+                                title="Delete Token"
+                                @click="deleteTokenModal({{ token.id }})"
+                              >
+                                <i class="fas fa-trash-alt"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   SETTINGS & CHANGE PASSWORD CYBERPUNK STYLING
+   ───────────────────────────────────────────────────────────── */
+.settings-card {
+  background: linear-gradient(180deg, rgba(13, 20, 28, 0.95) 0%, rgba(8, 12, 18, 0.98) 100%) !important;
+  border: 1px solid rgba(0, 99, 65, 0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  overflow: hidden;
+}
+
+.settings-card .card-header {
+  background: rgba(0, 99, 65, 0.12) !important;
+  border-bottom: 1px solid rgba(0, 99, 65, 0.28) !important;
+  padding: 14px 20px !important;
+}
+
+.custom-settings-pills .nav-link {
+  background: rgba(13, 20, 28, 0.7) !important;
+  color: #8b949e !important;
+  border: 1px solid rgba(0, 99, 65, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.88rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.custom-settings-pills .nav-link:hover {
+  background: rgba(0, 99, 65, 0.15) !important;
+  color: #39FF14 !important;
+  border-color: rgba(57, 255, 20, 0.35) !important;
+}
+
+.custom-settings-pills .nav-link.active {
+  background: linear-gradient(90deg, rgba(0, 99, 65, 0.35) 0%, rgba(0, 99, 65, 0.15) 100%) !important;
+  color: #39FF14 !important;
+  border-color: #39FF14 !important;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.15) !important;
+}
+
+.custom-input {
+  background: rgba(6, 10, 15, 0.85) !important;
+  border: 1px solid rgba(0, 99, 65, 0.35) !important;
+  color: #e2e8e4 !important;
+  border-radius: 6px !important;
+  padding: 9px 13px !important;
+  font-size: 0.9rem !important;
+}
+
+.custom-input:focus {
+  background: rgba(9, 14, 22, 0.95) !important;
+  border-color: #39FF14 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.25) !important;
+}
+
+.custom-input-addon {
+  background: rgba(13, 20, 28, 0.9) !important;
+  border: 1px solid rgba(0, 99, 65, 0.35) !important;
+  color: #8b949e !important;
+}
+
+.custom-input-addon:hover {
+  background: rgba(0, 99, 65, 0.25) !important;
+  color: #39FF14 !important;
+  border-color: #39FF14 !important;
+}
+
+.custom-btn-primary {
+  background: #006341 !important;
+  border-color: #008a59 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-btn-primary:hover:not(:disabled) {
+  background: #008a59 !important;
+  border-color: #39FF14 !important;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.3) !important;
+}
+
+.custom-modal-content {
+  background: #0d141c !important;
+  border: 1px solid rgba(0, 99, 65, 0.4) !important;
+  color: #e2e8e4 !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7) !important;
+}
+
+.custom-tokens-table {
+  color: #e2e8e4 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  font-size: 0.88rem !important;
+}
+
+.custom-tokens-table th {
+  background: rgba(0, 99, 65, 0.15) !important;
+  color: #8b949e !important;
+  border-bottom: 1px solid rgba(0, 99, 65, 0.3) !important;
+  font-family: monospace;
+}
+
+.custom-tokens-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+</style>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// CLIENT-SIDE LOGIC FOR CHANGE PASSWORD & HASH NAVIGATION
+// ─────────────────────────────────────────────────────────────
+function togglePasswordVisibility(inputId, btn) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+  } else {
+    input.type = 'password';
+    if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+  }
+}
+
+function validatePasswordMatch() {
+  var p1 = (document.getElementById('cp-new') || {}).value || '';
+  var p2 = (document.getElementById('cp-confirm') || {}).value || '';
+  var feedback = document.getElementById('cp-match-feedback');
+  if (!feedback) return;
+
+  if (!p2) {
+    feedback.innerHTML = '';
+    return;
+  }
+
+  if (p1 === p2) {
+    feedback.innerHTML = '<span style="color: #39FF14;"><i class="fas fa-check-circle me-1"></i>Passwords match</span>';
+  } else {
+    feedback.innerHTML = '<span style="color: #ff6b6b;"><i class="fas fa-times-circle me-1"></i>Passwords do not match</span>';
+  }
+}
+
+function getCsrfToken() {
+  if (window.init && window.init.csrfNonce) return window.init.csrfNonce;
+  var el = document.getElementById('nonce') || document.querySelector('input[name="nonce"]');
+  if (el && el.value) return el.value;
+  return '';
+}
+
+async function handlePasswordChange(e) {
+  e.preventDefault();
+
+  var alertSuccess = document.getElementById('cp-alert-success');
+  var alertError = document.getElementById('cp-alert-error');
+  var errorText = document.getElementById('cp-error-text');
+  var successText = document.getElementById('cp-success-text');
+  var submitBtn = document.getElementById('cp-submit-btn');
+  var spinner = document.getElementById('cp-btn-spinner');
+  var icon = document.getElementById('cp-btn-icon');
+  var btnText = document.getElementById('cp-btn-text');
+
+  if (alertSuccess) alertSuccess.classList.add('d-none');
+  if (alertError) alertError.classList.add('d-none');
+
+  var cur = (document.getElementById('cp-current') || {}).value || '';
+  var nw = (document.getElementById('cp-new') || {}).value || '';
+  var cf = (document.getElementById('cp-confirm') || {}).value || '';
+
+  if (!cur) {
+    if (alertError) {
+      errorText.textContent = 'Please enter your current password.';
+      alertError.classList.remove('d-none');
+    }
+    return;
+  }
+
+  if (nw.length < 6) {
+    if (alertError) {
+      errorText.textContent = 'New password must be at least 6 characters long.';
+      alertError.classList.remove('d-none');
+    }
+    return;
+  }
+
+  if (nw !== cf) {
+    if (alertError) {
+      errorText.textContent = 'New passwords do not match. Please verify your typing.';
+      alertError.classList.remove('d-none');
+    }
+    return;
+  }
+
+  if (cur === nw) {
+    if (alertError) {
+      errorText.textContent = 'New password must be different from your current password.';
+      alertError.classList.remove('d-none');
+    }
+    return;
+  }
+
+  // Set loading state
+  if (submitBtn) submitBtn.disabled = true;
+  if (spinner) spinner.classList.remove('d-none');
+  if (icon) icon.classList.add('d-none');
+  if (btnText) btnText.textContent = 'Updating...';
+
+  var csrf = getCsrfToken();
+
+  try {
+    // 1. Try dedicated API endpoint first
+    var resp = await fetch('/api/ctf/user/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CSRF-Token': csrf
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        current_password: cur,
+        new_password: nw,
+        confirm_password: cf
+      })
+    });
+
+    var data = null;
+    try { data = await resp.json(); } catch(err) {}
+
+    // 2. If 404 on custom endpoint, fallback to native CTFd PATCH /api/v1/users/me
+    if (!data && resp.status === 404) {
+      var fbResp = await fetch('/api/v1/users/me', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'CSRF-Token': csrf
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          confirm: cur,
+          password: nw
+        })
+      });
+      data = await fbResp.json();
+      resp = fbResp;
+    }
+
+    if (resp.ok && data && data.success) {
+      if (alertSuccess) {
+        successText.textContent = data.message || 'Password updated successfully! Your new password is now active.';
+        alertSuccess.classList.remove('d-none');
+      }
+      // Reset inputs
+      document.getElementById('cp-current').value = '';
+      document.getElementById('cp-new').value = '';
+      document.getElementById('cp-confirm').value = '';
+      var feedback = document.getElementById('cp-match-feedback');
+      if (feedback) feedback.innerHTML = '';
+    } else {
+      var msg = (data && data.message) || '';
+      if (!msg && data && data.errors) {
+        if (typeof data.errors === 'object') {
+          var errList = [];
+          for (var k in data.errors) {
+            var val = data.errors[k];
+            errList.push(Array.isArray(val) ? val.join(', ') : val);
+          }
+          msg = errList.join('; ');
+        } else {
+          msg = String(data.errors);
+        }
+      }
+      if (!msg) msg = 'Failed to update password. Please check your current password and try again.';
+      if (alertError) {
+        errorText.textContent = msg;
+        alertError.classList.remove('d-none');
+      }
+    }
+  } catch(err) {
+    if (alertError) {
+      errorText.textContent = 'Network or server error: ' + (err.message || err);
+      alertError.classList.remove('d-none');
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+    if (spinner) spinner.classList.add('d-none');
+    if (icon) icon.classList.remove('d-none');
+    if (btnText) btnText.textContent = 'Update Password';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// HASH NAVIGATION: Activate tab matching #password or #tokens
+// ─────────────────────────────────────────────────────────────
+function syncSettingsTabFromHash() {
+  var hash = window.location.hash;
+  var trigger = null;
+  if (hash === '#password' || hash === '#password-pane') {
+    trigger = document.getElementById('settings-password-tab');
+  } else if (hash === '#tokens') {
+    trigger = document.getElementById('settings-tokens-tab');
+  } else if (hash === '#profile') {
+    trigger = document.getElementById('settings-profile-tab');
+  }
+
+  if (trigger && window.bootstrap && window.bootstrap.Tab) {
+    var tab = window.bootstrap.Tab.getOrCreateInstance(trigger);
+    tab.show();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  syncSettingsTabFromHash();
+  window.addEventListener('hashchange', syncSettingsTabFromHash);
+
+  document.querySelectorAll('#settings-pills-tab button[data-bs-toggle="pill"]').forEach(function(btn) {
+    btn.addEventListener('shown.bs.tab', function(e) {
+      var target = e.target.getAttribute('data-bs-target');
+      if (target === '#password-pane') {
+        history.replaceState(null, '', '#password');
+      } else if (target === '#tokens') {
+        history.replaceState(null, '', '#tokens');
+      } else if (target === '#profile') {
+        history.replaceState(null, '', '#profile');
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+  {{ Assets.js("assets/js/settings.js") }}
+{% endblock %}

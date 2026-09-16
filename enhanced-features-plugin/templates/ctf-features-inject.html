@@ -1028,74 +1028,9 @@
   })();
 
   // ═══════════════════════════════════════════════════════
-  // 9. CHALLENGE FILTER TABS (on /challenges page)
+  // 9. CHALLENGE FILTER (disabled: all challenges in Web category)
   // ═══════════════════════════════════════════════════════
-  (function initChallengeFilter() {
-    if (!window.location.pathname.match(/^\/challenges/)) return;
 
-    // Wait for CTFd to render challenge cards
-    function tryInjectFilters() {
-      var container = document.querySelector('#challenges-board, .challenges-board, #challenge-container, .container-fluid');
-      if (!container) { setTimeout(tryInjectFilters, 500); return; }
-      if (document.getElementById('ctf-filter-bar')) return;
-
-      var bar = document.createElement('div');
-      bar.id = 'ctf-filter-bar';
-      bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:0 4px;';
-      var filters = [
-        { label: 'All', val: 'all' },
-        { label: '&#x1f7e2; Beginner', val: 'beginner' },
-        { label: '&#x1f7e1; Intermediate', val: 'intermediate' },
-        { label: '&#x1f534; Advanced', val: 'advanced' },
-      ];
-      filters.forEach(function(f, i) {
-        var btn = document.createElement('button');
-        btn.innerHTML = f.label;
-        btn.dataset.filter = f.val;
-        btn.style.cssText = 'background:rgba(13,17,23,.8);border:1px solid rgba(16,185,129,'+(i===0?'.4':'.15')+');'+
-          'border-radius:18px;padding:5px 16px;font-size:.8rem;cursor:pointer;transition:all .2s;'+
-          'color:'+(i===0?'#10b981':'#8b949e')+';font-family:"JetBrains Mono",monospace;';
-        if (i === 0) btn.classList.add('ctf-filter-active');
-        btn.addEventListener('click', function() {
-          document.querySelectorAll('#ctf-filter-bar button').forEach(function(b) {
-            b.style.color='#8b949e'; b.style.borderColor='rgba(16,185,129,.15)'; b.classList.remove('ctf-filter-active');
-          });
-          btn.style.color='#10b981'; btn.style.borderColor='rgba(16,185,129,.4)'; btn.classList.add('ctf-filter-active');
-          filterChallengeCards(f.val);
-        });
-        bar.appendChild(btn);
-      });
-
-      // Insert before the board
-      container.parentNode && container.parentNode.insertBefore(bar, container);
-    }
-
-    function filterChallengeCards(filterVal) {
-      var cards = document.querySelectorAll(
-        '.col-md-4, .challenge-card-wrapper, [class*="challenge"], .card[data-challenge-id], '+
-        'div[data-challenge-id], #challenges-board .col, #challenges-board > div'
-      );
-      cards.forEach(function(card) {
-        if (filterVal === 'all') { card.style.display = ''; return; }
-        // Try to find category text in the card
-        var cat = (card.textContent || '').toLowerCase();
-        var catEl = card.querySelector('.category, .badge, [class*="category"]');
-        if (catEl) cat = catEl.textContent.toLowerCase();
-        var show = (filterVal === 'beginner' && cat.includes('beginner')) ||
-                   (filterVal === 'intermediate' && cat.includes('intermediate')) ||
-                   (filterVal === 'advanced' && cat.includes('advanced'));
-        card.style.display = show ? '' : 'none';
-      });
-    }
-
-    setTimeout(tryInjectFilters, 800);
-
-    // Re-inject after CTFd dynamically loads challenges
-    var obs = new MutationObserver(function() {
-      if (!document.getElementById('ctf-filter-bar')) tryInjectFilters();
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
-  })();
 
   // ═══════════════════════════════════════════════════════
   // 10. EXTEND PWN MACHINE BUTTON (injected into Pwn panel only, visible when running)

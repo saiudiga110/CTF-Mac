@@ -657,6 +657,13 @@ def load(app):
 
     logger.info('✅ Lloyds Cyber auth theme injection registered')
 
+    # Direct routes for password change
+    @app.route('/password')
+    @app.route('/change-password')
+    def user_password_redirect():
+        from flask import redirect, url_for
+        return redirect(url_for('views.settings') + '#password')
+
     # Load main features blueprint
     app.register_blueprint(blueprint)
     logger.info('Core Features Blueprint loaded')

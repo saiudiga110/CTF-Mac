@@ -491,7 +491,7 @@ function renderChals(){
 function buildChalTable(list,fbMap){
   var html='';
   list.forEach(function(c,i){
-    var diff=c.category.includes('Beginner')?'b':c.category.includes('Advanced')?'a':'i';
+    var diff='i';
     var fb=fbMap[String(c.id)];
     var fbTxt=fb?('<span style="color:#ffd700;font-size:.74rem">'+esc(fb.username)+'</span>'):'<span style="color:#30363d">—</span>';
     var n=esc(c.name).replace(/'/g,"\\'");

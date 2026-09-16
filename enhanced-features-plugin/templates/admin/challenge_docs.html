@@ -91,12 +91,6 @@ textarea.form-inp{min-height:90px;resize:vertical;}
 
   <div class="toolbar">
     <button class="btn-new" onclick="openModal(null)">&#43; New Doc</button>
-    <div class="filter-tabs" id="filter-tabs">
-      <div class="ftab active" onclick="doFilter('all',this)">All</div>
-      <div class="ftab" onclick="doFilter('basic',this)">&#x1f7e2; Basic</div>
-      <div class="ftab" onclick="doFilter('intermediate',this)">&#x1f7e1; Intermediate</div>
-      <div class="ftab" onclick="doFilter('advanced',this)">&#x1f534; Advanced</div>
-    </div>
   </div>
 
   <div id="docs-list"></div>
@@ -114,9 +108,7 @@ textarea.form-inp{min-height:90px;resize:vertical;}
     <div class="form-row">
       <label>Category</label>
       <select class="form-inp" id="edit-category">
-        <option>Web — Basic</option>
-        <option>Web — Intermediate</option>
-        <option>Web — Advanced</option>
+        <option>Web</option>
       </select>
     </div>
     <div class="form-row">
@@ -172,16 +164,8 @@ function loadDocs() {
 }
 
 function renderStats() {
-  var basic=0,inter=0,adv=0;
-  allDocs.forEach(function(d){
-    var c=catClass(d.category);
-    if(c==='basic')basic++;else if(c==='advanced')adv++;else inter++;
-  });
   document.getElementById('stat-row').innerHTML =
-    chip(allDocs.length,'Docs','var(--d-green)')+
-    chip(basic,'Basic','#00c853')+
-    chip(inter,'Intermediate','#ffd700')+
-    chip(adv,'Advanced','#ff4444');
+    chip(allDocs.length,'Total Docs','var(--d-green)');
 }
 
 function chip(val,lbl,col){
@@ -258,7 +242,7 @@ function openModal(id) {
     var d = allDocs.find(function(x){return x.id===id;});
     if (!d) return;
     document.getElementById('edit-name').value = d.challenge_name||'';
-    document.getElementById('edit-category').value = d.category||'Web — Basic';
+    document.getElementById('edit-category').value = d.category||'Web';
     document.getElementById('edit-vuln').value = d.vuln_type||'';
     document.getElementById('edit-concept').value = d.concept||'';
     document.getElementById('edit-flagkey').value = d.flag_key||'';
@@ -266,7 +250,7 @@ function openModal(id) {
     (d.code_examples||[]).forEach(function(ex){addCode(ex.lang,ex.code);});
   } else {
     document.getElementById('edit-name').value='';
-    document.getElementById('edit-category').value='Web — Basic';
+    document.getElementById('edit-category').value='Web';
     document.getElementById('edit-vuln').value='';
     document.getElementById('edit-concept').value='';
     document.getElementById('edit-flagkey').value='';

@@ -1003,7 +1003,7 @@ def admin_create_challenge():
 
     c = Challenges(
         name=name,
-        category=(data.get("category") or "Web — Intermediate").strip(),
+        category=(data.get("category") or "Web").strip(),
         description=(data.get("description") or "").strip(),
         value=int(data.get("value", 100)),
         type="standard",
@@ -1546,7 +1546,7 @@ class ChallengeDoc(db.Model):
     __tablename__ = "ctf_challenge_doc"
     id             = db.Column(db.Integer, primary_key=True)
     challenge_name = db.Column(db.String(255), nullable=False)
-    category       = db.Column(db.String(100), nullable=False, default="Web — Basic")
+    category       = db.Column(db.String(100), nullable=False, default="Web")
     vuln_type      = db.Column(db.String(100), default="")
     concept        = db.Column(db.Text, default="")
     steps          = db.Column(db.Text, default="[]")   # JSON array of strings
@@ -1578,7 +1578,7 @@ def create_doc():
         return jsonify({"success": False, "message": "challenge_name required"}), 400
     d = ChallengeDoc(
         challenge_name=name,
-        category=(data.get("category") or "Web — Basic").strip(),
+        category=(data.get("category") or "Web").strip(),
         vuln_type=(data.get("vuln_type") or "").strip(),
         concept=(data.get("concept") or "").strip(),
         steps=json.dumps(data.get("steps") or []),
@@ -2987,6 +2987,62 @@ def admin_list_backups():
 def data_eraser_dashboard():
     from flask import render_template as _rt
     return _rt("admin/data_eraser.html")
+
+
+@bp.route("/user/change-password", methods=["POST"])
+@authed_only
+def change_password():
+    """User-side password change with verification and immediate session sync."""
+    from CTFd.utils.crypto import verify_password, hash_password
+    try:
+        from CTFd.utils.security.auth import update_user
+    except ImportError:
+        def update_user(u): pass
+
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    data = request.get_json(silent=True) or {}
+    current_password = str(data.get("current_password") or data.get("confirm") or "").strip()
+    new_password = str(data.get("new_password") or data.get("password") or "").strip()
+    confirm_password = str(data.get("confirm_password") or data.get("new_password_confirm") or "").strip()
+
+    if not current_password:
+        return jsonify({"success": False, "message": "Current password is required"}), 400
+
+    if not new_password:
+        return jsonify({"success": False, "message": "New password is required"}), 400
+
+    min_len = int(get_config("password_min_length", default=6) or 6)
+    if len(new_password) < min_len:
+        return jsonify({
+            "success": False,
+            "message": f"Password must be at least {min_len} characters long"
+        }), 400
+
+    if confirm_password and confirm_password != new_password:
+        return jsonify({"success": False, "message": "New passwords do not match"}), 400
+
+    if current_password == new_password:
+        return jsonify({"success": False, "message": "New password must be different from current password"}), 400
+
+    if not verify_password(plaintext=current_password, ciphertext=user.password):
+        return jsonify({"success": False, "message": "Your current password is incorrect"}), 400
+
+    try:
+        user.password = new_password
+        db.session.commit()
+        update_user(user)
+        logger.info(f"[PasswordChange] User {user.name} (id={user.id}) successfully updated their password")
+        return jsonify({
+            "success": True,
+            "message": "Your password has been changed successfully. You can now use your new password."
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"[PasswordChange] Failed to update password for user {user.id}: {e}")
+        return jsonify({"success": False, "message": "Database error while updating password"}), 500
 
 
 # =============================================================================

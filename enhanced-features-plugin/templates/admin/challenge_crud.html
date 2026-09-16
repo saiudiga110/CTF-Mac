@@ -62,9 +62,7 @@ tr:hover td { background:rgba(255,255,255,.02); }
         <input class="form-ctrl" id="chal-name" placeholder="e.g. The Careless Developer"></div>
       <div class="form-row"><label>Category</label>
         <select class="form-ctrl" id="chal-cat">
-          <option>Web — Beginner</option>
-          <option>Web — Intermediate</option>
-          <option>Web — Advanced</option>
+          <option>Web</option>
           <option>Crypto</option>
           <option>Forensics</option>
           <option>Misc</option>
@@ -99,9 +97,7 @@ tr:hover td { background:rgba(255,255,255,.02); }
         <input class="form-ctrl" id="search-box" style="width:220px;padding:6px 10px" placeholder="&#x1f50d; Search...">
         <select class="form-ctrl" id="cat-filter" style="width:180px;padding:6px 10px" onchange="loadChallenges()">
           <option value="">All Categories</option>
-          <option>Web — Beginner</option>
-          <option>Web — Intermediate</option>
-          <option>Web — Advanced</option>
+          <option>Web</option>
           <option>Crypto</option>
           <option>Forensics</option>
           <option>Misc</option>
@@ -181,7 +177,7 @@ function resetForm(){
   document.getElementById('chal-desc').value='';
   document.getElementById('chal-flag').value='';
   document.getElementById('chal-state').value='visible';
-  document.getElementById('chal-cat').value='Web \u2014 Beginner';
+  document.getElementById('chal-cat').value='Web';
   _hints=[]; document.getElementById('hint-list').innerHTML='';
   document.getElementById('form-title').textContent='\u2795 Create New Challenge';
   document.getElementById('chal-save-btn').textContent='\ud83d\udcbe Save Challenge';
@@ -228,7 +224,7 @@ function loadChallenges(){
     var html='';
     if(chals.length===0){ html='<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:24px">No challenges found.</td></tr>'; }
     chals.forEach(function(c,i){
-      var diff = c.category.includes('Beginner')?'b':c.category.includes('Advanced')?'a':'i';
+      var diff = 'i';
       html+='<tr>';
       html+='<td style="color:#8b949e;font-size:.75rem">'+(i+1)+'</td>';
       html+='<td style="font-family:\'Courier New\',monospace">'+esc(c.name)+'</td>';
