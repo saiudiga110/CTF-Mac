@@ -1,6 +1,6 @@
 # Sai Udiga - CTF Platform Setup and Operations Guide
 
-Prepared for: **Sai Udiga**  
+Prepared by: **Sai Udiga**  
 System: **Lloyds CTF / CTF-Main**  
 Repository: `https://github.com/saiudiga110/CTF-Main`  
 Local path: `/Users/rislab/CTF-Main`
@@ -283,6 +283,46 @@ To make 30+ Kali sessions production reliable, use one or both of these improvem
 2. Reduce Kali startup cost further or split Kali sessions across more worker machines.
 
 The automation is ready, but the platform should avoid sudden burst creation of 30+ Kali desktops at once unless a warm pool is implemented.
+
+## 11. Capacity and Crash Test Result
+
+The Kali image was reduced to a focused event profile while keeping the tools requested for the lab:
+
+- Firefox browser
+- XFCE terminal
+- Burp Suite
+- nmap
+- Hydra and John password tools
+- apt package installation support
+- noVNC desktop access
+
+Removed from the default image to save space:
+
+- Kali themes and wallpapers
+- hashcat by default
+- full rockyou wordlist by default
+- extra fuzzers/scanners such as sqlmap, ffuf, gobuster, wfuzz, nikto, dirb, tcpdump, proxychains, and mitmproxy by default
+
+Final verified image size on Mac mini 1: about 1.14 GB for `kali-ctf:latest`.
+
+Runtime defaults were also reduced so more sessions can fit on the three Mac minis:
+
+| Setting | New default | Purpose |
+|---|---:|---|
+| `KALI_MEM_LIMIT` | `1280m` | Enough for Firefox + Burp for lab use |
+| `KALI_CPU_QUOTA` | `50000` | Half CPU request per Kali session |
+| `KALI_DISK_MB` | `1536` | Lower per-session disk reservation |
+| `KALI_SHM_SIZE` | `256m` | Lower shared memory reservation |
+
+Optional build flags can add tools back when needed:
+
+```bash
+KALI_INCLUDE_EXTRA_TOOLS=1 docker compose build kali
+KALI_INCLUDE_HASHCAT=1 docker compose build kali
+KALI_INCLUDE_WORDLISTS=1 docker compose build kali
+```
+
+Earlier crash testing reached 21 Kali + 21 vBank target pairs with the older, heavier profile. The new profile should allow more sessions, but a fresh 30+ concurrent crash test should be run before a large event because Burp and Firefox still consume real RAM when actively used.
 
 ## 12. Troubleshooting
 

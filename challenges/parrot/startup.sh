@@ -315,6 +315,7 @@ Terminal=false
 Categories=System;TerminalEmulator;
 EOF
 
+if command -v burpsuite >/dev/null 2>&1; then
 cat > "$HOME_DIR/Desktop/BurpSuite.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
@@ -326,7 +327,9 @@ Icon=burpsuite
 Terminal=false
 Categories=Network;Security;
 EOF
+fi
 
+if command -v mitmproxy >/dev/null 2>&1; then
 cat > "$HOME_DIR/Desktop/mitmproxy.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
@@ -338,6 +341,7 @@ Icon=network-workgroup
 Terminal=false
 Categories=Network;Security;
 EOF
+fi
 
 cat > "$HOME_DIR/Desktop/Notes.desktop" << EOF
 [Desktop Entry]

@@ -1,8 +1,13 @@
-# Force x86_64 so all Kali tools (burpsuite, masscan, etc.) are available on
-# Apple Silicon Macs via Rosetta 2. Docker Desktop handles the emulation.
+# Force x86_64 so Burp Suite and Kali packages work consistently on Apple
+# Silicon Macs through Docker Desktop/Rosetta emulation.
 FROM --platform=linux/amd64 kalilinux/kali-rolling:latest
 
-ARG KALI_INCLUDE_HEAVY_TOOLS=0
+# Default event profile requested for the lab:
+# browser + terminal + Burp + nmap + password tools + working apt installs.
+# Optional args can add back heavier tools when a specific event needs them.
+ARG KALI_INCLUDE_EXTRA_TOOLS=0
+ARG KALI_INCLUDE_HASHCAT=0
+ARG KALI_INCLUDE_WORDLISTS=0
 
 ENV DEBIAN_FRONTEND=noninteractive \
     KALI_USER=ctf \
@@ -10,96 +15,68 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TARGET_URL=http://vbank-app \
     DISPLAY=:1
 
-# ── Pin apt to kali.download mirror (avoids 404s and SSL issues on http.kali.org) ─
+# Pin apt to kali.download mirror and keep apt usable inside running containers.
 RUN rm -f /etc/apt/sources.list.d/kali.sources \
     && printf 'deb http://kali.download/kali kali-rolling main non-free contrib non-free-firmware\n' \
        > /etc/apt/sources.list \
-    && apt-get -o Acquire::Retries=3 update
+    && apt-get -o Acquire::Retries=3 update \
+    && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
+       ca-certificates curl wget git vim nano less tmux jq sudo apt-utils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# ── Base update ───────────────────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    ca-certificates curl wget git vim nano less tmux jq sudo \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ── XFCE4 desktop ─────────────────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    xfce4 xfce4-terminal xfce4-taskmanager xfce4-screenshooter \
-    xfce4-clipman-plugin xfce4-notifyd thunar mousepad \
-    dbus-x11 x11-utils x11-xserver-utils xdg-utils \
-    fonts-noto fonts-hack \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ── Kali look-and-feel (themes + wallpapers + icon theme) ─────────────────────
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    kali-themes kali-themes-common \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-# ── Kali wallpapers (try current year first, then legacy) ─────────────────────
-RUN apt-get -o Acquire::Retries=3 update \
-    && (apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends kali-wallpapers-2024 \
-        || apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends kali-wallpapers-2025 \
-        || apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends kali-wallpapers-legacy \
-        || true) \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-# ── VNC + noVNC ───────────────────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    xvfb x11vnc novnc websockify \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ── Browser ───────────────────────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends firefox-esr \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-# ── Kali security tools — split into groups so one failure won't break others ─
+# Minimal real desktop. Keep XFCE/noVNC/browser/terminal; skip Kali themes and
+# wallpapers because they add size but do not help the challenge workflow.
 RUN apt-get -o Acquire::Retries=3 update \
     && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-       nmap nikto dirb netcat-traditional ncat socat tcpdump proxychains4 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+       xfce4 xfce4-terminal thunar mousepad \
+       dbus-x11 x11-utils x11-xserver-utils xdg-utils \
+       fonts-noto fonts-hack \
+       xvfb x11vnc novnc websockify \
+       xclip xdotool \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Required CTF tools: Firefox, Burp Suite, nmap, and password/authentication tools.
 RUN apt-get -o Acquire::Retries=3 update \
     && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-       hydra john sqlmap wfuzz gobuster ffuf \
-    && if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
-         apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends hashcat tshark masscan burpsuite mitmproxy; \
+       firefox-esr burpsuite nmap hydra john netcat-traditional \
+    && if [ "$KALI_INCLUDE_HASHCAT" = "1" ]; then \
+         apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends hashcat; \
        fi \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
+    && if [ "$KALI_INCLUDE_EXTRA_TOOLS" = "1" ]; then \
+         apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
+           sqlmap ffuf gobuster wfuzz nikto dirb tcpdump proxychains4 mitmproxy; \
+       fi \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* || true
 
-# ── Clipboard support (required by x11vnc for VNC↔browser clipboard sync) ───
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    xclip xdotool \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
+# Python helper libraries used in common web/API tasks. Keep this small by default.
+RUN apt-get -o Acquire::Retries=3 update \
+    && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
+       python3-pip python3-venv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && python3 -m venv /opt/ctf-venv \
+    && /opt/ctf-venv/bin/pip install --no-cache-dir \
+       requests httpx pycryptodome PyJWT beautifulsoup4 paramiko colorama termcolor \
+    && if [ "$KALI_INCLUDE_EXTRA_TOOLS" = "1" ]; then \
+         /opt/ctf-venv/bin/pip install --no-cache-dir scapy python-jose lxml flask pwntools impacket || true; \
+       fi
 
-# ── Python security libraries ─────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    python3-pip python3-venv \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN python3 -m venv /opt/ctf-venv
-RUN /opt/ctf-venv/bin/pip install --no-cache-dir \
-        requests httpx pycryptodome scapy \
-        PyJWT python-jose beautifulsoup4 lxml paramiko flask colorama \
-        termcolor
-RUN if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
-      /opt/ctf-venv/bin/pip install --no-cache-dir pwntools impacket || true; \
-    fi
-
-# ── jwt_tool ──────────────────────────────────────────────────────────────────
+# jwt_tool is small and useful for the vBank/API style challenges.
 RUN git clone --depth=1 https://github.com/ticarpi/jwt_tool /opt/jwt_tool \
     && chmod +x /opt/jwt_tool/jwt_tool.py \
-    && ln -sf /opt/jwt_tool/jwt_tool.py /usr/local/bin/jwt_tool || true
+    && ln -sf /opt/jwt_tool/jwt_tool.py /usr/local/bin/jwt_tool \
+    && rm -rf /opt/jwt_tool/.git || true
 
-# ── rockyou wordlist ───────────────────────────────────────────────────────────
+# Keep a small default wordlist. Full rockyou is optional because it increases
+# sync/build size and is rarely needed for this lab's default challenges.
 RUN mkdir -p /usr/share/wordlists \
-    && if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
+    && printf 'password\nadmin\nvbank2024\nkali123\nPassword1\nWelcome1\nLloyds2025\n' > /usr/share/wordlists/ctf-small.txt \
+    && if [ "$KALI_INCLUDE_WORDLISTS" = "1" ]; then \
          (test -f /usr/share/wordlists/rockyou.txt || \
           test -f /usr/share/wordlists/rockyou.txt.gz && gunzip /usr/share/wordlists/rockyou.txt.gz || \
           curl -sL "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" \
           -o /usr/share/wordlists/rockyou.txt) || true; \
-       else \
-         printf 'password\nadmin\nvbank2024\nkali123\n' > /usr/share/wordlists/ctf-small.txt; \
        fi
 
-# ── Identity hooks ────────────────────────────────────────────────────────────
 RUN printf '%s\n' \
     '[ -n "$KALI_USER" ] && export USER="$KALI_USER" LOGNAME="$KALI_USER"' \
     '[ -n "$TARGET_URL"  ] && export TARGET_URL="$TARGET_URL"' \

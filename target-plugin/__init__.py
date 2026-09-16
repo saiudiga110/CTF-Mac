@@ -380,8 +380,8 @@ def load(app):
         return _instance_manager_id(user_id, 0, "kali")
 
     def _manager_kali_payload(user):
-        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "2048m"), 2048)
-        cpu_quota = int(_get_config("kali_cpu_quota", "100000") or "100000")
+        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "1280m"), 1280)
+        cpu_quota = int(_get_config("kali_cpu_quota", "50000") or "50000")
         image_platform = str(_get_config("kali_image_platform", _get_config("image_platform", "multi")) or "multi").strip()
         return {
             "role": "kali",
@@ -393,13 +393,13 @@ def load(app):
             "image_platform": image_platform,
             "cpu_request": max(0.1, cpu_quota / 100000.0),
             "memory_mb": mem_mb,
-            "disk_mb": int(_get_config("kali_disk_mb", "2048") or "2048"),
+            "disk_mb": int(_get_config("kali_disk_mb", "1536") or "1536"),
             "internal_port": int(_get_config("kali_port", DEFAULT_KALI_PORT)),
             "ttl_seconds": min(_instance_lifetime(), KALI_MAX_LIFETIME_SECONDS),
             "idempotency_key": _manager_kali_id(user.id),
             "required_features": ["linux_containers"],
             "pids_limit": int(_get_config("kali_pids_limit", "512") or "512"),
-            "shm_size": _get_config("kali_shm_size", "512m"),
+            "shm_size": _get_config("kali_shm_size", "256m"),
             "cap_drop": [],
             "security_opt": ["no-new-privileges:true"],
             "environment": {

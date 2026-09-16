@@ -3,14 +3,14 @@
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Length 2093 >>
+<< /Length 2092 >>
 stream
 BT
 /F1 10 Tf
 54 738 Td
 (Sai Udiga - CTF Platform Setup and Operations Guide) Tj
 0 -14 Td () Tj
-0 -14 Td (Prepared for: **Sai Udiga**) Tj
+0 -14 Td (Prepared by: **Sai Udiga**) Tj
 0 -14 Td (System: **Lloyds CTF / CTF-Main**) Tj
 0 -14 Td (Repository: https://github.com/saiudiga110/CTF-Main) Tj
 0 -14 Td (Local path: /Users/rislab/CTF-Main) Tj
@@ -288,7 +288,7 @@ ET
 endstream
 endobj
 7 0 obj
-<< /Length 2478 >>
+<< /Length 2517 >>
 stream
 BT
 /F1 10 Tf
@@ -328,6 +328,57 @@ BT
 0 -14 Td (The automation is ready, but the platform should avoid sudden burst creation of 30+ Kali) Tj
 0 -14 Td (desktops at once unless a warm pool is implemented.) Tj
 0 -14 Td () Tj
+0 -14 Td (11. Capacity and Crash Test Result) Tj
+0 -14 Td () Tj
+0 -14 Td (The Kali image was reduced to a focused event profile while keeping the tools requested for) Tj
+0 -14 Td (the lab:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Firefox browser) Tj
+0 -14 Td (? XFCE terminal) Tj
+0 -14 Td (? Burp Suite) Tj
+0 -14 Td (? nmap) Tj
+0 -14 Td (? Hydra and John password tools) Tj
+0 -14 Td (? apt package installation support) Tj
+0 -14 Td (? noVNC desktop access) Tj
+0 -14 Td () Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 2180 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(Removed from the default image to save space:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Kali themes and wallpapers) Tj
+0 -14 Td (? hashcat by default) Tj
+0 -14 Td (? full rockyou wordlist by default) Tj
+0 -14 Td (? extra fuzzers/scanners such as sqlmap, ffuf, gobuster, wfuzz, nikto, dirb, tcpdump,) Tj
+0 -14 Td (proxychains, and mitmproxy by default) Tj
+0 -14 Td () Tj
+0 -14 Td (Final verified image size on Mac mini 1: about 1.14 GB for kali-ctf:latest.) Tj
+0 -14 Td () Tj
+0 -14 Td (Runtime defaults were also reduced so more sessions can fit on the three Mac minis:) Tj
+0 -14 Td () Tj
+0 -14 Td (Setting  New default  Purpose) Tj
+0 -14 Td (KALI_MEM_LIMIT  1280m  Enough for Firefox + Burp for lab use) Tj
+0 -14 Td (KALI_CPU_QUOTA  50000  Half CPU request per Kali session) Tj
+0 -14 Td (KALI_DISK_MB  1536  Lower per-session disk reservation) Tj
+0 -14 Td (KALI_SHM_SIZE  256m  Lower shared memory reservation) Tj
+0 -14 Td () Tj
+0 -14 Td (Optional build flags can add tools back when needed:) Tj
+0 -14 Td () Tj
+0 -14 Td (KALI_INCLUDE_EXTRA_TOOLS=1 docker compose build kali) Tj
+0 -14 Td (KALI_INCLUDE_HASHCAT=1 docker compose build kali) Tj
+0 -14 Td (KALI_INCLUDE_WORDLISTS=1 docker compose build kali) Tj
+0 -14 Td () Tj
+0 -14 Td (Earlier crash testing reached 21 Kali + 21 vBank target pairs with the older, heavier) Tj
+0 -14 Td (profile. The new profile should allow more sessions, but a fresh 30+ concurrent crash test) Tj
+0 -14 Td (should be run before a large event because Burp and Firefox still consume real RAM when) Tj
+0 -14 Td (actively used.) Tj
+0 -14 Td () Tj
 0 -14 Td (12. Troubleshooting) Tj
 0 -14 Td () Tj
 0 -14 Td (Check everything) Tj
@@ -341,22 +392,22 @@ BT
 0 -14 Td () Tj
 0 -14 Td (./scripts/ctfctl.sh start) Tj
 0 -14 Td () Tj
-ET
-endstream
-endobj
-8 0 obj
-<< /Length 1567 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-(Then wait 30 seconds and run:) Tj
+0 -14 Td (Then wait 30 seconds and run:) Tj
 0 -14 Td () Tj
 0 -14 Td (./scripts/ctfctl.sh status) Tj
 0 -14 Td () Tj
 0 -14 Td (Remote worker is stale) Tj
 0 -14 Td () Tj
-0 -14 Td (Check SSH:) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Length 1838 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(Check SSH:) Tj
 0 -14 Td () Tj
 0 -14 Td (ssh rislab@rislab-mini2.local hostname) Tj
 0 -14 Td (ssh rislab@rislab-mini3.local hostname) Tj
@@ -398,22 +449,22 @@ BT
 0 -14 Td () Tj
 0 -14 Td (13. Files Added or Changed for Operations) Tj
 0 -14 Td () Tj
-ET
-endstream
-endobj
-9 0 obj
-<< /Length 1357 >>
-stream
-BT
-/F1 10 Tf
-54 738 Td
-(File  Purpose) Tj
+0 -14 Td (File  Purpose) Tj
 0 -14 Td (scripts/ctfctl.sh  Operator command wrapper) Tj
 0 -14 Td (scripts/start-macmini-cluster.sh  Full cluster start/sync command) Tj
 0 -14 Td (target-plugin/templates/architecture.html  Architecture page UI) Tj
 0 -14 Td (infra/instance_manager/app.py  Manager scheduling, architecture API, allocation lock) Tj
 0 -14 Td (infra/instance_manager/worker_agent.py  Worker inventory and resilient heartbeat) Tj
-0 -14 Td (infra/instance_manager/docker_worker.py  Serialized Docker create operation) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Length 919 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(infra/instance_manager/docker_worker.py  Serialized Docker create operation) Tj
 0 -14 Td (challenges/parrot/Dockerfile  Reduced Kali image size) Tj
 0 -14 Td (challenges/vbank-ctf/Dockerfile  Reduced vBank image size) Tj
 0 -14 Td () Tj
@@ -438,63 +489,68 @@ BT
 ET
 endstream
 endobj
-10 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
-endobj
 11 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
 endobj
 12 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
 endobj
 13 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
 endobj
 14 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
 endobj
 15 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
 endobj
 16 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
 endobj
 17 0 obj
-<< /Type /Page /Parent 18 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 9 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
 endobj
 18 0 obj
-<< /Type /Pages /Kids [10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R] /Count 8 >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 9 0 R >>
 endobj
 19 0 obj
-<< /Type /Catalog /Pages 18 0 R >>
+<< /Type /Page /Parent 20 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 10 0 R >>
 endobj
 20 0 obj
+<< /Type /Pages /Kids [11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R] /Count 9 >>
+endobj
+21 0 obj
+<< /Type /Catalog /Pages 20 0 R >>
+endobj
+22 0 obj
 << /Title (Sai Udiga CTF Setup Guide) /Author (Sai Udiga) >>
 endobj
 xref
-0 21
+0 23
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
-0000002224 00000 n 
-0000004713 00000 n 
-0000006504 00000 n 
-0000009252 00000 n 
-0000011667 00000 n 
-0000014197 00000 n 
-0000015816 00000 n 
-0000017225 00000 n 
-0000017353 00000 n 
-0000017481 00000 n 
-0000017609 00000 n 
-0000017737 00000 n 
-0000017865 00000 n 
-0000017993 00000 n 
-0000018121 00000 n 
-0000018249 00000 n 
+0000002223 00000 n 
+0000004712 00000 n 
+0000006503 00000 n 
+0000009251 00000 n 
+0000011666 00000 n 
+0000014235 00000 n 
+0000016467 00000 n 
 0000018357 00000 n 
-0000018408 00000 n 
-trailer << /Size 21 /Root 19 0 R /Info 20 0 R >>
+0000019328 00000 n 
+0000019456 00000 n 
+0000019584 00000 n 
+0000019712 00000 n 
+0000019840 00000 n 
+0000019968 00000 n 
+0000020096 00000 n 
+0000020224 00000 n 
+0000020352 00000 n 
+0000020481 00000 n 
+0000020596 00000 n 
+0000020647 00000 n 
+trailer << /Size 23 /Root 21 0 R /Info 22 0 R >>
 startxref
-18485
+20724
 %%EOF

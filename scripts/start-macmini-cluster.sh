@@ -191,7 +191,7 @@ set_env_value INSTANCE_MANAGER_DEPLOY_MODE worker
 set_env_value CTFD_TARGET_ORCHESTRATOR instance_manager
 set_env_value WORKER_ID "$CONTROL_WORKER_ID"
 set_env_value WORKER_LABELS "$CONTROL_WORKER_LABELS"
-set_env_value KALI_MEM_LIMIT "${KALI_MEM_LIMIT:-1536m}"
+set_env_value KALI_MEM_LIMIT "${KALI_MEM_LIMIT:-1280m}"
 
 worker_index=0
 while IFS='=' read -r -u 3 worker_id host; do
