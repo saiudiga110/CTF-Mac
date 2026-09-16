@@ -1,0 +1,423 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2093 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(Sai Udiga - CTF Platform Setup and Operations Guide) Tj
+0 -14 Td () Tj
+0 -14 Td (Prepared for: **Sai Udiga**) Tj
+0 -14 Td (System: **Lloyds CTF / CTF-Main**) Tj
+0 -14 Td (Repository: https://github.com/saiudiga110/CTF-Main) Tj
+0 -14 Td (Local path: /Users/rislab/CTF-Main) Tj
+0 -14 Td () Tj
+0 -14 Td (1. Quick Answer) Tj
+0 -14 Td () Tj
+0 -14 Td (For normal event hosting, you should not need to configure the cluster manually again. From) Tj
+0 -14 Td (Mac mini 1, run:) Tj
+0 -14 Td () Tj
+0 -14 Td (cd /Users/rislab/CTF-Main) Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (Then open:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Player site: http://10.34.204.246) Tj
+0 -14 Td (? Admin: http://10.34.204.246/admin) Tj
+0 -14 Td (? Architecture view: http://10.34.204.246/plugins/ctfd-target/admin/architecture) Tj
+0 -14 Td (? Operations: http://10.34.204.246/plugins/ctfd-target/admin/ops) Tj
+0 -14 Td () Tj
+0 -14 Td (Use this to verify health:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh doctor) Tj
+0 -14 Td () Tj
+0 -14 Td (2. Current Machine Roles) Tj
+0 -14 Td () Tj
+0 -14 Td (Machine  Hostname  LAN IP  Role) Tj
+0 -14 Td (Mac mini 1  rislab-mini1.local  10.34.204.246  Control plane + local worker) Tj
+0 -14 Td (Mac mini 2  rislab-mini2.local  192.168.10.52  Remote Docker worker) Tj
+0 -14 Td (Mac mini 3  rislab-mini3.local  192.168.10.53  Remote Docker worker) Tj
+0 -14 Td () Tj
+0 -14 Td (Mac mini 1 runs CTFd, MariaDB, Redis, proxy, Instance Manager, one local worker agent, and) Tj
+0 -14 Td (SSH tunnels to the remote worker agents. Mac mini 2 and Mac mini 3 run worker agents only.) Tj
+0 -14 Td (The tunnels are important on Docker Desktop because containers on Mac mini 1 may not route) Tj
+0 -14 Td (directly to the 192.168.10.x lab subnet.) Tj
+0 -14 Td () Tj
+0 -14 Td (3. Architecture) Tj
+0 -14 Td () Tj
+0 -14 Td (Players/Admin Browser) Tj
+0 -14 Td (        |) Tj
+0 -14 Td (        v) Tj
+0 -14 Td (Mac mini 1 - 10.34.204.246) Tj
+0 -14 Td (  - Nginx proxy) Tj
+0 -14 Td (  - CTFd web application) Tj
+0 -14 Td (  - MariaDB) Tj
+0 -14 Td (  - Redis) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Length 2437 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(  - Instance Manager) Tj
+0 -14 Td (  - Local Worker Agent) Tj
+0 -14 Td (  - SSH tunnels:) Tj
+0 -14 Td (      127.0.0.1:18091 -> mac-mini-2:8090) Tj
+0 -14 Td (      127.0.0.1:18092 -> mac-mini-3:8090) Tj
+0 -14 Td (        |) Tj
+0 -14 Td (        +--------------------------+) Tj
+0 -14 Td (        |                          |) Tj
+0 -14 Td (        v                          v) Tj
+0 -14 Td (Mac mini 2                    Mac mini 3) Tj
+0 -14 Td (192.168.10.52                 192.168.10.53) Tj
+0 -14 Td (Worker Agent :8090            Worker Agent :8090) Tj
+0 -14 Td (Docker containers             Docker containers) Tj
+0 -14 Td () Tj
+0 -14 Td (4. How Images Are Shared) Tj
+0 -14 Td () Tj
+0 -14 Td (Images are not pulled at player launch time. The startup command builds or verifies the) Tj
+0 -14 Td (required images on Mac mini 1 and then syncs current image IDs to Mac mini 2 and Mac mini 3.) Tj
+0 -14 Td () Tj
+0 -14 Td (Required workload images include:) Tj
+0 -14 Td () Tj
+0 -14 Td (? kali-ctf:latest) Tj
+0 -14 Td (? vbank-ctf:latest) Tj
+0 -14 Td (? vbank-auth:1) Tj
+0 -14 Td (? vbank-idor:1) Tj
+0 -14 Td (? vbank-logic:1) Tj
+0 -14 Td (? vbank-xss:1) Tj
+0 -14 Td (? vbank-staff-auth:1) Tj
+0 -14 Td (? vbank-staff-deep:1) Tj
+0 -14 Td (? vbank-analytics:latest) Tj
+0 -14 Td () Tj
+0 -14 Td (The startup script compares Docker image IDs. If a remote machine has an old or missing) Tj
+0 -14 Td (image, it sends a compressed Docker archive and loads it there. The same command also opens) Tj
+0 -14 Td (or reuses the SSH tunnels needed for the manager container to contact remote worker agents.) Tj
+0 -14 Td () Tj
+0 -14 Td (5. How Target Placement Works) Tj
+0 -14 Td () Tj
+0 -14 Td (When a player starts a target or Kali session:) Tj
+0 -14 Td () Tj
+0 -14 Td (1. The browser calls CTFd.) Tj
+0 -14 Td (2. CTFd asks the Instance Manager on Mac mini 1.) Tj
+0 -14 Td (3. The Instance Manager reads live worker heartbeats and capacity.) Tj
+0 -14 Td (4. It chooses Mac mini 1, 2, or 3 based on available CPU/RAM/container/port capacity.) Tj
+0 -14 Td (5. It tells that machine's worker agent to start the Docker container locally. For remote) Tj
+0 -14 Td (workers, the manager reaches the agent through the automatic SSH tunnel advertised as) Tj
+0 -14 Td (host.docker.internal:18091 or host.docker.internal:18092.) Tj
+0 -14 Td (6. The selected worker returns a player URL like http://192.168.10.52:20003/.) Tj
+0 -14 Td () Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Length 1778 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(If Mac mini 1 is full, new launches move to Mac mini 2 or Mac mini 3 automatically.) Tj
+0 -14 Td () Tj
+0 -14 Td (Target and Kali sidecars for the same player/challenge are colocated on the same worker so) Tj
+0 -14 Td (Kali can reach the target by vbank-app inside the shared Docker network.) Tj
+0 -14 Td () Tj
+0 -14 Td (6. Automation Commands) Tj
+0 -14 Td () Tj
+0 -14 Td (Run all commands from Mac mini 1:) Tj
+0 -14 Td () Tj
+0 -14 Td (cd /Users/rislab/CTF-Main) Tj
+0 -14 Td () Tj
+0 -14 Td (Start or resume everything) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (Show status) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh status) Tj
+0 -14 Td () Tj
+0 -14 Td (Show useful URLs) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh urls) Tj
+0 -14 Td () Tj
+0 -14 Td (Run a full quick doctor check) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh doctor) Tj
+0 -14 Td () Tj
+0 -14 Td (View local logs) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh logs) Tj
+0 -14 Td () Tj
+0 -14 Td (Clean stale load-test containers and test records) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh cleanup-tests) Tj
+0 -14 Td () Tj
+0 -14 Td (7. Installation From GitHub on a Fresh Mac mini 1) Tj
+0 -14 Td () Tj
+0 -14 Td (cd /Users/rislab) Tj
+0 -14 Td (git clone https://github.com/saiudiga110/CTF-Main.git) Tj
+0 -14 Td (cd CTF-Main) Tj
+0 -14 Td (chmod +x start.sh scripts/start-macmini-cluster.sh scripts/ctfctl.sh) Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (Prerequisites:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Docker Desktop installed and running on all three Mac minis.) Tj
+0 -14 Td (? Passwordless SSH from Mac mini 1 to Mac mini 2 and Mac mini 3.) Tj
+0 -14 Td (? Same LAN connectivity between the three machines.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 2470 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(? SSH local forwarding allowed from Mac mini 1 to each remote Mac mini; ctfctl start creates) Tj
+0 -14 Td (the required forwards automatically.) Tj
+0 -14 Td (? Mac mini 2 hostname: rislab-mini2.local.) Tj
+0 -14 Td (? Mac mini 3 hostname: rislab-mini3.local.) Tj
+0 -14 Td () Tj
+0 -14 Td (8. Available Endpoints) Tj
+0 -14 Td () Tj
+0 -14 Td (User and player endpoints) Tj
+0 -14 Td () Tj
+0 -14 Td (Endpoint  Purpose) Tj
+0 -14 Td (/  CTFd player site) Tj
+0 -14 Td (/challenges  Challenge list) Tj
+0 -14 Td (/plugins/ctfd-target/target/start  Start player target) Tj
+0 -14 Td (/plugins/ctfd-target/target/status  Target status) Tj
+0 -14 Td (/plugins/ctfd-target/target/stop  Stop target) Tj
+0 -14 Td (/plugins/ctfd-target/kali/start  Start Kali/noVNC sidecar) Tj
+0 -14 Td (/plugins/ctfd-target/kali/status  Kali status) Tj
+0 -14 Td (/plugins/ctfd-target/kali/sso-url  Kali noVNC access URL) Tj
+0 -14 Td (/plugins/ctfd-target/kali/stop  Stop Kali sidecar) Tj
+0 -14 Td (/plugins/ctfd-target/health  Public plugin health) Tj
+0 -14 Td () Tj
+0 -14 Td (Admin endpoints) Tj
+0 -14 Td () Tj
+0 -14 Td (Endpoint  Purpose) Tj
+0 -14 Td (/admin  CTFd admin panel) Tj
+0 -14 Td (/plugins/ctfd-target/admin/architecture  Live architecture view) Tj
+0 -14 Td (/plugins/ctfd-target/admin/architecture.json  Architecture JSON for UI refresh) Tj
+0 -14 Td (/plugins/ctfd-target/admin/ops  Event operations dashboard) Tj
+0 -14 Td (/plugins/ctfd-target/admin/network  Network and DNS settings) Tj
+0 -14 Td (/plugins/ctfd-target/admin/settings  Target/Kali settings) Tj
+0 -14 Td (/plugins/ctfd-target/admin/dashboard  Running instance dashboard) Tj
+0 -14 Td () Tj
+0 -14 Td (Instance Manager endpoints) Tj
+0 -14 Td () Tj
+0 -14 Td (Endpoint  Purpose) Tj
+0 -14 Td (http://10.34.204.246:8088/health  Manager health) Tj
+0 -14 Td (/workers/heartbeat  Worker registration heartbeat) Tj
+0 -14 Td (/nodes  Current fresh workers) Tj
+0 -14 Td (/architecture  Full architecture and inventory data) Tj
+0 -14 Td (/instances  Instance allocation/listing) Tj
+0 -14 Td (/instances/<id>/status  Instance status) Tj
+0 -14 Td (/instances/<id> DELETE  Stop instance) Tj
+0 -14 Td () Tj
+0 -14 Td (9. Production Notes) Tj
+0 -14 Td () Tj
+0 -14 Td (? The cluster is currently clean and healthy with 3 fresh nodes and zero test containers.) Tj
+0 -14 Td (? Current image sizes are reduced: vBank about 170 MB and Kali about 2.85 GB.) Tj
+0 -14 Td (? Architecture page auto-refreshes every 10 seconds.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 2197 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(? Worker heartbeats now retry after transient manager timeouts instead of exiting.) Tj
+0 -14 Td (? Instance allocation is locked in the manager to avoid duplicate port assignment under) Tj
+0 -14 Td (concurrent launch bursts.) Tj
+0 -14 Td (? DNS port 53 on Mac mini 1 is currently occupied by another local service. The app still) Tj
+0 -14 Td (works through direct IP: http://10.34.204.246.) Tj
+0 -14 Td () Tj
+0 -14 Td (10. Capacity Test Result) Tj
+0 -14 Td () Tj
+0 -14 Td (The current cluster reliably reached 21 Kali + 21 vBank target pairs in sequential testing) Tj
+0 -14 Td (before Docker create calls became too slow and timed out. The requested 30+ Kali sessions) Tj
+0 -14 Td (are close, but not yet reliable with on-demand Kali creation.) Tj
+0 -14 Td () Tj
+0 -14 Td (To make 30+ Kali sessions production reliable, use one or both of these improvements:) Tj
+0 -14 Td () Tj
+0 -14 Td (1. Pre-warm a pool of Kali containers before players arrive.) Tj
+0 -14 Td (2. Reduce Kali startup cost further or split Kali sessions across more worker machines.) Tj
+0 -14 Td () Tj
+0 -14 Td (The automation is ready, but the platform should avoid sudden burst creation of 30+ Kali) Tj
+0 -14 Td (desktops at once unless a warm pool is implemented.) Tj
+0 -14 Td () Tj
+0 -14 Td (11. Troubleshooting) Tj
+0 -14 Td () Tj
+0 -14 Td (Check everything) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh doctor) Tj
+0 -14 Td () Tj
+0 -14 Td (Architecture page does not show all 3 nodes) Tj
+0 -14 Td () Tj
+0 -14 Td (Run the startup command again. It refreshes worker containers, heartbeats, image sync, and) Tj
+0 -14 Td (SSH tunnels.) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (Then wait 30 seconds and run:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh status) Tj
+0 -14 Td () Tj
+0 -14 Td (Remote worker is stale) Tj
+0 -14 Td () Tj
+0 -14 Td (Check SSH:) Tj
+0 -14 Td () Tj
+0 -14 Td (ssh rislab@rislab-mini2.local hostname) Tj
+0 -14 Td (ssh rislab@rislab-mini3.local hostname) Tj
+0 -14 Td () Tj
+0 -14 Td (Check tunnel listeners on Mac mini 1:) Tj
+0 -14 Td () Tj
+0 -14 Td (lsof -nP -iTCP:18091 -sTCP:LISTEN) Tj
+0 -14 Td (lsof -nP -iTCP:18092 -sTCP:LISTEN) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1897 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+() Tj
+0 -14 Td (Check Docker on remote:) Tj
+0 -14 Td () Tj
+0 -14 Td (ssh rislab@rislab-mini2.local 'docker ps') Tj
+0 -14 Td (ssh rislab@rislab-mini3.local 'docker ps') Tj
+0 -14 Td () Tj
+0 -14 Td (Then restart the whole cluster:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (Stale test containers remain) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh cleanup-tests) Tj
+0 -14 Td (./scripts/ctfctl.sh status) Tj
+0 -14 Td () Tj
+0 -14 Td (DNS does not work) Tj
+0 -14 Td () Tj
+0 -14 Td (Use direct IP:) Tj
+0 -14 Td () Tj
+0 -14 Td (http://10.34.204.246) Tj
+0 -14 Td () Tj
+0 -14 Td (DNS port 53 is occupied on Mac mini 1. This does not block direct-IP operation.) Tj
+0 -14 Td () Tj
+0 -14 Td (Images are old on remote machines) Tj
+0 -14 Td () Tj
+0 -14 Td (Run:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh start) Tj
+0 -14 Td () Tj
+0 -14 Td (The startup script compares Docker image IDs and syncs changed images automatically.) Tj
+0 -14 Td () Tj
+0 -14 Td (12. Files Added or Changed for Operations) Tj
+0 -14 Td () Tj
+0 -14 Td (File  Purpose) Tj
+0 -14 Td (scripts/ctfctl.sh  Operator command wrapper) Tj
+0 -14 Td (scripts/start-macmini-cluster.sh  Full cluster start/sync command) Tj
+0 -14 Td (target-plugin/templates/architecture.html  Architecture page UI) Tj
+0 -14 Td (infra/instance_manager/app.py  Manager scheduling, architecture API, allocation lock) Tj
+0 -14 Td (infra/instance_manager/worker_agent.py  Worker inventory and resilient heartbeat) Tj
+0 -14 Td (infra/instance_manager/docker_worker.py  Serialized Docker create operation) Tj
+0 -14 Td (challenges/parrot/Dockerfile  Reduced Kali image size) Tj
+0 -14 Td (challenges/vbank-ctf/Dockerfile  Reduced vBank image size) Tj
+0 -14 Td () Tj
+0 -14 Td (13. Daily Event Checklist) Tj
+0 -14 Td () Tj
+0 -14 Td (Before event:) Tj
+0 -14 Td () Tj
+0 -14 Td (cd /Users/rislab/CTF-Main) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 536 >>
+stream
+BT
+/F1 10 Tf
+54 738 Td
+(./scripts/ctfctl.sh start) Tj
+0 -14 Td (./scripts/ctfctl.sh doctor) Tj
+0 -14 Td () Tj
+0 -14 Td (During event:) Tj
+0 -14 Td () Tj
+0 -14 Td (? Keep Architecture open: http://10.34.204.246/plugins/ctfd-target/admin/architecture) Tj
+0 -14 Td (? Keep Operations open: http://10.34.204.246/plugins/ctfd-target/admin/ops) Tj
+0 -14 Td () Tj
+0 -14 Td (After event:) Tj
+0 -14 Td () Tj
+0 -14 Td (./scripts/ctfctl.sh cleanup-tests) Tj
+0 -14 Td () Tj
+0 -14 Td (Stop player instances from the Operations page if needed.) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+10 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+endobj
+13 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+endobj
+14 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
+endobj
+15 0 obj
+<< /Type /Page /Parent 16 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
+endobj
+16 0 obj
+<< /Type /Pages /Kids [9 0 R 10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R] /Count 7 >>
+endobj
+17 0 obj
+<< /Type /Catalog /Pages 16 0 R >>
+endobj
+18 0 obj
+<< /Title (Sai Udiga CTF Setup Guide) /Author (Sai Udiga) >>
+endobj
+xref
+0 19
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000002224 00000 n 
+0000004713 00000 n 
+0000006543 00000 n 
+0000009065 00000 n 
+0000011314 00000 n 
+0000013263 00000 n 
+0000013850 00000 n 
+0000013977 00000 n 
+0000014105 00000 n 
+0000014233 00000 n 
+0000014361 00000 n 
+0000014489 00000 n 
+0000014617 00000 n 
+0000014745 00000 n 
+0000014845 00000 n 
+0000014896 00000 n 
+trailer << /Size 19 /Root 17 0 R /Info 18 0 R >>
+startxref
+14973
+%%EOF

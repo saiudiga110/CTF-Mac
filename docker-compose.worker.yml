@@ -1,0 +1,39 @@
+# Worker-only runtime for extra Mac minis.
+# Start this on worker machines with:
+#   INSTANCE_MANAGER_URL=http://<control-plane-ip>:8088 INSTANCE_MANAGER_SECRET=<secret> WORKER_ID=mac-mini-1 WORKER_AGENT_URL=http://<worker-ip>:8090 docker compose -f docker-compose.worker.yml up -d --build worker-agent
+
+services:
+  worker-agent:
+    build:
+      context: .
+      dockerfile: infra/instance_manager/Dockerfile
+    image: ctf-main-local-worker-agent:latest
+    restart: always
+    command:
+      - sh
+      - -c
+      - "WORKER_SERVE=0 python -u -m infra.instance_manager.worker_agent & exec gunicorn -b 0.0.0.0:8090 --workers 1 --threads 8 --timeout 0 --graceful-timeout 30 infra.instance_manager.worker_agent:app"
+    environment:
+      - INSTANCE_MANAGER_URL=${INSTANCE_MANAGER_URL:?set INSTANCE_MANAGER_URL}
+      - INSTANCE_MANAGER_SECRET=${INSTANCE_MANAGER_SECRET:?set INSTANCE_MANAGER_SECRET}
+      - WORKER_ID=${WORKER_ID:?set WORKER_ID}
+      - WORKER_AGENT_URL=${WORKER_AGENT_URL:?set WORKER_AGENT_URL}
+      - WORKER_PUBLIC_IP=${WORKER_PUBLIC_IP:?set WORKER_PUBLIC_IP}
+      - WORKER_AGENT_PORT=8090
+      - WORKER_TARGET_PORT_START=${WORKER_TARGET_PORT_START:-20000}
+      - WORKER_TARGET_PORT_END=${WORKER_TARGET_PORT_END:-20999}
+      - WORKER_CONTAINER_LIMIT=${WORKER_CONTAINER_LIMIT:-80}
+      - WORKER_RUNTIME_CPUS=${WORKER_RUNTIME_CPUS:-}
+      - WORKER_RUNTIME_RAM_MB=${WORKER_RUNTIME_RAM_MB:-}
+      - WORKER_EXTRA_PLATFORMS=${WORKER_EXTRA_PLATFORMS:-}
+      - WORKER_ASSUME_AMD64_EMULATION=${WORKER_ASSUME_AMD64_EMULATION:-0}
+      - WORKER_LABELS=${WORKER_LABELS:-role=remote-worker}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5

@@ -362,12 +362,18 @@ fi
 # 6. START SERVICES
 # ─────────────────────────────────────────────────────────────────────────────
 if [[ "$ARG" == "--restart" ]]; then
-    info "Restarting dnsmasq and CTFd with new IP..."
-    "${COMPOSE_CMD[@]}" up -d --force-recreate dnsmasq ctfd
+    info "Restarting DNS and CTFd with new IP..."
+    "${COMPOSE_CMD[@]}" up -d --force-recreate ctfd
+    if ! "${COMPOSE_CMD[@]}" up -d --force-recreate dnsmasq; then
+        warn "dnsmasq could not bind DNS port 53. Continuing without local lab DNS; use http://${HOST_IP} directly."
+    fi
 else
     if [[ "$PRODUCTION" == "1" ]]; then
         info "Starting production core services..."
-        "${COMPOSE_CMD[@]}" up -d proxy dnsmasq ctfd db cache instance-manager local-worker-agent
+        "${COMPOSE_CMD[@]}" up -d proxy ctfd db cache instance-manager local-worker-agent
+        if ! "${COMPOSE_CMD[@]}" up -d dnsmasq; then
+            warn "dnsmasq could not bind DNS port 53. Continuing without local lab DNS; use http://${HOST_IP} directly."
+        fi
         "${COMPOSE_CMD[@]}" stop vbank-ctf vbank-analytics >/dev/null 2>&1 || true
     else
         info "Starting all services..."

@@ -2,6 +2,8 @@
 # Apple Silicon Macs via Rosetta 2. Docker Desktop handles the emulation.
 FROM --platform=linux/amd64 kalilinux/kali-rolling:latest
 
+ARG KALI_INCLUDE_HEAVY_TOOLS=0
+
 ENV DEBIAN_FRONTEND=noninteractive \
     KALI_USER=ctf \
     VNC_RESOLUTION=1920x1080 \
@@ -57,22 +59,10 @@ RUN apt-get -o Acquire::Retries=3 update \
 
 RUN apt-get -o Acquire::Retries=3 update \
     && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-       hydra john hashcat sqlmap wfuzz gobuster ffuf \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-RUN apt-get -o Acquire::Retries=3 update \
-    && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-       tshark masscan \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-# burpsuite is x86-only in Kali repos; safe to skip if unavailable
-RUN apt-get -o Acquire::Retries=3 update \
-    && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends burpsuite \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* || true
-
-# ── mitmproxy ────────────────────────────────────────────────────────────────
-RUN apt-get -o Acquire::Retries=3 update \
-    && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends mitmproxy \
+       hydra john sqlmap wfuzz gobuster ffuf \
+    && if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
+         apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends hashcat tshark masscan burpsuite mitmproxy; \
+       fi \
     && apt-get clean && rm -rf /var/lib/apt/lists/* || true
 
 # ── Clipboard support (required by x11vnc for VNC↔browser clipboard sync) ───
@@ -82,15 +72,16 @@ RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 instal
 
 # ── Python security libraries ─────────────────────────────────────────────────
 RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --fix-missing --no-install-recommends \
-    python3-pip python3-venv python3-dev \
+    python3-pip python3-venv \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/ctf-venv
 RUN /opt/ctf-venv/bin/pip install --no-cache-dir \
         requests httpx pycryptodome scapy \
         PyJWT python-jose beautifulsoup4 lxml paramiko flask colorama \
         termcolor
-RUN /opt/ctf-venv/bin/pip install --no-cache-dir pwntools || true
-RUN /opt/ctf-venv/bin/pip install --no-cache-dir impacket || true
+RUN if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
+      /opt/ctf-venv/bin/pip install --no-cache-dir pwntools impacket || true; \
+    fi
 
 # ── jwt_tool ──────────────────────────────────────────────────────────────────
 RUN git clone --depth=1 https://github.com/ticarpi/jwt_tool /opt/jwt_tool \
@@ -99,10 +90,14 @@ RUN git clone --depth=1 https://github.com/ticarpi/jwt_tool /opt/jwt_tool \
 
 # ── rockyou wordlist ───────────────────────────────────────────────────────────
 RUN mkdir -p /usr/share/wordlists \
-    && (test -f /usr/share/wordlists/rockyou.txt || \
-        test -f /usr/share/wordlists/rockyou.txt.gz && gunzip /usr/share/wordlists/rockyou.txt.gz || \
-        curl -sL "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" \
-        -o /usr/share/wordlists/rockyou.txt) || true
+    && if [ "$KALI_INCLUDE_HEAVY_TOOLS" = "1" ]; then \
+         (test -f /usr/share/wordlists/rockyou.txt || \
+          test -f /usr/share/wordlists/rockyou.txt.gz && gunzip /usr/share/wordlists/rockyou.txt.gz || \
+          curl -sL "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt" \
+          -o /usr/share/wordlists/rockyou.txt) || true; \
+       else \
+         printf 'password\nadmin\nvbank2024\nkali123\n' > /usr/share/wordlists/ctf-small.txt; \
+       fi
 
 # ── Identity hooks ────────────────────────────────────────────────────────────
 RUN printf '%s\n' \

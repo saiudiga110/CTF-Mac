@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/plugins/ctfd-target/assets/admin-ui.css?v=10">
+<style>
+.arch-wrap { max-width: 1280px; }
+.arch-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.arch-topology { position:relative; display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:18px; margin-top:18px; }
+.arch-node { position:relative; border:1px solid rgba(20,184,166,.35); border-radius:18px; padding:16px; background:linear-gradient(180deg, rgba(15,23,42,.96), rgba(2,6,23,.96)); box-shadow:0 0 0 1px rgba(34,211,238,.08), 0 18px 40px rgba(0,0,0,.25); min-height:220px; }
+.arch-node:before { content:""; position:absolute; top:50%; left:-18px; width:18px; border-top:2px dashed rgba(45,212,191,.45); }
+.arch-node:first-child:before { display:none; }
+.arch-node.is-down { border-color:rgba(248,113,113,.45); opacity:.72; }
+.arch-node h2 { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 6px; color:#e2e8f0; font-size:1rem; }
+.arch-ip { color:#67e8f9; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.82rem; }
+.arch-meta { color:#94a3b8; font-size:.8rem; margin-bottom:10px; }
+.arch-load { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:12px 0; }
+.arch-load div { border:1px solid rgba(148,163,184,.16); border-radius:12px; padding:8px; background:rgba(15,23,42,.55); }
+.arch-load strong { display:block; color:#f8fafc; font-size:1.05rem; }
+.arch-mini-list { list-style:none; padding:0; margin:10px 0 0; max-height:150px; overflow:auto; }
+.arch-mini-list li { display:flex; justify-content:space-between; gap:8px; border-top:1px solid rgba(148,163,184,.12); padding:7px 0; font-size:.78rem; }
+.arch-mini-list code { color:#c4b5fd; word-break:break-all; }
+.arch-panel-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-top:18px; }
+.arch-table td, .arch-table th { font-size:.8rem; }
+.arch-image-tags { word-break:break-all; }
+.arch-empty { color:#94a3b8; padding:18px; text-align:center; }
+@media(max-width:980px){ .arch-topology{grid-template-columns:1fr;} .arch-node:before{display:none;} }
+</style>
+<div class="admin-wrap admin-wrap-wide arch-wrap">
+  {% include "_admin_nav.html" %}
+  <div class="arch-toolbar">
+    <div>
+      <h1 class="admin-title">Architecture View</h1>
+      <p class="admin-lead">Live cluster topology, worker status, running images, exact container names, and capacity.</p>
+    </div>
+    <div class="admin-join-actions">
+      <button class="btn btn-sm btn-outline-info" id="arch-refresh">Refresh</button>
+      <span class="admin-pill admin-pill-muted" id="arch-updated">Loading…</span>
+    </div>
+  </div>
+
+  <div class="admin-stat-row" id="arch-stats"></div>
+  <div id="arch-error" class="alert alert-danger admin-alert" style="display:none;"></div>
+  <div class="arch-topology" id="arch-topology"></div>
+  <div class="arch-panel-grid" id="arch-details"></div>
+</div>
+<script id="arch-initial" type="application/json">{{ snapshot|tojson }}</script>
+<script>
+(function(){
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function mb(bytes){ bytes=Number(bytes||0); if(!bytes) return '0 MB'; return Math.round(bytes/1024/1024)+' MB'; }
+  function pct(used,total){ total=Number(total||0); used=Number(used||0); return total ? Math.round((used/total)*100) : 0; }
+  function roleClass(status){ return status === 'running' || status === 'ready' ? 'admin-pill-ok' : (status === 'stopped' ? 'admin-pill-muted' : 'admin-pill-bad'); }
+  function nodeName(n){ return (n.labels && n.labels.site) || n.worker_id || 'worker'; }
+  function render(data){
+    data = data || {};
+    var nodes = data.nodes || [];
+    var totals = data.totals || {};
+    var err = document.getElementById('arch-error');
+    if(!data.success){ err.textContent = data.msg || data.error || 'Architecture data unavailable.'; err.style.display='block'; } else { err.style.display='none'; }
+    document.getElementById('arch-stats').innerHTML = [
+      ['Machines', totals.nodes || 0], ['Running containers', totals.containers || 0], ['vBank targets', totals.target_containers || 0], ['Kali/Linux', totals.kali_containers || 0]
+    ].map(function(x){ return '<div class="admin-stat"><strong>'+esc(x[1])+'</strong><span>'+esc(x[0])+'</span></div>'; }).join('');
+    document.getElementById('arch-topology').innerHTML = nodes.map(function(n){
+      var inv = n.inventory || {}; var live = inv.containers || []; var inst = n.instances || [];
+      var ramPct = pct(n.used_ram_mb, n.ram_runtime_allocated_mb); var cpuPct = pct(n.used_cpu, n.cpu_runtime_allocated);
+      var first = inst.slice(0,5).map(function(i){ return '<li><span>'+esc(i.role || 'container')+'</span><code>'+esc(i.container_name || i.id)+'</code></li>'; }).join('');
+      if(!first) first = '<li><span>No player containers</span><code>idle</code></li>';
+      return '<section class="arch-node '+(n.fresh?'':'is-down')+'">'
+        + '<h2><span>▣ '+esc(nodeName(n))+'</span><span class="admin-pill '+(n.fresh?'admin-pill-ok':'admin-pill-bad')+'">'+(n.fresh?'ready':'stale')+'</span></h2>'
+        + '<div class="arch-ip">'+esc(n.public_ip || 'no-ip')+'</div>'
+        + '<div class="arch-meta">'+esc(n.worker_id || '')+' · '+esc((n.runtime_platforms || []).join(', '))+'</div>'
+        + '<div class="arch-load"><div><strong>'+esc((n.container_count||0)+' / '+(n.container_limit||0))+'</strong><span>containers</span></div><div><strong>'+esc(ramPct)+'%</strong><span>reserved RAM</span></div><div><strong>'+esc(cpuPct)+'%</strong><span>reserved CPU</span></div><div><strong>'+esc(Math.round((n.disk_free_mb||0)/1024))+' GB</strong><span>free disk</span></div></div>'
+        + '<ul class="arch-mini-list">'+first+'</ul>'
+        + '<div class="arch-meta">Inventory: '+(inv.success ? esc(live.length+' visible containers') : esc(inv.error || 'unavailable'))+'</div>'
+        + '</section>';
+    }).join('') || '<div class="admin-card arch-empty">No workers registered yet.</div>';
+    document.getElementById('arch-details').innerHTML = nodes.map(function(n){
+      var inv=n.inventory||{}, live=inv.containers||[], images=inv.images||[];
+      var instRows=(n.instances||[]).map(function(i){ return '<tr><td>'+esc(i.role)+'</td><td><code>'+esc(i.container_name||i.id)+'</code></td><td>'+esc(i.image)+'</td><td>'+esc(i.status)+'</td><td><a href="'+esc(i.url||'#')+'" target="_blank" rel="noopener">'+esc(i.public_host||'')+':'+esc(i.public_port||'')+'</a></td><td>'+esc(i.network_name||'')+'</td></tr>'; }).join('') || '<tr><td colspan="6" class="arch-empty">No active player instances.</td></tr>';
+      var liveRows=live.map(function(c){ return '<tr><td>'+esc(c.role)+'</td><td><code>'+esc(c.name)+'</code></td><td>'+esc(c.image)+'</td><td><span class="admin-pill '+roleClass(c.status)+'">'+esc(c.status)+'</span></td><td>'+esc((c.ports||[]).map(function(p){return (p.host_port||'')+'→'+p.container;}).join(', '))+'</td></tr>'; }).join('') || '<tr><td colspan="5" class="arch-empty">No visible Docker containers.</td></tr>';
+      var imgRows=images.map(function(img){ return '<tr><td class="arch-image-tags">'+esc((img.tags||[]).join(', '))+'</td><td>'+esc(mb(img.size_bytes))+'</td><td><code>'+esc(img.id)+'</code></td></tr>'; }).join('') || '<tr><td colspan="3" class="arch-empty">No tracked images found.</td></tr>';
+      return '<section class="admin-card"><h2>'+esc(nodeName(n))+' details</h2><p class="admin-hint">'+esc(n.public_ip||'')+' · heartbeat age '+esc(n.heartbeat_age_seconds||0)+'s</p>'
+        + '<h3 class="admin-hint">Manager allocations</h3><div class="table-responsive"><table class="table table-sm admin-table arch-table"><thead><tr><th>Role</th><th>Exact name</th><th>Image</th><th>Status</th><th>Open</th><th>Network</th></tr></thead><tbody>'+instRows+'</tbody></table></div>'
+        + '<h3 class="admin-hint">Live Docker containers on machine</h3><div class="table-responsive"><table class="table table-sm admin-table arch-table"><thead><tr><th>Type</th><th>Exact name</th><th>Image</th><th>Status</th><th>Ports</th></tr></thead><tbody>'+liveRows+'</tbody></table></div>'
+        + '<h3 class="admin-hint">Tracked images on machine</h3><div class="table-responsive"><table class="table table-sm admin-table arch-table"><thead><tr><th>Tag</th><th>Size</th><th>ID</th></tr></thead><tbody>'+imgRows+'</tbody></table></div>'
+        + '</section>';
+    }).join('');
+    document.getElementById('arch-updated').textContent = 'Updated '+new Date().toLocaleTimeString();
+  }
+  function load(){ fetch('/plugins/ctfd-target/admin/architecture.json', {credentials:'same-origin'}).then(function(r){return r.json();}).then(render).catch(function(e){render({success:false,msg:String(e),nodes:[],totals:{}});}); }
+  try { render(JSON.parse(document.getElementById('arch-initial').textContent || '{}')); } catch(e) { render({success:false,msg:String(e),nodes:[],totals:{}}); }
+  document.getElementById('arch-refresh').addEventListener('click', load);
+  setInterval(load, 10000);
+})();
+</script>
+{% endblock %}

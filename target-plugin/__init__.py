@@ -94,7 +94,7 @@ def load(app):
     DEFAULT_TARGET_PORT_RANGE_END = "20999"
     DEFAULT_KALI_PORT_RANGE_START = "21000"
     DEFAULT_KALI_PORT_RANGE_END = "21999"
-    DEFAULT_MEM_LIMIT = "512m"
+    DEFAULT_MEM_LIMIT = "128m"
     DEFAULT_CPU_QUOTA = "50000"
     DEFAULT_TARGET_MODE = "global"
     DEFAULT_ENABLE_KALI = "0"
@@ -244,6 +244,7 @@ def load(app):
             "ttl_seconds": _instance_lifetime(),
             "idempotency_key": _instance_manager_id(user.id, challenge_id),
             "required_features": ["linux_containers"],
+            "network_aliases": ["vbank-app"],
             "environment": {
                 "FLAG_SECRET": _get_config("flag_secret", "") or os.environ.get("FLAG_SECRET", "ctf-vbank-2024"),
                 "TEAM_ID": _flag_owner_id(user),
@@ -308,6 +309,7 @@ def load(app):
             "ctfd_user_id": int(user.id),
             "ctfd_team_id": getattr(user, "team_id", None),
             "username": user.name,
+            "role": "target",
             "challenge_id": 0,
             "image": _get_config("target_image", DEFAULT_TARGET_IMAGE),
             "image_platform": image_platform,
@@ -318,6 +320,7 @@ def load(app):
             "ttl_seconds": _instance_lifetime(),
             "idempotency_key": _manager_global_id(user.id),
             "required_features": ["linux_containers"],
+            "network_aliases": ["vbank-app"],
             "environment": {
                 "FLAG_SECRET": _get_config("flag_secret", "") or os.environ.get("FLAG_SECRET", "ctf-vbank-2024"),
                 "TEAM_ID": _flag_owner_id(user),
@@ -2707,6 +2710,40 @@ def load(app):
     @admins_only
     def admin_instances_json():
         return _json_response({"success": True, "containers": _list_managed_containers()})
+
+    def _manager_architecture_snapshot():
+        if not _instance_manager_enabled():
+            return {
+                "success": False,
+                "msg": "Instance Manager is not enabled.",
+                "nodes": [],
+                "instances": [],
+                "totals": {"nodes": 0, "containers": 0, "target_containers": 0, "kali_containers": 0, "capacity": 0},
+            }
+        return _instance_manager_request("GET", "/architecture")
+
+    @page_blueprint.route("/admin/architecture", methods=["GET"])
+    @admins_only
+    def admin_architecture():
+        try:
+            snapshot = _manager_architecture_snapshot()
+        except Exception as exc:
+            snapshot = {
+                "success": False,
+                "msg": str(exc),
+                "nodes": [],
+                "instances": [],
+                "totals": {"nodes": 0, "containers": 0, "target_containers": 0, "kali_containers": 0, "capacity": 0},
+            }
+        return render_plugin_template("architecture.html", snapshot=snapshot, nav="architecture")
+
+    @page_blueprint.route("/admin/architecture.json", methods=["GET"])
+    @admins_only
+    def admin_architecture_json():
+        try:
+            return _json_response(_manager_architecture_snapshot())
+        except Exception as exc:
+            return _json_response({"success": False, "msg": str(exc), "nodes": [], "instances": [], "totals": {}}, status=502)
 
     @page_blueprint.route("/admin/ops", methods=["GET"])
     @admins_only

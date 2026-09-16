@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import threading
 import time
 import json
 import urllib.request
@@ -26,6 +27,7 @@ def create_app() -> Flask:
     store = Store(os.environ.get("INSTANCE_MANAGER_DB", "/data/instance-manager.sqlite3"))
     service_secret = os.environ.get("INSTANCE_MANAGER_SECRET", "change-me")
     worker_stale_after_seconds = int(os.environ.get("INSTANCE_MANAGER_WORKER_STALE_AFTER_SECONDS", "90"))
+    allocation_lock = threading.Lock()
 
     def signed_worker_post(url: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         body = json.dumps(payload, sort_keys=True).encode("utf-8")
@@ -40,7 +42,7 @@ def create_app() -> Flask:
                 "X-CTF-Signature": sig,
             },
         )
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=int(os.environ.get("INSTANCE_MANAGER_WORKER_CREATE_TIMEOUT", "90"))) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
 
     def signed_worker_delete(url: str) -> tuple[int, dict[str, Any]]:
@@ -58,6 +60,13 @@ def create_app() -> Flask:
         with urllib.request.urlopen(req, timeout=20) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
 
+    def worker_get_json(url: str, timeout: int | None = None) -> dict[str, Any]:
+        if timeout is None:
+            timeout = int(os.environ.get("INSTANCE_MANAGER_WORKER_READ_TIMEOUT", "30"))
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
     def require_signature() -> tuple[bool, Any]:
         if os.environ.get("INSTANCE_MANAGER_DISABLE_AUTH") == "1":
             return True, None
@@ -67,6 +76,15 @@ def create_app() -> Flask:
         if not ok:
             return False, (jsonify({"success": False, "error": "invalid signature"}), 401)
         return True, None
+
+    def _safe_network_part(value: Any, default: str = "0") -> str:
+        raw = str(value if value not in (None, "") else default)
+        return "".join(ch if ch.isalnum() else "-" for ch in raw.lower()) or default
+
+    def _shared_network_name(payload: dict[str, Any]) -> str:
+        user_id = _safe_network_part(payload.get("ctfd_user_id"))
+        challenge_id = _safe_network_part(payload.get("challenge_id"))
+        return f"ctfd-net-u{user_id}-c{challenge_id}"
 
     def current_worker_states() -> list[WorkerState]:
         now = time.time()
@@ -78,6 +96,9 @@ def create_app() -> Flask:
             workers[row["worker_id"]] = WorkerState.from_payload(row)
         for inst in store.list_instances():
             if inst.get("status") in ("stopped", "deleted", "failed"):
+                continue
+            expires_at = float(inst.get("expires_at") or 0)
+            if expires_at and expires_at <= now:
                 continue
             worker = workers.get(inst.get("worker_id"))
             if not worker:
@@ -112,10 +133,19 @@ def create_app() -> Flask:
         ok, error = require_signature()
         if not ok:
             return error
-        return jsonify({"success": True, "nodes": store.list_workers()})
+        nodes = []
+        for worker in current_worker_states():
+            row = dict(worker.__dict__)
+            row["used_ports"] = sorted(row.get("used_ports") or [])
+            nodes.append(row)
+        return jsonify({"success": True, "nodes": nodes})
 
     @app.post("/instances")
     def create_instance():
+        with allocation_lock:
+            return _create_instance_locked()
+
+    def _create_instance_locked():
         ok, error = require_signature()
         if not ok:
             return error
@@ -130,10 +160,28 @@ def create_app() -> Flask:
             required_features=list(payload.get("required_features") or ["linux_containers"]),
         )
         workers = current_worker_states()
+        network_name = str(payload.get("network_name") or _shared_network_name(payload))
+        colocated_worker_id = None
+        now = time.time()
+        for inst in store.list_instances():
+            if inst.get("network_name") != network_name:
+                continue
+            if inst.get("status") in ("stopped", "deleted", "failed"):
+                continue
+            expires_at = float(inst.get("expires_at") or 0)
+            if expires_at and expires_at <= now:
+                continue
+            colocated_worker_id = inst.get("worker_id")
+            break
+        if colocated_worker_id:
+            workers = [worker for worker in workers if worker.worker_id == colocated_worker_id]
         try:
             placement = select_worker(workers, req)
         except RuntimeError as exc:
-            return jsonify({"success": False, "error": str(exc)}), 409
+            detail = str(exc)
+            if colocated_worker_id:
+                detail = f"no eligible worker for shared network {network_name} on {colocated_worker_id}: {detail}"
+            return jsonify({"success": False, "error": detail}), 409
 
         instance_id = payload.get("idempotency_key") or "inst_" + secrets.token_hex(12)
         existing = store.get_instance(instance_id)
@@ -170,7 +218,6 @@ def create_app() -> Flask:
                 return jsonify({"success": False, "error": "selected worker has no agent_url"}), 409
             role = str(payload.get("role") or "challenge").lower().replace("_", "-")
             container_name = f"ctfd-{role}-u{payload.get('ctfd_user_id', '0')}-c{payload.get('challenge_id', '0')}-{instance_id[-8:]}"
-            network_name = f"ctfd-net-u{payload.get('ctfd_user_id', '0')}-{instance_id[-8:]}"
             labels = {
                 "ctfd_target_user_id": str(payload.get("ctfd_user_id") or ""),
                 "ctfd_target_user": str(payload.get("username") or ""),
@@ -196,17 +243,29 @@ def create_app() -> Flask:
                 "restart_policy": payload.get("restart_policy", "no"),
                 "environment": payload.get("environment") or {},
                 "labels": labels,
+                "network_aliases": payload.get("network_aliases") or [],
             }
+            worker_instance_url = worker_payload["agent_url"].rstrip("/") + "/instances"
+            worker_delete_url = worker_payload["agent_url"].rstrip("/") + f"/instances/{container_name}?network_name={network_name}"
             try:
-                _, worker_resp = signed_worker_post(worker_payload["agent_url"].rstrip("/") + "/instances", worker_req)
+                _, worker_resp = signed_worker_post(worker_instance_url, worker_req)
             except Exception as exc:
+                try:
+                    signed_worker_delete(worker_delete_url)
+                except Exception:
+                    pass
                 store.event("deploy_failed", str(exc), instance_id=instance_id, worker_id=placement.worker_id)
                 return jsonify({"success": False, "error": "worker deploy failed", "detail": str(exc)}), 502
             if not worker_resp.get("success"):
+                try:
+                    signed_worker_delete(worker_delete_url)
+                except Exception:
+                    pass
                 store.event("deploy_failed", worker_resp.get("error", "worker deploy failed"), instance_id=instance_id, worker_id=placement.worker_id)
                 return jsonify({"success": False, "error": "worker deploy failed", "detail": worker_resp}), 502
             instance_payload["container_name"] = container_name
             instance_payload["network_name"] = network_name
+            instance_payload["network_aliases"] = payload.get("network_aliases") or []
             instance_payload["container_id"] = (worker_resp.get("result") or {}).get("container_id")
             instance_payload["status"] = "deployed"
         if existing:
@@ -215,6 +274,54 @@ def create_app() -> Flask:
             store.create_instance(instance_id, instance_payload, expires_at)
         store.event("instance_allocated", "instance allocated to worker", instance_id=instance_id, worker_id=placement.worker_id, details=instance_payload)
         return jsonify({"success": True, "instance": instance_payload, "placement": placement.__dict__, "expires_at": expires_at}), 201
+
+    @app.get("/architecture")
+    def architecture():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        now = time.time()
+        active_states = {worker.worker_id: worker for worker in current_worker_states()}
+        instances = [
+            inst for inst in store.list_instances()
+            if inst.get("status") not in ("stopped", "deleted", "failed")
+            and not (float(inst.get("expires_at") or 0) and float(inst.get("expires_at") or 0) <= now)
+        ]
+        grouped_instances: dict[str, list[dict[str, Any]]] = {}
+        for inst in instances:
+            grouped_instances.setdefault(str(inst.get("worker_id") or "unknown"), []).append(inst)
+
+        nodes = []
+        for row in store.list_workers():
+            worker_id = row.get("worker_id")
+            heartbeat_age = now - float(row.get("last_heartbeat") or 0)
+            payload = dict(row)
+            payload["heartbeat_age_seconds"] = round(heartbeat_age, 1)
+            payload["fresh"] = worker_id in active_states
+            if worker_id in active_states:
+                state = active_states[worker_id]
+                payload.update(dict(state.__dict__))
+                payload["used_ports"] = sorted(payload.get("used_ports") or [])
+            payload["instances"] = sorted(grouped_instances.get(worker_id, []), key=lambda item: (str(item.get("role") or ""), str(item.get("container_name") or item.get("id") or "")))
+            inventory = {"success": False, "containers": [], "images": [], "error": "agent_url missing"}
+            agent_url = row.get("agent_url")
+            if agent_url and payload.get("fresh"):
+                try:
+                    inventory = worker_get_json(agent_url.rstrip("/") + "/inventory")
+                except Exception as exc:
+                    inventory = {"success": False, "containers": [], "images": [], "error": str(exc)}
+            payload["inventory"] = inventory
+            nodes.append(payload)
+
+        nodes.sort(key=lambda item: str(item.get("labels", {}).get("site") or item.get("worker_id") or ""))
+        totals = {
+            "nodes": len([n for n in nodes if n.get("fresh")]),
+            "containers": sum(len(n.get("instances") or []) for n in nodes if n.get("fresh")),
+            "target_containers": sum(1 for inst in instances if str(inst.get("role") or "").lower() in ("target", "challenge")),
+            "kali_containers": sum(1 for inst in instances if str(inst.get("role") or "").lower() == "kali"),
+            "capacity": sum(int(n.get("container_limit") or 0) for n in nodes if n.get("fresh")),
+        }
+        return jsonify({"success": True, "generated_at": int(now), "nodes": nodes, "instances": instances, "totals": totals})
 
     @app.get("/instances")
     def list_instances():

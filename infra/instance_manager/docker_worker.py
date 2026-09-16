@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import os
+import threading
 from typing import Any
+
+
+_DOCKER_CREATE_LOCK = threading.Lock()
 
 
 class DockerWorker:
@@ -14,6 +18,10 @@ class DockerWorker:
         self.docker = docker
 
     def create_instance(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with _DOCKER_CREATE_LOCK:
+            return self._create_instance_locked(payload)
+
+    def _create_instance_locked(self, payload: dict[str, Any]) -> dict[str, Any]:
         image = payload["image"]
         name = payload["name"]
         network_name = payload["network_name"]
@@ -56,6 +64,14 @@ class DockerWorker:
         if payload.get("shm_size"):
             run_kwargs["shm_size"] = payload.get("shm_size")
         container = self.client.containers.run(image, name=name, **run_kwargs)
+        aliases = sorted({str(alias) for alias in (payload.get("network_aliases") or []) if str(alias).strip()} | {name})
+        if aliases:
+            try:
+                network.reload()
+                network.disconnect(container, force=True)
+                network.connect(container, aliases=aliases)
+            except Exception:
+                pass
         return {
             "container_id": container.id,
             "container_name": container.name,

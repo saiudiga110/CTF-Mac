@@ -58,6 +58,62 @@ def create_app() -> Flask:
     def capabilities():
         return jsonify({"success": True, "capabilities": detect_worker_capabilities().to_dict()})
 
+
+    @app.get("/inventory")
+    def inventory():
+        # Inventory is read-only. Keep it unauthenticated on the isolated LAN by
+        # default so the manager can poll workers with a simple GET. Set
+        # WORKER_AUTH_INVENTORY=1 if this endpoint is exposed beyond the lab LAN.
+        if os.environ.get("WORKER_AUTH_INVENTORY") == "1":
+            ok, error = require_signature()
+            if not ok:
+                return error
+        try:
+            import docker  # type: ignore
+
+            client = docker.from_env()
+            containers = []
+            for container in client.containers.list(all=True):
+                labels = container.labels or {}
+                managed = labels.get("ctfd_target_managed") == "true"
+                compose_service = labels.get("com.docker.compose.service", "")
+                if not managed and compose_service not in ("worker-agent", "vbank-ctf", "vbank-analytics", "kali"):
+                    continue
+                ports = []
+                for container_port, bindings in ((container.attrs.get("NetworkSettings") or {}).get("Ports") or {}).items():
+                    for binding in bindings or []:
+                        ports.append({
+                            "container": container_port,
+                            "host_ip": binding.get("HostIp"),
+                            "host_port": binding.get("HostPort"),
+                        })
+                containers.append({
+                    "name": container.name,
+                    "image": (container.attrs.get("Config") or {}).get("Image") or "",
+                    "status": container.status,
+                    "id": container.id[:12],
+                    "role": labels.get("ctfd_target_role") or compose_service or "system",
+                    "username": labels.get("ctfd_target_user") or "",
+                    "challenge_id": labels.get("ctfd_target_challenge") or "",
+                    "ports": ports,
+                })
+            images = []
+            wanted_prefixes = ("vbank-", "kali-ctf", "ctf-main-local-worker-agent")
+            for image in client.images.list():
+                tags = image.tags or [image.short_id.replace("sha256:", "sha256:")]
+                if not any(any(tag.startswith(prefix) for prefix in wanted_prefixes) for tag in tags):
+                    continue
+                images.append({
+                    "tags": tags,
+                    "id": image.short_id.replace("sha256:", ""),
+                    "size_bytes": int((image.attrs or {}).get("Size") or 0),
+                })
+            containers.sort(key=lambda item: (item["role"], item["name"]))
+            images.sort(key=lambda item: item["tags"][0] if item.get("tags") else item.get("id", ""))
+            return jsonify({"success": True, "containers": containers, "images": images})
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc), "containers": [], "images": []}), 500
+
     @app.post("/instances")
     def create_instance():
         ok, error = require_signature()
@@ -107,10 +163,15 @@ def main() -> int:
     def heartbeat_loop() -> None:
         while True:
             payload = detect_worker_capabilities().to_dict()
-            status, body = post_json(f"{manager}/workers/heartbeat", payload, secret)
-            print(json.dumps({"status": status, "response": body, "worker_id": payload["worker_id"]}))
-            if once:
-                return
+            try:
+                status, body = post_json(f"{manager}/workers/heartbeat", payload, secret)
+                print(json.dumps({"status": status, "response": body, "worker_id": payload["worker_id"]}), flush=True)
+                if once:
+                    return
+            except Exception as exc:
+                print(json.dumps({"status": "heartbeat_error", "error": str(exc), "worker_id": payload.get("worker_id")}), flush=True)
+                if once:
+                    return
             time.sleep(interval)
 
     if os.environ.get("WORKER_SERVE", "0") == "1":

@@ -27,6 +27,29 @@ The startup command creates `.env` from `.env.example` when needed, generates lo
 - A practical baseline is `KALI_MEM_LIMIT=2048m`, which supports about 10 Kali sessions per 32 GB worker Mac after host/runtime reserves.
 - Keep CTFd, MariaDB, Redis, proxy, and Instance Manager on the control-plane Mac; use other Macs as workers for target/Kali containers.
 
+
+## Three Mac Mini Cluster Start
+
+Run this from Mac mini 1, the control-plane machine:
+
+```bash
+chmod +x scripts/start-macmini-cluster.sh
+./scripts/start-macmini-cluster.sh
+```
+
+Defaults:
+
+- Mac mini 1 starts as `mac-mini-1` and runs CTFd, MariaDB, Redis, proxy, Instance Manager, and its local worker.
+- `rislab-mini2.local` is labelled `mac-mini-2`; `rislab-mini3.local` is labelled `mac-mini-3`.
+- The script copies the current repo to each worker, syncs changed workload images, and starts `docker-compose.worker.yml` there.
+- Architecture view: `/plugins/ctfd-target/admin/architecture` shows the three machines, LAN IPs, live worker status, exact container names, and tracked image sizes.
+
+Override hostnames or IPs when needed:
+
+```bash
+CONTROL_IP=10.34.204.246 REMOTE_WORKERS=10.34.204.241,10.34.204.242 ./scripts/start-macmini-cluster.sh
+```
+
 ## Health Checks
 
 ```bash
