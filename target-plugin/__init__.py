@@ -380,8 +380,8 @@ def load(app):
         return _instance_manager_id(user_id, 0, "kali")
 
     def _manager_kali_payload(user):
-        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "1280m"), 1280)
-        cpu_quota = int(_get_config("kali_cpu_quota", "50000") or "50000")
+        mem_mb = _parse_mem_mb(_get_config("kali_mem_limit", "2560m"), 2560)
+        cpu_quota = int(_get_config("kali_cpu_quota", "200000") or "200000")
         image_platform = str(_get_config("kali_image_platform", _get_config("image_platform", "multi")) or "multi").strip()
         return {
             "role": "kali",
@@ -393,13 +393,13 @@ def load(app):
             "image_platform": image_platform,
             "cpu_request": max(0.1, cpu_quota / 100000.0),
             "memory_mb": mem_mb,
-            "disk_mb": int(_get_config("kali_disk_mb", "1536") or "1536"),
+            "disk_mb": int(_get_config("kali_disk_mb", "2048") or "2048"),
             "internal_port": int(_get_config("kali_port", DEFAULT_KALI_PORT)),
             "ttl_seconds": min(_instance_lifetime(), KALI_MAX_LIFETIME_SECONDS),
             "idempotency_key": _manager_kali_id(user.id),
             "required_features": ["linux_containers"],
-            "pids_limit": int(_get_config("kali_pids_limit", "512") or "512"),
-            "shm_size": _get_config("kali_shm_size", "256m"),
+            "pids_limit": int(_get_config("kali_pids_limit", "1024") or "1024"),
+            "shm_size": _get_config("kali_shm_size", "512m"),
             "cap_drop": [],
             "security_opt": ["no-new-privileges:true"],
             "environment": {
@@ -557,7 +557,11 @@ def load(app):
         key = (os.environ.get("SECRET_KEY") or os.environ.get("CTFD_SECRET_KEY") or "").strip()
         return bool(flag) and flag not in weak and bool(key) and key not in weak
 
-    def _guard_launch(user=None):
+    def _launch_guard_key(user, resource="target"):
+        user_id = str(getattr(user, "id", user))
+        return f"ctfd_target:launch:{resource}:{user_id}"
+
+    def _guard_launch(user=None, resource="target"):
         if _bool_config("restore_lock", False):
             return "A database restore is running. Try again in a minute."
         if _ctfd_bool("paused"):
@@ -582,12 +586,31 @@ def load(app):
             try:
                 redis_client = _redis_or_none()
                 if redis_client is not None:
-                    key = "ctfd_target:launch:" + str(getattr(user, "id", user))
-                    if not redis_client.set(key, "1", nx=True, ex=8):
-                        return "Please wait a few seconds before launching again."
+                    key = _launch_guard_key(user, resource)
+                    # Short concurrency lock (2s) scoped strictly to this resource (target vs kali vs challenge)
+                    if not redis_client.set(key, "1", nx=True, ex=2):
+                        for _ in range(3):
+                            time.sleep(0.4)
+                            if redis_client.get(key) is None:
+                                break
+                        if _instance_manager_enabled():
+                            return None
+                        return "Another launch is already in progress. Please wait a moment."
             except Exception:
                 pass
         return None
+
+    def _release_launch_guard(user=None, resource="target"):
+        if user is None:
+            return
+        try:
+            redis_client = _redis_or_none()
+            if redis_client is not None:
+                user_id = str(getattr(user, "id", user))
+                redis_client.delete(_launch_guard_key(user, resource))
+                redis_client.delete(f"ctfd_target:launch:{user_id}")
+        except Exception:
+            pass
 
     def _request_challenge_id():
         data = request.get_json(silent=True) or {}
@@ -1404,7 +1427,7 @@ def load(app):
         user = current_user.get_current_user()
         if not user or not user.name:
             return json.dumps({"success": False, "msg": "Not authenticated."})
-        blocked = _guard_launch(user)
+        blocked = _guard_launch(user, resource="target")
         if blocked:
             return json.dumps({"success": False, "msg": blocked})
 
@@ -1428,6 +1451,8 @@ def load(app):
 
             traceback.print_exc()
             return json.dumps({"success": False, "msg": f"Error: {exc}"})
+        finally:
+            _release_launch_guard(user, resource="target")
 
     @page_blueprint.route("/target/ip", methods=["GET"])
     @authed_only
@@ -1471,6 +1496,8 @@ def load(app):
             return json.dumps({"success": True, "msg": "Target machine stopped."})
         except Exception as exc:
             return json.dumps({"success": False, "msg": str(exc)})
+        finally:
+            _release_launch_guard(user, resource="target")
 
     @page_blueprint.route("/challenge-target/configs", methods=["GET"])
     @authed_only
@@ -1495,14 +1522,16 @@ def load(app):
         user = current_user.get_current_user()
         if not user or not user.name:
             return json.dumps({"success": False, "msg": "Not authenticated."})
-        blocked = _guard_launch(user)
-        if blocked:
-            return json.dumps({"success": False, "msg": blocked})
         challenge_id = _request_challenge_id()
         if not challenge_id:
             return json.dumps({"success": False, "msg": "challenge_id is required."})
+        resource = f"chal_{challenge_id}"
+        blocked = _guard_launch(user, resource=resource)
+        if blocked:
+            return json.dumps({"success": False, "msg": blocked})
         cfg = _get_challenge_target_config(challenge_id)
         if not cfg or not cfg.enabled:
+            _release_launch_guard(user, resource=resource)
             return json.dumps({"success": False, "msg": "This challenge has no target instance configured."})
         try:
             if _instance_manager_enabled():
@@ -1523,6 +1552,8 @@ def load(app):
         except Exception as exc:
             logger.exception("[ChalStart] failed")
             return json.dumps({"success": False, "msg": str(exc)})
+        finally:
+            _release_launch_guard(user, resource=resource)
 
     @page_blueprint.route("/challenge-target/status", methods=["GET"])
     @authed_only
@@ -1550,6 +1581,7 @@ def load(app):
         challenge_id = _request_challenge_id()
         if not challenge_id:
             return json.dumps({"success": False, "msg": "challenge_id is required."})
+        resource = f"chal_{challenge_id}"
         try:
             if _instance_manager_enabled():
                 return json.dumps(_manager_stop_challenge(user, challenge_id))
@@ -1557,6 +1589,8 @@ def load(app):
             return json.dumps({"success": True, "msg": "Challenge instance stopped.", "challenge_id": challenge_id})
         except Exception as exc:
             return json.dumps({"success": False, "msg": str(exc)})
+        finally:
+            _release_launch_guard(user, resource=resource)
 
     @page_blueprint.route("/challenge-target/extend", methods=["POST"])
     @authed_only
@@ -1729,7 +1763,7 @@ def load(app):
         user = current_user.get_current_user()
         if not user or not user.name:
             return json.dumps({"success": False, "msg": "Not authenticated."})
-        blocked = _guard_launch(user)
+        blocked = _guard_launch(user, resource="kali")
         if blocked:
             return json.dumps({"success": False, "msg": blocked})
 
@@ -1755,6 +1789,8 @@ def load(app):
 
             traceback.print_exc()
             return json.dumps({"success": False, "msg": f"Error: {exc}"})
+        finally:
+            _release_launch_guard(user, resource="kali")
 
     @page_blueprint.route("/kali/status", methods=["GET"])
     @authed_only
@@ -1829,6 +1865,8 @@ def load(app):
             return json.dumps({"success": True, "msg": "Linux Pwn Machine stopped."})
         except Exception as exc:
             return json.dumps({"success": False, "msg": str(exc)})
+        finally:
+            _release_launch_guard(user, resource="kali")
 
     @page_blueprint.route("/admin/settings", methods=["GET"])
     @admins_only
@@ -2774,6 +2812,12 @@ def load(app):
         removed = 0
         users = set()
         try:
+            if _instance_manager_enabled():
+                try:
+                    resp = _instance_manager_request("POST", "/instances/stop-all")
+                    removed += int(resp.get("stopped", 0))
+                except Exception as exc:
+                    logger.warning("[AdminOps] instance-manager stop-all error: %s", exc)
             client = _get_docker_client()
             for container in client.containers.list(all=True, filters={"label": "ctfd_target_user"}):
                 users.add(container.labels.get("ctfd_target_user") or "")
@@ -3692,7 +3736,7 @@ def load(app):
         return Response(guide, mimetype="text/html")
 
     _CSS_TAG = '<link rel="stylesheet" href="/plugins/ctfd-target/assets/cyber-theme.css?v=38">'
-    _JS_TAG  = '<script src="/plugins/ctfd-target/assets/target-inject.js?v=38"></script>'
+    _JS_TAG  = '<script src="/plugins/ctfd-target/assets/target-inject.js?v=39"></script>'
     _HEAD_INJECT = _CSS_TAG + "\n</head>"
     _BODY_INJECT = _JS_TAG  + "\n</body>"
     _CSS_MARKER  = b"cyber-theme.css?v=38"   # fast bytes probe

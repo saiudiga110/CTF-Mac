@@ -63,6 +63,11 @@ class DockerWorker:
         }
         if payload.get("shm_size"):
             run_kwargs["shm_size"] = payload.get("shm_size")
+        try:
+            old = self.client.containers.get(name)
+            old.remove(force=True)
+        except Exception:
+            pass
         container = self.client.containers.run(image, name=name, **run_kwargs)
         aliases = sorted({str(alias) for alias in (payload.get("network_aliases") or []) if str(alias).strip()} | {name})
         if aliases:

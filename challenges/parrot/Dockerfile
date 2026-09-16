@@ -1,6 +1,5 @@
-# Force x86_64 so Burp Suite and Kali packages work consistently on Apple
-# Silicon Macs through Docker Desktop/Rosetta emulation.
-FROM --platform=linux/amd64 kalilinux/kali-rolling:latest
+# Use native platform (arm64 on Apple Silicon Macs, amd64 on x86) for best performance
+FROM kalilinux/kali-rolling:latest
 
 # Default event profile requested for the lab:
 # browser + terminal + Burp + nmap + password tools + working apt installs.

@@ -11,6 +11,7 @@ import secrets
 import threading
 import time
 import json
+import urllib.error
 import urllib.request
 from typing import Any
 
@@ -57,8 +58,13 @@ def create_app() -> Flask:
                 "X-CTF-Signature": sig,
             },
         )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return resp.status, json.loads(resp.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                return resp.status, json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return 404, {"success": True, "not_found": True}
+            raise
 
     def worker_get_json(url: str, timeout: int | None = None) -> dict[str, Any]:
         if timeout is None:
@@ -86,6 +92,67 @@ def create_app() -> Flask:
         challenge_id = _safe_network_part(payload.get("challenge_id"))
         return f"ctfd-net-u{user_id}-c{challenge_id}"
 
+    def _is_terminal(inst: dict[str, Any]) -> bool:
+        return inst.get("status") in ("stopped", "deleted", "failed", "expired")
+
+    def _delete_worker_instance(inst: dict[str, Any]) -> None:
+        if os.environ.get("INSTANCE_MANAGER_DEPLOY_MODE", "allocate") != "worker":
+            return
+        if not inst.get("container_name"):
+            return
+        worker_payload = next((row for row in store.list_workers() if row["worker_id"] == inst.get("worker_id")), None)
+        if not worker_payload or not worker_payload.get("agent_url"):
+            return
+        url = worker_payload["agent_url"].rstrip("/") + f"/instances/{inst['container_name']}?network_name={inst.get('network_name', '')}"
+        signed_worker_delete(url)
+
+    def _stop_instance_record(instance_id: str, final_status: str = "stopped", final_health: str | None = None, force: bool = False) -> dict[str, Any]:
+        inst = store.get_instance(instance_id)
+        if not inst:
+            return {"success": False, "error": "instance not found", "status_code": 404}
+        if _is_terminal(inst):
+            return {"success": True, "status": inst.get("status"), "id": instance_id, "already_terminal": True}
+        try:
+            _delete_worker_instance(inst)
+        except Exception as exc:
+            store.event("instance_stop_failed", str(exc), instance_id=instance_id, worker_id=inst.get("worker_id"))
+            if not force:
+                return {"success": False, "error": "worker stop failed", "detail": str(exc), "status_code": 502}
+        inst["status"] = final_status
+        inst["health"] = final_health or final_status
+        store.update_instance(instance_id, inst, final_status)
+        store.event("instance_" + final_status, "instance " + final_status, instance_id=instance_id, worker_id=inst.get("worker_id"))
+        return {"success": True, "status": final_status, "id": instance_id}
+
+    def _expire_due_instances() -> int:
+        now = time.time()
+        expired = 0
+        for inst in store.list_instances():
+            if _is_terminal(inst):
+                continue
+            expires_at = float(inst.get("expires_at") or 0)
+            if not expires_at or expires_at > now:
+                continue
+            force = (now - expires_at) > 300
+            result = _stop_instance_record(str(inst["id"]), "expired", "expired", force=force)
+            if result.get("success"):
+                expired += 1
+        return expired
+
+    def _expiry_reaper_loop() -> None:
+        interval = max(5, int(os.environ.get("INSTANCE_MANAGER_REAPER_INTERVAL_SECONDS", "30") or "30"))
+        while True:
+            try:
+                count = _expire_due_instances()
+                if count:
+                    store.event("expiry_reaper", f"expired {count} instance(s)")
+            except Exception as exc:
+                store.event("expiry_reaper_error", str(exc))
+            time.sleep(interval)
+
+    if os.environ.get("INSTANCE_MANAGER_DISABLE_REAPER", "0").lower() not in ("1", "true", "yes", "on"):
+        threading.Thread(target=_expiry_reaper_loop, daemon=True, name="instance-expiry-reaper").start()
+
     def current_worker_states() -> list[WorkerState]:
         now = time.time()
         workers = {}
@@ -95,7 +162,7 @@ def create_app() -> Flask:
                 continue
             workers[row["worker_id"]] = WorkerState.from_payload(row)
         for inst in store.list_instances():
-            if inst.get("status") in ("stopped", "deleted", "failed"):
+            if _is_terminal(inst):
                 continue
             expires_at = float(inst.get("expires_at") or 0)
             if expires_at and expires_at <= now:
@@ -166,7 +233,7 @@ def create_app() -> Flask:
         for inst in store.list_instances():
             if inst.get("network_name") != network_name:
                 continue
-            if inst.get("status") in ("stopped", "deleted", "failed"):
+            if _is_terminal(inst):
                 continue
             expires_at = float(inst.get("expires_at") or 0)
             if expires_at and expires_at <= now:
@@ -185,8 +252,13 @@ def create_app() -> Flask:
 
         instance_id = payload.get("idempotency_key") or "inst_" + secrets.token_hex(12)
         existing = store.get_instance(instance_id)
-        if existing and existing.get("status") not in ("stopped", "deleted", "failed"):
-            return jsonify({"success": True, "instance": existing, "expires_at": existing.get("expires_at"), "idempotent": True}), 200
+        if existing and not _is_terminal(existing):
+            existing_expires_at = float(existing.get("expires_at") or 0)
+            if existing_expires_at and existing_expires_at <= time.time():
+                _stop_instance_record(str(existing["id"]), "expired", "expired")
+                existing = store.get_instance(instance_id)
+            else:
+                return jsonify({"success": True, "instance": existing, "expires_at": existing.get("expires_at"), "idempotent": True}), 200
         ttl = int(payload.get("ttl_seconds", 3600))
         expires_at = time.time() + ttl
         instance_payload = {
@@ -284,7 +356,7 @@ def create_app() -> Flask:
         active_states = {worker.worker_id: worker for worker in current_worker_states()}
         instances = [
             inst for inst in store.list_instances()
-            if inst.get("status") not in ("stopped", "deleted", "failed")
+            if not _is_terminal(inst)
             and not (float(inst.get("expires_at") or 0) and float(inst.get("expires_at") or 0) <= now)
         ]
         grouped_instances: dict[str, list[dict[str, Any]]] = {}
@@ -370,23 +442,26 @@ def create_app() -> Flask:
         ok, error = require_signature()
         if not ok:
             return error
-        inst = store.get_instance(instance_id)
-        if not inst:
-            return jsonify({"success": False, "error": "instance not found"}), 404
-        if os.environ.get("INSTANCE_MANAGER_DEPLOY_MODE", "allocate") == "worker" and inst.get("container_name"):
-            worker_payload = next((row for row in store.list_workers() if row["worker_id"] == inst.get("worker_id")), None)
-            if worker_payload and worker_payload.get("agent_url"):
-                try:
-                    url = worker_payload["agent_url"].rstrip("/") + f"/instances/{inst['container_name']}?network_name={inst.get('network_name', '')}"
-                    signed_worker_delete(url)
-                except Exception as exc:
-                    store.event("instance_stop_failed", str(exc), instance_id=instance_id, worker_id=inst.get("worker_id"))
-                    return jsonify({"success": False, "error": "worker stop failed", "detail": str(exc)}), 502
-        inst["status"] = "stopped"
-        inst["health"] = "stopped"
-        store.update_instance(instance_id, inst, "stopped")
-        store.event("instance_stopped", "instance stopped", instance_id=instance_id, worker_id=inst.get("worker_id"))
-        return jsonify({"success": True, "status": "stopped", "id": instance_id})
+        force = request.args.get("force", "").lower() in ("1", "true", "yes")
+        result = _stop_instance_record(instance_id, "stopped", "stopped", force=force)
+        status_code = int(result.pop("status_code", 200))
+        return jsonify(result), status_code
+
+    @app.post("/instances/stop-all")
+    def stop_all_instances():
+        ok, error = require_signature()
+        if not ok:
+            return error
+        force = request.args.get("force", "").lower() in ("1", "true", "yes")
+        stopped = 0
+        for inst in store.list_instances():
+            if _is_terminal(inst):
+                continue
+            res = _stop_instance_record(str(inst["id"]), "stopped", "stopped", force=force)
+            if res.get("success"):
+                stopped += 1
+        store.event("instances_stopped_all", f"stopped {stopped} instance(s)")
+        return jsonify({"success": True, "stopped": stopped})
 
     return app
 

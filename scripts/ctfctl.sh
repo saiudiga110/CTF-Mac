@@ -105,16 +105,23 @@ logs() {
 }
 
 cleanup_tests() {
-  info "Removing local crash/ramp/seq test containers"
-  for c in $(docker ps -a --format '{{.Names}}' | grep -E '^ctfd-(kali|target)-u(70|71|72)' || true); do
+  info "Removing local test containers and networks"
+  for c in $(docker ps -a --format '{{.Names}}' | grep -E '^ctfd-(kali|target|challenge)-u' || true); do
     docker rm -f "$c" || true
   done
-  for host in $(remote_hosts); do
-    info "Removing test containers on ${host}"
-    ssh ${SSH_OPTS} "${REMOTE_USER}@${host}" 'export PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin; for c in $(docker ps -a --format "{{.Names}}" | grep -E "^ctfd-(kali|target)-u(70|71|72)" || true); do docker rm -f "$c" || true; done' || warn "Could not clean ${host}"
+  for n in $(docker network ls --format '{{.Name}}' | grep -E '^ctfd-net-u' || true); do
+    docker network rm "$n" || true
   done
-  info "Backing up manager DB and deleting stale crash/ramp/seq records"
-  docker run --rm -v ctf-main_instance-manager-data:/data python:3.11-slim python -c "import sqlite3, shutil, time; p='/data/instance-manager.sqlite3'; b=f'/data/instance-manager.sqlite3.backup-ctfctl-{int(time.time())}'; shutil.copy2(p,b); con=sqlite3.connect(p); cur=con.cursor(); cur.execute(\"delete from instances where id like 'crash-%' or id like 'ramp-%' or id like 'seq-%'\"); con.commit(); print('backup', b, 'deleted', cur.rowcount)"
+  docker image prune -f || true
+  for host in $(remote_hosts); do
+    info "Removing test containers and networks on ${host}"
+    ssh ${SSH_OPTS} "${REMOTE_USER}@${host}" 'export PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin;
+      for c in $(docker ps -a --format "{{.Names}}" | grep -E "^ctfd-(kali|target|challenge)-u" || true); do docker rm -f "$c" || true; done;
+      for n in $(docker network ls --format "{{.Name}}" | grep -E "^ctfd-net-u" || true); do docker network rm "$n" || true; done;
+      docker image prune -f || true' || warn "Could not clean ${host}"
+  done
+  info "Backing up manager DB and deleting stale test records"
+  docker run --rm -v ctf-main_instance-manager-data:/data python:3.11-slim python -c "import sqlite3, shutil, time; p='/data/instance-manager.sqlite3'; b=f'/data/instance-manager.sqlite3.backup-ctfctl-{int(time.time())}'; shutil.copy2(p,b); con=sqlite3.connect(p); cur=con.cursor(); cur.execute(\"delete from instances where id like 'crash-%' or id like 'ramp-%' or id like 'seq-%' or id like 'reduced-%' or id like 'target-%' or id like 'mac3-%' or id like 'stress-%' or id like 'cluster%'\"); con.commit(); print('backup', b, 'deleted', cur.rowcount)"
   docker compose -f docker-compose.yml -f docker-compose.prod.yml restart instance-manager local-worker-agent
   ok "Cleanup complete"
 }

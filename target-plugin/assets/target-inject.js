@@ -943,14 +943,19 @@
         }
     }
 
+    var _targetLaunching = false;
     function launchTarget() {
+        if (_targetLaunching) return;
+        _targetLaunching = true;
         setTargetLoading('Spinning up target\u2026');
         apiFetch('/plugins/ctfd-target/target/start', { method: 'POST', body: '{}' })
-            .then(function (data) { clearTargetLoading(); updateTargetUI(data); })
-            .catch(function () { clearTargetLoading(); });
+            .then(function (data) { _targetLaunching = false; clearTargetLoading(); updateTargetUI(data); })
+            .catch(function () { _targetLaunching = false; clearTargetLoading(); });
     }
 
     function resetTarget() {
+        if (_targetLaunching) return;
+        _targetLaunching = true;
         var resetBtn  = document.getElementById('instance-btn-reset');
         var destroyBtn = document.getElementById('instance-btn-destroy');
         var openBtn   = document.getElementById('instance-btn-open');
@@ -966,11 +971,13 @@
                 return apiFetch('/plugins/ctfd-target/target/start', { method: 'POST', body: '{}' });
             })
             .then(function(data) {
+                _targetLaunching = false;
                 if (resetBtn) { resetBtn.disabled = false; resetBtn.innerHTML = 'Reset'; }
                 _autoExtended = false;
                 updateTargetUI(data);
             })
             .catch(function() {
+                _targetLaunching = false;
                 if (resetBtn) { resetBtn.disabled = false; resetBtn.innerHTML = 'Reset'; }
                 refreshStatus();
             });
@@ -991,12 +998,16 @@
             });
     }
 
+    var _pwnLaunching = false;
     function launchPwn() {
+        if (_pwnLaunching) return;
+        _pwnLaunching = true;
         clearInterval(_pwnPollingTimer);
         _pwnPollingCount = 0;
         setPwnLoading('Starting Kali machine\u2026');
         apiFetch('/plugins/ctfd-target/kali/start', { method: 'POST', body: '{}' })
             .then(function (data) {
+                _pwnLaunching = false;
                 if (data && data.success) {
                     startPwnPolling();
                 } else {
@@ -1004,7 +1015,7 @@
                     updatePwnUI(data);
                 }
             })
-            .catch(function () { clearPwnLoading(); });
+            .catch(function () { _pwnLaunching = false; clearPwnLoading(); });
     }
 
     function startPwnPolling() {
@@ -1462,13 +1473,17 @@
         return apiFetch(url, opts);
     }
 
+    var _chalLaunching = {};
     function _chalLaunch(challengeId) {
+        if (_chalLaunching[challengeId]) return;
+        _chalLaunching[challengeId] = true;
         var btn = document.getElementById('chal-btn-launch');
         var text = document.getElementById('chal-status-text');
-        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="instance-spinner"></span>Launchingâ€¦'; }
-        if (text) text.textContent = 'Spinning up instanceâ€¦';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="instance-spinner"></span>Launching\u2026'; }
+        if (text) text.textContent = 'Spinning up instance\u2026';
         _chalApi('start', 'POST', challengeId)
             .then(function (data) {
+                _chalLaunching[challengeId] = false;
                 if (btn) { btn.disabled = false; btn.innerHTML = 'Launch Instance'; }
                 _updateChalUI(data);
                 if (data && !data.success && data.msg) {
@@ -1477,6 +1492,7 @@
                 }
             })
             .catch(function () {
+                _chalLaunching[challengeId] = false;
                 if (btn) { btn.disabled = false; btn.innerHTML = 'Launch Instance'; }
             });
     }
