@@ -55,6 +55,8 @@ Usage: scripts/ctfctl.sh <command>
 
 Commands:
   start          Start/restart all 3 Mac minis using the production cluster script
+  resume         Resume the cluster (alias to start)
+  stop           Stop all services, workers, and tunnels across all 3 Mac minis
   status         Show live architecture summary from Instance Manager
   urls           Print admin/player URLs
   logs           Tail key local service logs
@@ -67,6 +69,25 @@ EOF
 
 start_cluster() {
   exec ./scripts/start-macmini-cluster.sh
+}
+
+stop_cluster() {
+  info "Stopping remote workers on all nodes..."
+  for host in $(remote_hosts); do
+    info "Stopping worker agent on ${host}"
+    ssh ${SSH_OPTS} "${REMOTE_USER}@${host}" 'export PATH=/usr/local/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin;
+      cd /Users/rislab/CTF-Main 2>/dev/null && docker compose -f docker-compose.worker.yml down || true' || warn "Could not stop worker on ${host}"
+  done
+
+  info "Closing SSH worker tunnels..."
+  pkill -f '127.0.0.1:18091' || true
+  pkill -f '127.0.0.1:18092' || true
+
+  info "Stopping local control plane services on mac-mini-1..."
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+  docker compose -f docker-compose.instance-manager.yml down 2>/dev/null || true
+
+  ok "All CTF services and workers across all 3 Mac Minis have been stopped cleanly."
 }
 
 status_cluster() {
@@ -136,7 +157,8 @@ doctor() {
 
 cmd="${1:-}"
 case "$cmd" in
-  start) start_cluster ;;
+  start|resume) start_cluster ;;
+  stop|down) stop_cluster ;;
   status) status_cluster ;;
   urls) print_urls ;;
   logs) logs ;;
