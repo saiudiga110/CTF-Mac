@@ -306,7 +306,7 @@ def create_app() -> Flask:
                 "internal_port": req.internal_port,
                 "public_port": placement.public_port,
                 "memory_limit": f"{req.memory_mb}m",
-                "cpu_quota": int(req.cpu_request * 100000),
+                "cpu_quota": int(payload.get("cpu_quota") or int(req.cpu_request * 100000)),
                 "pids_limit": int(payload.get("pids_limit", 256)),
                 "read_only": bool(payload.get("read_only", False)),
                 "shm_size": payload.get("shm_size"),
